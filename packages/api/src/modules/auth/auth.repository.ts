@@ -27,15 +27,15 @@ export const authRepository = {
     status: UserRow['status'],
     extras?: { activatedAt?: Date | null; lockedAt?: Date | null; lockedReason?: string | null }
   ): Promise<void> {
-    await db
-      .update(users)
+    db.update(users)
       .set({
         status,
         activatedAt: extras?.activatedAt ?? undefined,
         lockedAt: extras?.lockedAt ?? undefined,
         lockedReason: extras?.lockedReason ?? undefined,
       })
-      .where(eq(users.id, userId));
+      .where(eq(users.id, userId))
+      .run();
   },
 
   async createChallenge(input: NewAuthChallengeRow): Promise<AuthChallengeRow> {
@@ -63,23 +63,24 @@ export const authRepository = {
   },
 
   async consumeChallenge(challengeId: string): Promise<void> {
-    await db
-      .update(authChallenges)
+    db.update(authChallenges)
       .set({ consumedAt: new Date() })
-      .where(eq(authChallenges.id, challengeId));
+      .where(eq(authChallenges.id, challengeId))
+      .run();
   },
 
   async incrementFailedAttempts(userId: string): Promise<void> {
-    const active = await db
+    const active = db
       .select()
       .from(authChallenges)
       .where(and(eq(authChallenges.userId, userId), isNull(authChallenges.consumedAt)))
-      .limit(1);
+      .limit(1)
+      .all();
     const row = active[0];
     if (!row) return;
-    await db
-      .update(authChallenges)
+    db.update(authChallenges)
       .set({ failedAttempts: row.failedAttempts + 1 })
-      .where(eq(authChallenges.id, row.id));
+      .where(eq(authChallenges.id, row.id))
+      .run();
   },
 };

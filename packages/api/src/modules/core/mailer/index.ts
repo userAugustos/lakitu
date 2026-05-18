@@ -8,13 +8,9 @@ const mailLogger = logger.child({ domain: LOG_DOMAINS.MAIL });
 
 let _transport: Transporter | null = null;
 
-function getTransport(): Transporter {
+function getTransport(): Transporter | null {
   if (_transport) return _transport;
-  if (!config.email.enabled) {
-    mailLogger.warn('Email disabled — using JSON transport');
-    _transport = nodemailer.createTransport({ jsonTransport: true });
-    return _transport;
-  }
+  if (!config.email.enabled) return null;
   _transport = nodemailer.createTransport({
     host: config.email.smtpHost,
     port: config.email.smtpPort,
@@ -35,8 +31,13 @@ export interface SendArgs {
 }
 
 export async function sendEmail(args: SendArgs): Promise<{ ok: boolean }> {
+  const transport = getTransport();
+  if (!transport) {
+    mailLogger.warn('Email disabled — skipping send', { to: args.to, subject: args.subject });
+    return { ok: true };
+  }
   try {
-    await getTransport().sendMail(args);
+    await transport.sendMail(args);
     mailLogger.info('Email sent', { to: args.to, subject: args.subject });
     return { ok: true };
   } catch (error) {

@@ -92,13 +92,20 @@ export const authService = {
       await authRepository.consumeChallenge(challenge.id);
     }
 
-    if (user.status !== 'ACTIVE') {
-      await authRepository.setUserStatus(user.id, 'ACTIVE', { activatedAt: new Date() });
-    }
-
+    const becameActive = user.status !== 'ACTIVE';
     const token = await jwtManager.sign(user.id, { email: user.email });
-    const refreshed = (await authRepository.findUserByEmail(email))!;
-    return { token, user: toUserDto(refreshed) };
+    const activatedAt = becameActive ? new Date() : user.activatedAt;
+    if (becameActive) {
+      await authRepository.setUserStatus(user.id, 'ACTIVE', { activatedAt });
+    }
+    return {
+      token,
+      user: toUserDto({
+        ...user,
+        status: 'ACTIVE',
+        activatedAt,
+      }),
+    };
   },
 
   async profile(userId: string): Promise<User> {

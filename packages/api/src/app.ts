@@ -35,6 +35,7 @@ export const createApp = () =>
       enterRequestContext(requestId, getClientIp(request));
     })
     .onAfterResponse(({ request, set, path: route }) => {
+      if (config.isTest) return;
       const startTime = (request as unknown as { __startTime?: number }).__startTime;
       if (!startTime) return;
       const url = new URL(request.url);
