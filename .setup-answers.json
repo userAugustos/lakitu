@@ -1,0 +1,14 @@
+{
+  "projectName": "lakitu",
+  "scope": "@lakitu",
+  "shortName": "lakitu",
+  "db": "sqlite-drizzle",
+  "storybook": false,
+  "i18n": false,
+  "webhooks": false,
+  "queue": "none",
+  "analytics": "none",
+  "errors": "none",
+  "emails": true,
+  "auth": "custom-otp"
+}
