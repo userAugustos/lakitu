@@ -1,0 +1,14 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "dev": {
+      "dependsOn": ["^build:sdk"],
+      "persistent": true,
+      "cache": false
+    },
+    "build:sdk": { "cache": true, "outputs": ["dist/**"] },
+    "build": { "cache": true, "outputs": ["dist/**"] },
+    "typecheck": { "cache": true, "dependsOn": ["^build:sdk"] },
+    "test:e2e": { "cache": false, "dependsOn": ["^build:sdk"] }
+  }
+}
