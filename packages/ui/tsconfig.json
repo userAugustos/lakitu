@@ -1,0 +1,7 @@
+{
+  "extends": "@lakitu/tsconfig/react-library.json",
+  "compilerOptions": {
+    "paths": { "@/*": ["./src/*"] }
+  },
+  "include": ["src/**/*"]
+}
