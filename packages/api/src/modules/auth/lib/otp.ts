@@ -25,22 +25,25 @@ const defaultDeps = (): OtpBypassDeps => ({
   whitelist: config.auth.e2eOtpBypassEmails,
 });
 
+export const isOtpBypassEligible = (
+  email: string,
+  deps: OtpBypassDeps = defaultDeps()
+): boolean => {
+  const normalized = email.trim().toLowerCase();
+  if (!deps.isProduction && normalized.endsWith('@lakitu.test')) return true;
+  return deps.whitelist.includes(normalized);
+};
+
 export const isOtpBypassAllowed = (
   email: string,
   code: string,
   deps: OtpBypassDeps = defaultDeps()
 ): boolean => {
   if (code !== OTP_BYPASS_CODE) return false;
+  if (!isOtpBypassEligible(email, deps)) return false;
   const normalized = email.trim().toLowerCase();
-
-  if (!deps.isProduction && normalized.endsWith('@lakitu.test')) return true;
-
-  if (deps.whitelist.includes(normalized)) {
-    if (deps.isProduction) {
-      otpLogger.warn('otp bypass used (production whitelist)', { email: normalized });
-    }
-    return true;
+  if (deps.isProduction && deps.whitelist.includes(normalized)) {
+    otpLogger.warn('otp bypass used (production whitelist)', { email: normalized });
   }
-
-  return false;
+  return true;
 };

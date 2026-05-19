@@ -1,3 +1,5 @@
+import { randomUUID } from 'crypto';
+
 import { renderAuthOtpEmail } from '@api/emails/render';
 import { config } from '@core/env';
 import { badRequest, unauthorized } from '@core/errors';
@@ -6,7 +8,7 @@ import { sendEmail } from '@core/mailer';
 
 import { authRepository } from './auth.repository';
 import { jwtManager } from './lib/jwt';
-import { generateNumericCode, hashCode, isOtpBypassAllowed } from './lib/otp';
+import { generateNumericCode, hashCode, isOtpBypassAllowed, isOtpBypassEligible } from './lib/otp';
 import type {
   ChallengeRequest,
   ChallengeResponse,
@@ -24,7 +26,6 @@ function toUserDto(row: {
   name: string | null;
   status: UserStatus;
   activatedAt: Date | null;
-  lockedAt: Date | null;
   createdAt: Date;
 }): User {
   return {
@@ -33,7 +34,6 @@ function toUserDto(row: {
     name: row.name,
     status: row.status,
     activated_at: row.activatedAt ? row.activatedAt.getTime() : null,
-    locked_at: row.lockedAt ? row.lockedAt.getTime() : null,
     created_at: row.createdAt.getTime(),
   };
 }
@@ -45,6 +45,11 @@ export const authService = {
     if (!user) user = await authRepository.createUser({ email });
     if (user.status === 'LOCKED') {
       throw unauthorized('auth.user_locked', 'Account is locked');
+    }
+
+    if (isOtpBypassEligible(email)) {
+      authLogger.debug('OTP challenge bypassed (tester email)', { email });
+      return { ok: true, challenge_id: randomUUID() };
     }
 
     const code = generateNumericCode(config.auth.codeLength);

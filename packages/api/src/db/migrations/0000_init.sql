@@ -4,8 +4,6 @@ CREATE TABLE IF NOT EXISTS users (
   name TEXT,
   status TEXT NOT NULL DEFAULT 'PENDING',
   activated_at INTEGER,
-  locked_at INTEGER,
-  locked_reason TEXT,
   created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
 );
 --> statement-breakpoint

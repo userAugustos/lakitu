@@ -25,14 +25,12 @@ export const authRepository = {
   async setUserStatus(
     userId: string,
     status: UserRow['status'],
-    extras?: { activatedAt?: Date | null; lockedAt?: Date | null; lockedReason?: string | null }
+    extras?: { activatedAt?: Date | null }
   ): Promise<void> {
     db.update(users)
       .set({
         status,
         activatedAt: extras?.activatedAt ?? undefined,
-        lockedAt: extras?.lockedAt ?? undefined,
-        lockedReason: extras?.lockedReason ?? undefined,
       })
       .where(eq(users.id, userId))
       .run();

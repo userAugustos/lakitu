@@ -41,7 +41,6 @@ const protectedAuthRoutes = new Elysia({ name: 'auth.routes.protected', prefix: 
         name: row.name,
         status: row.status,
         activated_at: row.activatedAt ? row.activatedAt.getTime() : null,
-        locked_at: row.lockedAt ? row.lockedAt.getTime() : null,
         created_at: row.createdAt.getTime(),
       };
     },

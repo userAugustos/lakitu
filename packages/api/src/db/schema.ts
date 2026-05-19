@@ -11,8 +11,6 @@ export const users = sqliteTable('users', {
     .notNull()
     .default('PENDING'),
   activatedAt: integer('activated_at', { mode: 'timestamp_ms' }),
-  lockedAt: integer('locked_at', { mode: 'timestamp_ms' }),
-  lockedReason: text('locked_reason'),
   createdAt: integer('created_at', { mode: 'timestamp_ms' })
     .notNull()
     .default(sql`(unixepoch() * 1000)`),

@@ -46,6 +46,25 @@ describe('auth flow (dev bypass)', () => {
     expect(verify.data?.user.status).toBe('ACTIVE');
   });
 
+  test('challenge for tester email returns ok and verify works with 111111', async () => {
+    const bypassEmail = 'bypass-flow@lakitu.test';
+    const challenge = await testClient.post<{ ok: boolean; challenge_id: string }>(
+      '/auth/challenge',
+      { email: bypassEmail }
+    );
+    expect(challenge.error).toBeNull();
+    expect(challenge.data?.ok).toBe(true);
+    expect(typeof challenge.data?.challenge_id).toBe('string');
+
+    const verify = await testClient.post<VerifyResponse>('/auth/verify', {
+      email: bypassEmail,
+      code: bypassCode,
+    });
+    expect(verify.error).toBeNull();
+    expect(verify.data?.user.email).toBe(bypassEmail);
+    expect(verify.data?.user.status).toBe('ACTIVE');
+  });
+
   test('profile with JWT returns the user', async () => {
     const verify = await testClient.post<VerifyResponse>('/auth/verify', {
       email,

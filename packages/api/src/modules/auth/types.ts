@@ -9,7 +9,6 @@ export interface User {
   name: string | null;
   status: UserStatus;
   activated_at: number | null;
-  locked_at: number | null;
   created_at: number;
 }
 
@@ -38,7 +37,6 @@ export const UserSchema = t.Object({
   name: t.Union([t.String(), t.Null()]),
   status: t.Union([t.Literal('PENDING'), t.Literal('ACTIVE'), t.Literal('LOCKED')]),
   activated_at: t.Union([t.Number(), t.Null()]),
-  locked_at: t.Union([t.Number(), t.Null()]),
   created_at: t.Number(),
 });
 
