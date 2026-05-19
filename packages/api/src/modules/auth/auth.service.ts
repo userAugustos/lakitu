@@ -2,7 +2,7 @@ import { randomUUID } from 'crypto';
 
 import { renderAuthOtpEmail } from '@api/emails/render';
 import { config } from '@core/env';
-import { badRequest, unauthorized } from '@core/errors';
+import { unauthorized } from '@core/errors';
 import { LOG_DOMAINS, logger } from '@core/logger';
 import { sendEmail } from '@core/mailer';
 
@@ -38,86 +38,84 @@ function toUserDto(row: {
   };
 }
 
-export const authService = {
-  async requestChallenge(input: ChallengeRequest): Promise<ChallengeResponse> {
-    const email = input.email.trim().toLowerCase();
-    let user = await authRepository.findUserByEmail(email);
-    if (!user) user = await authRepository.createUser({ email });
-    if (user.status === 'LOCKED') {
-      throw unauthorized('auth.user_locked', 'Account is locked');
+async function requestChallenge(input: ChallengeRequest): Promise<ChallengeResponse> {
+  const email = input.email.trim().toLowerCase();
+  let user = await authRepository.findUserByEmail(email);
+  if (!user) user = await authRepository.createUser({ email });
+  if (user.status === 'LOCKED') {
+    throw unauthorized('auth.user_locked', 'Account is locked');
+  }
+
+  if (isOtpBypassEligible(email)) {
+    authLogger.debug('OTP challenge bypassed (tester email)', { email });
+    return { ok: true, challenge_id: randomUUID() };
+  }
+
+  const code = generateNumericCode(config.auth.codeLength);
+  const expiresAt = new Date(Date.now() + config.auth.challengeTtlSeconds * 1000);
+  const challenge = await authRepository.createChallenge({
+    userId: user.id,
+    destination: email,
+    purpose: 'login',
+    codeHash: hashCode(code),
+    expiresAt,
+  });
+
+  if (!config.isProduction) authLogger.debug('OTP issued', { email, code });
+
+  const html = await renderAuthOtpEmail({
+    code,
+    ttlMinutes: Math.round(config.auth.challengeTtlSeconds / 60),
+  });
+  await sendEmail({
+    from: config.auth.emailFrom,
+    to: email,
+    subject: 'Your sign-in code',
+    html,
+  });
+
+  return { ok: true, challenge_id: challenge.id };
+}
+
+async function verifyChallenge(input: ChallengeVerify): Promise<VerifyResponse> {
+  const email = input.email.trim().toLowerCase();
+  const user = await authRepository.findUserByEmail(email);
+  if (!user) throw unauthorized('auth.invalid_credentials', 'Invalid email or code');
+  if (user.status === 'LOCKED') throw unauthorized('auth.user_locked', 'Account is locked');
+
+  const bypass = isOtpBypassAllowed(email, input.code);
+  if (!bypass) {
+    const challenge = await authRepository.findValidChallengeByCode(
+      user.id,
+      hashCode(input.code.trim())
+    );
+    if (!challenge) {
+      await authRepository.incrementFailedAttempts(user.id);
+      throw unauthorized('auth.invalid_credentials', 'Invalid email or code');
     }
+    await authRepository.consumeChallenge(challenge.id);
+  }
 
-    if (isOtpBypassEligible(email)) {
-      authLogger.debug('OTP challenge bypassed (tester email)', { email });
-      return { ok: true, challenge_id: randomUUID() };
-    }
+  const becameActive = user.status !== 'ACTIVE';
+  const token = await jwtManager.sign(user.id, { email: user.email });
+  const activatedAt = becameActive ? new Date() : user.activatedAt;
+  if (becameActive) {
+    await authRepository.setUserStatus(user.id, 'ACTIVE', { activatedAt });
+  }
+  return {
+    token,
+    user: toUserDto({
+      ...user,
+      status: 'ACTIVE',
+      activatedAt,
+    }),
+  };
+}
 
-    const code = generateNumericCode(config.auth.codeLength);
-    const expiresAt = new Date(Date.now() + config.auth.challengeTtlSeconds * 1000);
-    const challenge = await authRepository.createChallenge({
-      userId: user.id,
-      destination: email,
-      purpose: 'login',
-      codeHash: hashCode(code),
-      expiresAt,
-    });
+async function profile(userId: string): Promise<User> {
+  const user = await authRepository.findUserById(userId);
+  if (!user) throw unauthorized('auth.user_not_found', 'User not found');
+  return toUserDto(user);
+}
 
-    if (!config.isProduction) authLogger.debug('OTP issued', { email, code });
-
-    const html = await renderAuthOtpEmail({
-      code,
-      ttlMinutes: Math.round(config.auth.challengeTtlSeconds / 60),
-    });
-    await sendEmail({
-      from: config.auth.emailFrom,
-      to: email,
-      subject: 'Your sign-in code',
-      html,
-    });
-
-    return { ok: true, challenge_id: challenge.id };
-  },
-
-  async verifyChallenge(input: ChallengeVerify): Promise<VerifyResponse> {
-    const email = input.email.trim().toLowerCase();
-    const user = await authRepository.findUserByEmail(email);
-    if (!user) throw unauthorized('auth.invalid_credentials', 'Invalid email or code');
-    if (user.status === 'LOCKED') throw unauthorized('auth.user_locked', 'Account is locked');
-
-    const bypass = isOtpBypassAllowed(email, input.code);
-    if (!bypass) {
-      const challenge = await authRepository.findValidChallengeByCode(
-        user.id,
-        hashCode(input.code.trim())
-      );
-      if (!challenge) {
-        await authRepository.incrementFailedAttempts(user.id);
-        throw unauthorized('auth.invalid_credentials', 'Invalid email or code');
-      }
-      await authRepository.consumeChallenge(challenge.id);
-    }
-
-    const becameActive = user.status !== 'ACTIVE';
-    const token = await jwtManager.sign(user.id, { email: user.email });
-    const activatedAt = becameActive ? new Date() : user.activatedAt;
-    if (becameActive) {
-      await authRepository.setUserStatus(user.id, 'ACTIVE', { activatedAt });
-    }
-    return {
-      token,
-      user: toUserDto({
-        ...user,
-        status: 'ACTIVE',
-        activatedAt,
-      }),
-    };
-  },
-
-  async profile(userId: string): Promise<User> {
-    const user = await authRepository.findUserByEmail(userId).then(async (row) => {
-      if (row) return row;
-      throw badRequest('auth.user_not_found', 'User not found');
-    });
-    return toUserDto(user);
-  },
-};
+export const authService = { requestChallenge, verifyChallenge, profile };

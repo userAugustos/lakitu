@@ -8,6 +8,7 @@ import { zodToJsonSchema } from 'zod-to-json-schema';
 
 import { db } from '@api/db/client';
 import { authRoutes } from '@api/modules/auth/auth.routes';
+import { onboardingRoutes } from '@api/modules/onboarding/onboarding.routes';
 import { config } from '@core/env';
 import { errorPlugin } from '@core/errors';
 import { LOG_DOMAINS, logger } from '@core/logger';
@@ -71,7 +72,8 @@ export const createApp = () =>
       }),
       { detail: { summary: 'Health Check', tags: ['system'] } }
     )
-    .use(authRoutes);
+    .use(authRoutes)
+    .use(onboardingRoutes);
 
 export const lakituApi = createApp();
 
