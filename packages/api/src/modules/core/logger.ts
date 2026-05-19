@@ -26,35 +26,21 @@ export const LOG_DOMAINS = {
 } as const;
 
 const isTestEnv = Bun.env.NODE_ENV === 'test';
-const isDevEnv = Bun.env.NODE_ENV === 'development' || Bun.env.NODE_ENV === undefined;
 
 let _pinoLogger: pino.Logger | null = null;
 
-const createPrettyTransport = (): pino.TransportSingleOptions => ({
-  target: 'pino-pretty',
-  options: {
-    colorize: true,
-    ignore: 'pid,hostname,service_name,domain',
-    translateTime: 'HH:MM:ss.l',
-    messageFormat: '{msg}',
-  },
-});
-
 function createPinoInstance(): pino.Logger {
   const stdoutLevel = (Bun.env.LOG_LEVEL || 'info') as pino.LevelWithSilentOrString;
-  return pino(
-    {
-      level: stdoutLevel,
-      base: { service_name: Bun.env.SERVICE_NAME ?? 'lakitu-api' },
-      mixin: () => {
-        const reqCtx = getRequestContext();
-        return reqCtx ? { request_id: reqCtx.request_id, client_ip: reqCtx.client_ip } : {};
-      },
-      formatters: { level: (label) => ({ level: label }) },
-      serializers: { error: pino.stdSerializers.err },
+  return pino({
+    level: stdoutLevel,
+    base: { service_name: Bun.env.SERVICE_NAME ?? 'lakitu-api' },
+    mixin: () => {
+      const reqCtx = getRequestContext();
+      return reqCtx ? { request_id: reqCtx.request_id, client_ip: reqCtx.client_ip } : {};
     },
-    isDevEnv && !isTestEnv ? pino.transport(createPrettyTransport()) : undefined
-  );
+    formatters: { level: (label) => ({ level: label }) },
+    serializers: { error: pino.stdSerializers.err },
+  });
 }
 
 export function initLogger(): void {

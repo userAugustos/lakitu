@@ -15,7 +15,7 @@ import {
   VerifyResponseSchema,
 } from './types';
 
-export const authRoutes = new Elysia({ name: 'auth.routes', prefix: '/auth' })
+const publicAuthRoutes = new Elysia({ name: 'auth.routes.public', prefix: '/auth' })
   .post('/challenge', async ({ body }) => authService.requestChallenge(body), {
     body: ChallengeRequestSchema,
     response: ChallengeResponseSchema,
@@ -25,7 +25,9 @@ export const authRoutes = new Elysia({ name: 'auth.routes', prefix: '/auth' })
     body: ChallengeVerifySchema,
     response: VerifyResponseSchema,
     detail: { summary: 'Verify OTP and issue JWT', tags: ['auth'] },
-  })
+  });
+
+const protectedAuthRoutes = new Elysia({ name: 'auth.routes.protected', prefix: '/auth' })
   .use(authMiddleware)
   .get(
     '/profile',
@@ -48,3 +50,7 @@ export const authRoutes = new Elysia({ name: 'auth.routes', prefix: '/auth' })
       detail: { summary: 'Authed user profile', tags: ['auth'] },
     }
   );
+
+export const authRoutes = new Elysia({ name: 'auth.routes' })
+  .use(publicAuthRoutes)
+  .use(protectedAuthRoutes);

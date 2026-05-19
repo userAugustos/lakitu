@@ -5,7 +5,7 @@ import { unauthorized } from '@core/errors';
 import { jwtManager } from './lib/jwt';
 
 export const authMiddleware = new Elysia({ name: 'auth.middleware' }).derive(
-  { as: 'global' },
+  { as: 'scoped' },
   async ({ request }) => {
     const header = request.headers.get('authorization');
     if (!header?.startsWith('Bearer ')) {
