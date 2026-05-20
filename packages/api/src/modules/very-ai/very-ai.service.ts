@@ -16,16 +16,15 @@ async function startLink(userId: string): Promise<StartLinkResponse> {
   await veryAiRepository.deleteStatesByUser(userId);
 
   const state = randomUUID();
-  const nonce = randomUUID();
   const expiresAt = new Date(Date.now() + STATE_TTL_MS);
 
-  await veryAiRepository.createState({ state, userId, nonce, expiresAt });
+  await veryAiRepository.createState({ state, userId, expiresAt });
 
   if (user.veryAiStatus !== 'verified') {
     await veryAiRepository.setUserPending(userId);
   }
 
-  return { authorize_url: veryAiClient.buildAuthorizeUrl({ state, nonce }) };
+  return { authorize_url: veryAiClient.buildAuthorizeUrl({ state }) };
 }
 
 async function completeLink(input: { code: string; state: string }): Promise<CallbackResponse> {

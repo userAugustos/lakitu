@@ -12,14 +12,13 @@ export interface VeryAiUserInfo {
   sub: string;
 }
 
-function buildAuthorizeUrl({ state, nonce }: { state: string; nonce: string }): string {
+function buildAuthorizeUrl({ state }: { state: string }): string {
   const url = new URL(`${config.veryAi.baseUrl}/authorize`);
   url.searchParams.set('response_type', 'code');
   url.searchParams.set('client_id', config.veryAi.clientId);
   url.searchParams.set('redirect_uri', config.veryAi.redirectUri);
   url.searchParams.set('scope', 'openid');
   url.searchParams.set('state', state);
-  url.searchParams.set('nonce', nonce);
   return url.toString();
 }
 

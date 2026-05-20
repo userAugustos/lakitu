@@ -10,8 +10,8 @@ setupE2ETests();
 
 void mock.module('@api/modules/very-ai/very-ai.client', () => ({
   veryAiClient: {
-    buildAuthorizeUrl: ({ state, nonce }: { state: string; nonce: string }) =>
-      `https://api.very.org/oauth2/authorize?state=${state}&nonce=${nonce}`,
+    buildAuthorizeUrl: ({ state }: { state: string }) =>
+      `https://api.very.org/oauth2/authorize?state=${state}`,
     exchangeCode: () =>
       Promise.resolve({
         access_token: 'stub-access',
@@ -41,7 +41,7 @@ describe('VeryAI OAuth2 link', () => {
       .catch((e) => done(e));
   });
 
-  test('start returns authorize_url containing state and nonce', async () => {
+  test('start returns authorize_url containing state', async () => {
     const token = await getToken('very-ai-start@lakitu.test');
     const res = await testClient.post<{ authorize_url: string }>(
       '/onboarding/very-ai/start',
@@ -51,7 +51,6 @@ describe('VeryAI OAuth2 link', () => {
     expect(res.error).toBeNull();
     const url = new URL(res.data!.authorize_url);
     expect(url.searchParams.get('state')).toBeTruthy();
-    expect(url.searchParams.get('nonce')).toBeTruthy();
   });
 
   test('callback with valid state completes link and flips status', async () => {

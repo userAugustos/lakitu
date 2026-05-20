@@ -54,7 +54,6 @@ export const veryAiOauthStates = sqliteTable(
     userId: text('user_id')
       .notNull()
       .references(() => users.id),
-    nonce: text('nonce').notNull(),
     expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull(),
     createdAt: integer('created_at', { mode: 'timestamp_ms' })
       .notNull()
