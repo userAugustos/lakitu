@@ -8,7 +8,7 @@ async function computeStatus(userId: string): Promise<OnboardingStatus> {
   if (!user) throw unauthorized('auth.user_not_found', 'User not found');
 
   const companySatisfied = false;
-  const veryAiLinked = user.veryAiStatus === 'verified';
+  const veryAiLinked = user.veryAiStatus !== 'unlinked';
   const veryAiVerified = user.veryAiStatus === 'verified';
 
   let nextStep: OnboardingNextStep;
