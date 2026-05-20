@@ -17,6 +17,9 @@ const fakeUser = (email: string) => ({
   name: null,
   status: 'PENDING' as const,
   activatedAt: null,
+  veryAiSubjectId: null,
+  veryAiStatus: 'unlinked' as const,
+  veryAiLastVerificationAt: null,
   createdAt: new Date(),
 });
 

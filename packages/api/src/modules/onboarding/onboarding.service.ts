@@ -1,13 +1,31 @@
-import type { OnboardingStatus } from './types';
+import { authRepository } from '@api/modules/auth/auth.repository';
+import { unauthorized } from '@core/errors';
 
-async function computeStatus(): Promise<OnboardingStatus> {
+import type { OnboardingNextStep, OnboardingStatus } from './types';
+
+async function computeStatus(userId: string): Promise<OnboardingStatus> {
+  const user = await authRepository.findUserById(userId);
+  if (!user) throw unauthorized('auth.user_not_found', 'User not found');
+
+  const companySatisfied = false;
+  const veryAiLinked = user.veryAiStatus === 'verified';
+  const veryAiVerified = user.veryAiStatus === 'verified';
+
+  let nextStep: OnboardingNextStep;
+  if (!companySatisfied) nextStep = 'company';
+  else if (!veryAiLinked) nextStep = 'very_ai_link';
+  else if (!veryAiVerified) nextStep = 'very_ai_verify';
+  else nextStep = null;
+
+  const onboarded = companySatisfied && veryAiLinked && veryAiVerified;
+
   return {
-    onboarded: false,
-    next_step: 'company',
+    onboarded,
+    next_step: nextStep,
     conditions: {
-      company: { satisfied: false },
-      very_ai_linked: { satisfied: false },
-      very_ai_verified: { satisfied: false },
+      company: { satisfied: companySatisfied },
+      very_ai_linked: { satisfied: veryAiLinked },
+      very_ai_verified: { satisfied: veryAiVerified },
     },
   };
 }
