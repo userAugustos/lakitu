@@ -11,6 +11,7 @@ export const ApiErrorSchema = t.Object({
   details: t.Optional(
     t.Array(t.Object({ path: t.String(), summary: t.String(), message: t.String() }))
   ),
+  meta: t.Optional(t.Record(t.String(), t.Unknown())),
 });
 
 export type ApiError = Static<typeof ApiErrorSchema>;
@@ -37,7 +38,12 @@ export class AppError extends Error {
     this.meta = options?.meta;
   }
   toResponse() {
-    return { error: this.code, message: this.message };
+    const base: { error: string; message: string; meta?: Record<string, unknown> } = {
+      error: this.code,
+      message: this.message,
+    };
+    if (this.meta) base.meta = this.meta;
+    return base;
   }
 }
 
