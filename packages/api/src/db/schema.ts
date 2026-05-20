@@ -15,9 +15,7 @@ export const users = sqliteTable('users', {
     .default('PENDING'),
   activatedAt: integer('activated_at', { mode: 'timestamp_ms' }),
   veryAiSubjectId: text('very_ai_subject_id').unique(),
-  veryAiStatus: text('very_ai_status', { enum: VERY_AI_STATUSES })
-    .notNull()
-    .default('unlinked'),
+  veryAiStatus: text('very_ai_status', { enum: VERY_AI_STATUSES }).notNull().default('unlinked'),
   veryAiLastVerificationAt: integer('very_ai_last_verification_at', { mode: 'timestamp_ms' }),
   createdAt: integer('created_at', { mode: 'timestamp_ms' })
     .notNull()

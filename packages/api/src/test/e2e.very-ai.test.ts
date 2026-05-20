@@ -82,9 +82,7 @@ describe('VeryAI OAuth2 link', () => {
   });
 
   test('callback with unknown state is rejected', async () => {
-    const res = await testClient.get(
-      '/onboarding/very-ai/callback?code=x&state=does-not-exist'
-    );
+    const res = await testClient.get('/onboarding/very-ai/callback?code=x&state=does-not-exist');
     expect(res.error).not.toBeNull();
   });
 });

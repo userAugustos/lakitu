@@ -2,12 +2,8 @@ import { Elysia } from 'elysia';
 
 import { authMiddleware } from '@api/modules/auth/auth.middleware';
 
+import { CallbackQuerySchema, CallbackResponseSchema, StartLinkResponseSchema } from './types';
 import { veryAiService } from './very-ai.service';
-import {
-  CallbackQuerySchema,
-  CallbackResponseSchema,
-  StartLinkResponseSchema,
-} from './types';
 
 const protectedRoutes = new Elysia({
   name: 'very-ai.routes.protected',

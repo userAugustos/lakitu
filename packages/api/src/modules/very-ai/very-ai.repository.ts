@@ -42,11 +42,7 @@ async function setUserVerified(userId: string, subjectId: string): Promise<void>
 }
 
 async function findUserBySubjectId(subjectId: string): Promise<UserRow | undefined> {
-  const rows = await db
-    .select()
-    .from(users)
-    .where(eq(users.veryAiSubjectId, subjectId))
-    .limit(1);
+  const rows = await db.select().from(users).where(eq(users.veryAiSubjectId, subjectId)).limit(1);
   return rows[0];
 }
 
