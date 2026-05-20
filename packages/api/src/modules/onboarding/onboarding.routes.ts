@@ -10,7 +10,7 @@ export const onboardingRoutes = new Elysia({
   prefix: '/onboarding',
 })
   .use(authMiddleware)
-  .get('/status', async () => onboardingService.computeStatus(), {
+  .get('/status', async ({ auth }) => onboardingService.computeStatus(auth.sub), {
     response: OnboardingStatusSchema,
     detail: { summary: 'Onboarding status', tags: ['onboarding'] },
   });

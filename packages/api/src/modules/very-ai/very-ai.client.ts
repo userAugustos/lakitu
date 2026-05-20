@@ -1,0 +1,51 @@
+import { apiFetch } from '@core/api-fetch';
+import { config } from '@core/env';
+
+export interface VeryAiTokenResponse {
+  access_token: string;
+  id_token: string;
+  token_type: string;
+  expires_in: number;
+  scope: string;
+}
+
+export interface VeryAiUserInfo {
+  sub: string;
+}
+
+function buildAuthorizeUrl({ state }: { state: string }): string {
+  const url = new URL(`${config.veryAi.baseUrl}/authorize`);
+  url.searchParams.set('response_type', 'code');
+  url.searchParams.set('client_id', config.veryAi.clientId);
+  url.searchParams.set('redirect_uri', config.veryAi.redirectUri);
+  url.searchParams.set('scope', 'openid');
+  url.searchParams.set('state', state);
+  return url.toString();
+}
+
+async function exchangeCode({ code }: { code: string }): Promise<VeryAiTokenResponse> {
+  const body = new URLSearchParams({
+    grant_type: 'authorization_code',
+    client_id: config.veryAi.clientId,
+    client_secret: config.veryAi.clientSecret,
+    code,
+    redirect_uri: config.veryAi.redirectUri,
+  });
+  const result = await apiFetch<VeryAiTokenResponse>(`${config.veryAi.baseUrl}/token`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: body.toString(),
+  });
+  if (!result.ok) throw new Error(`VeryAI token exchange failed: ${result.status}`);
+  return result.data;
+}
+
+async function getUserInfo(accessToken: string): Promise<VeryAiUserInfo> {
+  const result = await apiFetch<VeryAiUserInfo>(`${config.veryAi.baseUrl}/userinfo`, {
+    headers: { authorization: `Bearer ${accessToken}` },
+  });
+  if (!result.ok) throw new Error(`VeryAI userinfo failed: ${result.status}`);
+  return result.data;
+}
+
+export const veryAiClient = { buildAuthorizeUrl, exchangeCode, getUserInfo };
