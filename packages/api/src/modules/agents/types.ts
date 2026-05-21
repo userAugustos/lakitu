@@ -1,4 +1,4 @@
-import { t } from 'elysia';
+import { z } from 'zod';
 
 export const CLAWKEY_STATUS_VALUES = ['pending', 'completed', 'expired', 'failed'] as const;
 export type ClawKeyStatusValue = (typeof CLAWKEY_STATUS_VALUES)[number];
@@ -43,53 +43,43 @@ export interface RotateKeyResponse {
   registration_url: string;
 }
 
-export const AgentSchema = t.Object({
-  id: t.String(),
-  name: t.String(),
-  owner_id: t.String(),
-  company_id: t.String(),
-  ed25519_public_key: t.String(),
-  clawkey_session_id: t.Union([t.String(), t.Null()]),
-  clawkey_status: t.Union([
-    t.Literal('pending'),
-    t.Literal('completed'),
-    t.Literal('expired'),
-    t.Literal('failed'),
-  ]),
-  clawkey_registered_at: t.Union([t.Number(), t.Null()]),
-  status: t.Union([t.Literal('active'), t.Literal('revoked')]),
-  created_at: t.Number(),
-  updated_at: t.Number(),
+export const AgentSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  owner_id: z.string(),
+  company_id: z.string(),
+  ed25519_public_key: z.string(),
+  clawkey_session_id: z.string().nullable(),
+  clawkey_status: z.enum(['pending', 'completed', 'expired', 'failed']),
+  clawkey_registered_at: z.number().nullable(),
+  status: z.enum(['active', 'revoked']),
+  created_at: z.number(),
+  updated_at: z.number(),
 });
 
-export const CreateAgentBodySchema = t.Object({
-  name: t.String({ minLength: 1, maxLength: 100 }),
+export const CreateAgentBodySchema = z.object({
+  name: z.string().min(1).max(100),
 });
 
-export const AgentIdParamSchema = t.Object({
-  id: t.String(),
+export const AgentIdParamSchema = z.object({
+  id: z.string(),
 });
 
-export const CreateAgentResponseSchema = t.Object({
+export const CreateAgentResponseSchema = z.object({
   agent: AgentSchema,
-  registration_url: t.String(),
+  registration_url: z.string(),
 });
 
-export const ListAgentsResponseSchema = t.Object({
-  agents: t.Array(AgentSchema),
+export const ListAgentsResponseSchema = z.object({
+  agents: z.array(AgentSchema),
 });
 
-export const AgentClawKeyStatusResponseSchema = t.Object({
-  clawkey_status: t.Union([
-    t.Literal('pending'),
-    t.Literal('completed'),
-    t.Literal('expired'),
-    t.Literal('failed'),
-  ]),
-  clawkey_registered_at: t.Union([t.Number(), t.Null()]),
+export const AgentClawKeyStatusResponseSchema = z.object({
+  clawkey_status: z.enum(['pending', 'completed', 'expired', 'failed']),
+  clawkey_registered_at: z.number().nullable(),
 });
 
-export const RotateKeyResponseSchema = t.Object({
+export const RotateKeyResponseSchema = z.object({
   agent: AgentSchema,
-  registration_url: t.String(),
+  registration_url: z.string(),
 });

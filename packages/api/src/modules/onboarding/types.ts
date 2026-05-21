@@ -1,4 +1,4 @@
-import { t } from 'elysia';
+import { z } from 'zod';
 
 export type OnboardingNextStep =
   | 'company'
@@ -21,20 +21,14 @@ export interface OnboardingStatus {
   };
 }
 
-const OnboardingConditionSchema = t.Object({
-  satisfied: t.Boolean(),
+const OnboardingConditionSchema = z.object({
+  satisfied: z.boolean(),
 });
 
-export const OnboardingStatusSchema = t.Object({
-  onboarded: t.Boolean(),
-  next_step: t.Union([
-    t.Literal('company'),
-    t.Literal('very_ai_link'),
-    t.Literal('very_ai_verify'),
-    t.Literal('very_ai_reverify'),
-    t.Null(),
-  ]),
-  conditions: t.Object({
+export const OnboardingStatusSchema = z.object({
+  onboarded: z.boolean(),
+  next_step: z.enum(['company', 'very_ai_link', 'very_ai_verify', 'very_ai_reverify']).nullable(),
+  conditions: z.object({
     company: OnboardingConditionSchema,
     very_ai_linked: OnboardingConditionSchema,
     very_ai_verified: OnboardingConditionSchema,

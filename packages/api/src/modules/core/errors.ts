@@ -1,20 +1,20 @@
-import { Elysia, t, ValidationError } from 'elysia';
-import type { Static } from 'elysia';
+import { Elysia, ValidationError } from 'elysia';
+import { z } from 'zod';
 
 import { logger } from './logger';
 import { getRequestContext } from './request-context';
 
-export const ApiErrorSchema = t.Object({
-  error: t.String(),
-  message: t.String(),
-  request_id: t.Optional(t.String()),
-  details: t.Optional(
-    t.Array(t.Object({ path: t.String(), summary: t.String(), message: t.String() }))
-  ),
-  meta: t.Optional(t.Record(t.String(), t.Unknown())),
+export const ApiErrorSchema = z.object({
+  error: z.string(),
+  message: z.string(),
+  request_id: z.string().optional(),
+  details: z
+    .array(z.object({ path: z.string(), summary: z.string(), message: z.string() }))
+    .optional(),
+  meta: z.record(z.string(), z.unknown()).optional(),
 });
 
-export type ApiError = Static<typeof ApiErrorSchema>;
+export type ApiError = z.infer<typeof ApiErrorSchema>;
 
 type AppErrorCode = 400 | 401 | 403 | 404 | 409 | 422 | 429 | 500;
 

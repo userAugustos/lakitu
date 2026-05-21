@@ -1,4 +1,4 @@
-import { t } from 'elysia';
+import { z } from 'zod';
 
 export const USER_STATUSES = ['PENDING', 'ACTIVE', 'LOCKED'] as const;
 export type UserStatus = (typeof USER_STATUSES)[number];
@@ -31,28 +31,28 @@ export interface VerifyResponse {
   user: User;
 }
 
-export const UserSchema = t.Object({
-  id: t.String(),
-  email: t.String({ format: 'email' }),
-  name: t.Union([t.String(), t.Null()]),
-  status: t.Union([t.Literal('PENDING'), t.Literal('ACTIVE'), t.Literal('LOCKED')]),
-  activated_at: t.Union([t.Number(), t.Null()]),
-  created_at: t.Number(),
+export const UserSchema = z.object({
+  id: z.string(),
+  email: z.string().email(),
+  name: z.string().nullable(),
+  status: z.enum(['PENDING', 'ACTIVE', 'LOCKED']),
+  activated_at: z.number().nullable(),
+  created_at: z.number(),
 });
 
-export const ChallengeRequestSchema = t.Object({ email: t.String({ format: 'email' }) });
+export const ChallengeRequestSchema = z.object({ email: z.string().email() });
 
-export const ChallengeVerifySchema = t.Object({
-  email: t.String({ format: 'email' }),
-  code: t.String(),
+export const ChallengeVerifySchema = z.object({
+  email: z.string().email(),
+  code: z.string(),
 });
 
-export const ChallengeResponseSchema = t.Object({
-  ok: t.Boolean(),
-  challenge_id: t.String(),
+export const ChallengeResponseSchema = z.object({
+  ok: z.boolean(),
+  challenge_id: z.string(),
 });
 
-export const VerifyResponseSchema = t.Object({
-  token: t.String(),
+export const VerifyResponseSchema = z.object({
+  token: z.string(),
   user: UserSchema,
 });
