@@ -7,7 +7,7 @@ async function computeStatus(userId: string): Promise<OnboardingStatus> {
   const user = await authRepository.findUserById(userId);
   if (!user) throw unauthorized('auth.user_not_found', 'User not found');
 
-  const companySatisfied = false;
+  const companySatisfied = user.companyId !== null;
   const veryAiLinked = user.veryAiStatus !== 'unlinked';
   const veryAiVerified = user.veryAiStatus === 'verified';
 

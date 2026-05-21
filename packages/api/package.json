@@ -19,6 +19,10 @@
       "types": "./dist/auth.d.ts",
       "import": "./dist/auth.js"
     },
+    "./companies": {
+      "types": "./dist/companies.d.ts",
+      "import": "./dist/companies.js"
+    },
     "./onboarding": {
       "types": "./dist/onboarding.d.ts",
       "import": "./dist/onboarding.js"

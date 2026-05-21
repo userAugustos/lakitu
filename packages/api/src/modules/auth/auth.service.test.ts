@@ -15,6 +15,7 @@ const fakeUser = (email: string) => ({
   id: `user-${email}`,
   email,
   name: null,
+  companyId: null,
   status: 'PENDING' as const,
   activatedAt: null,
   veryAiSubjectId: null,

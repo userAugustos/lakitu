@@ -8,6 +8,7 @@ import { zodToJsonSchema } from 'zod-to-json-schema';
 
 import { db } from '@api/db/client';
 import { authRoutes } from '@api/modules/auth/auth.routes';
+import { companiesRoutes } from '@api/modules/companies/companies.routes';
 import { onboardingRoutes } from '@api/modules/onboarding/onboarding.routes';
 import { veryAiRoutes } from '@api/modules/very-ai/very-ai.routes';
 import { config } from '@core/env';
@@ -75,7 +76,8 @@ export const createApp = () =>
     )
     .use(authRoutes)
     .use(onboardingRoutes)
-    .use(veryAiRoutes);
+    .use(veryAiRoutes)
+    .use(companiesRoutes);
 
 export const lakituApi = createApp();
 

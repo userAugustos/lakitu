@@ -6,6 +6,7 @@ export default defineConfig((options) => ({
     client: 'src/sdk/client.ts',
     core: 'src/sdk/core.ts',
     auth: 'src/sdk/auth.ts',
+    companies: 'src/sdk/companies.ts',
     onboarding: 'src/sdk/onboarding.ts',
   },
   format: ['esm'],

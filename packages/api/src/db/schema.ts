@@ -1,26 +1,43 @@
 import { sql } from 'drizzle-orm';
 import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
-export const VERY_AI_STATUSES = ['unlinked', 'pending', 'verified', 'revoked'] as const;
-export type VeryAiStatus = (typeof VERY_AI_STATUSES)[number];
-
-export const users = sqliteTable('users', {
+export const companies = sqliteTable('companies', {
   id: text('id')
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
-  email: text('email').notNull().unique(),
-  name: text('name'),
-  status: text('status', { enum: ['PENDING', 'ACTIVE', 'LOCKED'] })
-    .notNull()
-    .default('PENDING'),
-  activatedAt: integer('activated_at', { mode: 'timestamp_ms' }),
-  veryAiSubjectId: text('very_ai_subject_id').unique(),
-  veryAiStatus: text('very_ai_status', { enum: VERY_AI_STATUSES }).notNull().default('unlinked'),
-  veryAiLastVerificationAt: integer('very_ai_last_verification_at', { mode: 'timestamp_ms' }),
+  name: text('name').notNull().unique(),
   createdAt: integer('created_at', { mode: 'timestamp_ms' })
     .notNull()
     .default(sql`(unixepoch() * 1000)`),
 });
+
+export const VERY_AI_STATUSES = ['unlinked', 'pending', 'verified', 'revoked'] as const;
+export type VeryAiStatus = (typeof VERY_AI_STATUSES)[number];
+
+export const users = sqliteTable(
+  'users',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    email: text('email').notNull().unique(),
+    name: text('name'),
+    companyId: text('company_id').references(() => companies.id),
+    status: text('status', { enum: ['PENDING', 'ACTIVE', 'LOCKED'] })
+      .notNull()
+      .default('PENDING'),
+    activatedAt: integer('activated_at', { mode: 'timestamp_ms' }),
+    veryAiSubjectId: text('very_ai_subject_id').unique(),
+    veryAiStatus: text('very_ai_status', { enum: VERY_AI_STATUSES }).notNull().default('unlinked'),
+    veryAiLastVerificationAt: integer('very_ai_last_verification_at', { mode: 'timestamp_ms' }),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+  },
+  (t) => ({
+    companyIdx: index('idx_users_company').on(t.companyId),
+  })
+);
 
 export const authChallenges = sqliteTable(
   'auth_challenges',
@@ -64,6 +81,8 @@ export const veryAiOauthStates = sqliteTable(
   })
 );
 
+export type CompanyRow = typeof companies.$inferSelect;
+export type NewCompanyRow = typeof companies.$inferInsert;
 export type UserRow = typeof users.$inferSelect;
 export type NewUserRow = typeof users.$inferInsert;
 export type AuthChallengeRow = typeof authChallenges.$inferSelect;
