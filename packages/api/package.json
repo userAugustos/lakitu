@@ -31,6 +31,10 @@
       "types": "./dist/agents.d.ts",
       "import": "./dist/agents.js"
     },
+    "./pending-actions": {
+      "types": "./dist/pending-actions.d.ts",
+      "import": "./dist/pending-actions.js"
+    },
     "./permissions": {
       "types": "./dist/permissions.d.ts",
       "import": "./dist/permissions.js"

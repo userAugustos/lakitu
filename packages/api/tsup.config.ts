@@ -9,6 +9,7 @@ export default defineConfig((options) => ({
     companies: 'src/sdk/companies.ts',
     onboarding: 'src/sdk/onboarding.ts',
     agents: 'src/sdk/agents.ts',
+    'pending-actions': 'src/sdk/pending-actions.ts',
     permissions: 'src/sdk/permissions.ts',
     'audit-log': 'src/sdk/audit-log.ts',
   },

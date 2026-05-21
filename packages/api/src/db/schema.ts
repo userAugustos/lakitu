@@ -172,6 +172,48 @@ export const permissionAuditLog = sqliteTable(
   })
 );
 
+export const PENDING_ACTION_STATUSES = ['pending', 'approved', 'denied', 'expired'] as const;
+export type PendingActionStatus = (typeof PENDING_ACTION_STATUSES)[number];
+
+export const pendingActions = sqliteTable(
+  'pending_actions',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    agentId: text('agent_id')
+      .notNull()
+      .references(() => agents.id),
+    ownerId: text('owner_id')
+      .notNull()
+      .references(() => users.id),
+    companyId: text('company_id')
+      .notNull()
+      .references(() => companies.id),
+    action: text('action').notNull(),
+    context: text('context').notNull(),
+    policyHit: text('policy_hit').notNull(),
+    auditId: text('audit_id'),
+    status: text('status', { enum: PENDING_ACTION_STATUSES }).notNull().default('pending'),
+    resolutionNote: text('resolution_note'),
+    resolvedBy: text('resolved_by').references(() => users.id),
+    resolvedAt: integer('resolved_at', { mode: 'timestamp_ms' }),
+    expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+    updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+  },
+  (t) => ({
+    ownerIdx: index('idx_pending_actions_owner').on(t.ownerId),
+    agentIdx: index('idx_pending_actions_agent').on(t.agentId),
+    statusIdx: index('idx_pending_actions_status').on(t.status),
+    expiresIdx: index('idx_pending_actions_expires').on(t.status, t.expiresAt),
+  })
+);
+
 export type CompanyRow = typeof companies.$inferSelect;
 export type NewCompanyRow = typeof companies.$inferInsert;
 export type UserRow = typeof users.$inferSelect;
@@ -233,3 +275,5 @@ export type AgentPermissionRow = typeof agentPermissions.$inferSelect;
 export type NewAgentPermissionRow = typeof agentPermissions.$inferInsert;
 export type PermissionAuditLogRow = typeof permissionAuditLog.$inferSelect;
 export type NewPermissionAuditLogRow = typeof permissionAuditLog.$inferInsert;
+export type PendingActionRow = typeof pendingActions.$inferSelect;
+export type NewPendingActionRow = typeof pendingActions.$inferInsert;

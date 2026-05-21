@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 
 import { db } from '@api/db/client';
 import { agents } from '@api/db/schema';
@@ -12,6 +12,11 @@ async function create(input: NewAgentRow): Promise<AgentRow> {
 async function findById(id: string): Promise<AgentRow | undefined> {
   const rows = await db.select().from(agents).where(eq(agents.id, id)).limit(1);
   return rows[0];
+}
+
+async function findByIds(ids: string[]): Promise<AgentRow[]> {
+  if (ids.length === 0) return [];
+  return db.select().from(agents).where(inArray(agents.id, ids));
 }
 
 async function findByCompanyId(companyId: string): Promise<AgentRow[]> {
@@ -51,6 +56,7 @@ function updateKeysAndSession(
 export const agentsRepository = {
   create,
   findById,
+  findByIds,
   findByCompanyId,
   updateStatus,
   updateClawKeyStatus,
