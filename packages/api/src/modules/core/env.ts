@@ -48,7 +48,7 @@ export const config = {
     baseUrl: env.VERY_AI_BASE_URL ?? 'https://api.very.org/oauth2',
     clientId: env.VERY_AI_CLIENT_ID ?? '',
     clientSecret: env.VERY_AI_CLIENT_SECRET ?? '',
-    redirectUri: env.VERY_AI_REDIRECT_URI ?? 'http://localhost:3000/onboarding/very-ai/callback',
+    redirectUri: env.VERY_AI_REDIRECT_URI ?? 'http://localhost:5173/login',
   },
 };
 

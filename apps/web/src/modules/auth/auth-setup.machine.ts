@@ -7,6 +7,7 @@ import { router } from '@/main';
 import { authActions } from '@/modules/auth/auth.store';
 
 import {
+  completeVeryAiLink,
   createCompany,
   fetchOnboardingStatus,
   fetchProfile,
@@ -30,14 +31,22 @@ export const authSetupMachine = setup({
     events: AuthSetupEvent;
   },
   actors: {
-    resolvePosition: fromPromise(async (): Promise<ResolvePositionResult | null> => {
-      const token = authActions.getToken();
-      if (!token || isTokenExpired(token)) return null;
+    resolvePosition: fromPromise(
+      async (): Promise<ResolvePositionResult | 'very_ai_callback' | null> => {
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get('code');
+        const state = params.get('state');
 
-      const user = await fetchProfile();
-      const onboardingStatus = await fetchOnboardingStatus();
-      return { token, user, onboardingStatus };
-    }),
+        if (code && state) return 'very_ai_callback';
+
+        const token = authActions.getToken();
+        if (!token || isTokenExpired(token)) return null;
+
+        const user = await fetchProfile();
+        const onboardingStatus = await fetchOnboardingStatus();
+        return { token, user, onboardingStatus };
+      }
+    ),
 
     sendChallenge: fromPromise(async ({ input }: { input: { email: string } }) => {
       const result = await sendChallenge(input.email);
@@ -64,6 +73,16 @@ export const authSetupMachine = setup({
     startVeryAiLinkActor: fromPromise(async () => {
       const result = await startVeryAiLink();
       return { authorizeUrl: result.authorize_url };
+    }),
+
+    completeVeryAiLinkActor: fromPromise(async () => {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code')!;
+      const state = params.get('state')!;
+      await completeVeryAiLink(code, state);
+      window.history.replaceState({}, '', window.location.pathname);
+      const onboardingStatus = await fetchOnboardingStatus();
+      return { onboardingStatus };
     }),
   },
   guards: {
@@ -123,41 +142,60 @@ export const authSetupMachine = setup({
         src: 'resolvePosition',
         onDone: [
           {
-            guard: ({ event }) => event.output !== null && event.output.onboardingStatus.onboarded,
-            target: 'success',
-            actions: assign(({ event }) => ({
-              token: event.output!.token,
-              user: event.output!.user,
-              onboardingStatus: event.output!.onboardingStatus,
-              screen: 'success' as const,
-            })),
-          },
-          {
-            guard: ({ event }) =>
-              event.output !== null && event.output.onboardingStatus.next_step === 'company',
-            target: 'company',
-            actions: assign(({ event }) => ({
-              token: event.output!.token,
-              user: event.output!.user,
-              onboardingStatus: event.output!.onboardingStatus,
-              screen: 'company' as const,
-            })),
+            guard: ({ event }) => event.output === 'very_ai_callback',
+            target: 'veryAiCallback',
           },
           {
             guard: ({ event }) => {
-              if (!event.output) return false;
-              const step = event.output.onboardingStatus.next_step;
+              const out = event.output as ResolvePositionResult | null;
+              return out !== null && out.onboardingStatus.onboarded;
+            },
+            target: 'success',
+            actions: assign(({ event }) => {
+              const out = event.output as ResolvePositionResult;
+              return {
+                token: out.token,
+                user: out.user,
+                onboardingStatus: out.onboardingStatus,
+                screen: 'success' as const,
+              };
+            }),
+          },
+          {
+            guard: ({ event }) => {
+              const out = event.output as ResolvePositionResult | null;
+              return out !== null && out.onboardingStatus.next_step === 'company';
+            },
+            target: 'company',
+            actions: assign(({ event }) => {
+              const out = event.output as ResolvePositionResult;
+              return {
+                token: out.token,
+                user: out.user,
+                onboardingStatus: out.onboardingStatus,
+                screen: 'company' as const,
+              };
+            }),
+          },
+          {
+            guard: ({ event }) => {
+              const out = event.output as ResolvePositionResult | null;
+              if (!out) return false;
+              const step = out.onboardingStatus.next_step;
               return (
                 step === 'very_ai_link' || step === 'very_ai_verify' || step === 'very_ai_reverify'
               );
             },
             target: 'veryAi',
-            actions: assign(({ event }) => ({
-              token: event.output!.token,
-              user: event.output!.user,
-              onboardingStatus: event.output!.onboardingStatus,
-              screen: 'very-ai' as const,
-            })),
+            actions: assign(({ event }) => {
+              const out = event.output as ResolvePositionResult;
+              return {
+                token: out.token,
+                user: out.user,
+                onboardingStatus: out.onboardingStatus,
+                screen: 'very-ai' as const,
+              };
+            }),
           },
           {
             target: 'email',
@@ -371,6 +409,37 @@ export const authSetupMachine = setup({
         },
         { target: 'success' },
       ],
+    },
+
+    veryAiCallback: {
+      entry: assign({ screen: 'very-ai' as const }),
+      invoke: {
+        src: 'completeVeryAiLinkActor',
+        onDone: [
+          {
+            guard: ({ event }) => event.output.onboardingStatus.onboarded === true,
+            target: 'success',
+            actions: assign(({ event }) => ({
+              onboardingStatus: event.output.onboardingStatus,
+            })),
+          },
+          {
+            target: 'error',
+            actions: assign(({ event }) => ({
+              onboardingStatus: event.output.onboardingStatus,
+              error: { message: 'Onboarding not yet complete after VeryAI verification' },
+            })),
+          },
+        ],
+        onError: {
+          target: 'error',
+          actions: assign(({ event }) => ({
+            error: {
+              message: (event.error as Error).message ?? 'VeryAI verification failed',
+            },
+          })),
+        },
+      },
     },
 
     veryAi: {

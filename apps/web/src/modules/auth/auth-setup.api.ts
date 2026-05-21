@@ -37,3 +37,12 @@ export async function searchCompanies(query: string): Promise<SearchCompaniesRes
 export async function startVeryAiLink(): Promise<{ authorize_url: string }> {
   return apiCall<{ authorize_url: string }>(() => lakituAuthApi.onboarding['very-ai'].start.post());
 }
+
+export async function completeVeryAiLink(
+  code: string,
+  state: string
+): Promise<{ ok: boolean; status: string; subject_id: string }> {
+  return apiCall<{ ok: boolean; status: string; subject_id: string }>(() =>
+    lakituPublicApi.onboarding['very-ai'].callback.get({ $query: { code, state } })
+  );
+}
