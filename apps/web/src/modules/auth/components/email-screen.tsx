@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { ArrowRight, Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
@@ -70,25 +71,13 @@ export function EmailScreen({ onSubmit, isSubmitting, error }: EmailScreenProps)
       <Button type="submit" disabled={isSubmitting} data-testid="email-submit">
         {isSubmitting ? (
           <>
-            <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            <Loader2 className="animate-spin" />
             <span>Sending...</span>
           </>
         ) : (
           <>
             <span>Send code</span>
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M5 12h14M13 6l6 6-6 6" />
-            </svg>
+            <ArrowRight />
           </>
         )}
       </Button>

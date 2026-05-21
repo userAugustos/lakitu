@@ -1,3 +1,5 @@
+import { XCircle } from 'lucide-react';
+
 import { Button } from '@repo/ui/shadcn/button';
 
 interface ErrorScreenProps {
@@ -9,24 +11,7 @@ export function ErrorScreen({ message, onRetry }: ErrorScreenProps) {
   return (
     <div className="flex flex-col items-center pt-6 text-center" data-testid="error-screen">
       <div className="bg-destructive/10 inline-flex size-16 items-center justify-center rounded-full">
-        <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true">
-          <circle
-            cx="16"
-            cy="16"
-            r="14"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            className="text-destructive"
-          />
-          <path
-            d="M11 11l10 10M21 11l-10 10"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            className="text-destructive"
-          />
-        </svg>
+        <XCircle className="text-destructive size-8" />
       </div>
 
       <h3 className="font-display mt-4 mb-2 text-lg font-bold">Something went wrong</h3>
