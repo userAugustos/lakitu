@@ -1,4 +1,4 @@
-import { t } from 'elysia';
+import { z } from 'zod';
 
 export interface StartLinkResponse {
   authorize_url: string;
@@ -10,17 +10,17 @@ export interface CallbackResponse {
   subject_id: string;
 }
 
-export const StartLinkResponseSchema = t.Object({
-  authorize_url: t.String(),
+export const StartLinkResponseSchema = z.object({
+  authorize_url: z.string(),
 });
 
-export const CallbackQuerySchema = t.Object({
-  code: t.String(),
-  state: t.String(),
+export const CallbackQuerySchema = z.object({
+  code: z.string(),
+  state: z.string(),
 });
 
-export const CallbackResponseSchema = t.Object({
-  ok: t.Boolean(),
-  status: t.Literal('verified'),
-  subject_id: t.String(),
+export const CallbackResponseSchema = z.object({
+  ok: z.boolean(),
+  status: z.literal('verified'),
+  subject_id: z.string(),
 });
