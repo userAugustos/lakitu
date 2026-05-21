@@ -70,7 +70,10 @@ async function sendNotificationEmail(
   pendingActionId: string
 ): Promise<void> {
   const owner = await authRepository.findUserById(ownerId);
-  if (!owner) return;
+  if (!owner) {
+    paLogger.warn('Owner not found for notification', { ownerId, pendingActionId });
+    return;
+  }
 
   const approvalUrl = `${config.web.publicUrl}/pending-actions/${pendingActionId}`;
   const html = await renderPendingActionEmail({ agentName, action, policyHit, approvalUrl });
@@ -117,7 +120,7 @@ async function getById(userId: string, pendingActionId: string): Promise<Pending
   return toPendingActionDto(row, agent?.name ?? 'Unknown Agent');
 }
 
-function ensurePendingAndNotExpired(row: PendingActionRow): void {
+function guardAndExpireIfStale(row: PendingActionRow): void {
   if (row.status !== 'pending') {
     throw badRequest('pending_actions.already_resolved', `Pending action is already ${row.status}`);
   }
@@ -141,7 +144,7 @@ async function approve(
     throw forbidden('pending_actions.not_owner', 'You do not own this pending action');
   }
 
-  ensurePendingAndNotExpired(row);
+  guardAndExpireIfStale(row);
 
   pendingActionsRepository.updateStatus(row.id, {
     status: 'approved',
@@ -166,7 +169,7 @@ async function deny(
     throw forbidden('pending_actions.not_owner', 'You do not own this pending action');
   }
 
-  ensurePendingAndNotExpired(row);
+  guardAndExpireIfStale(row);
 
   pendingActionsRepository.updateStatus(row.id, {
     status: 'denied',
