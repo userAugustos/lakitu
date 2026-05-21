@@ -31,6 +31,10 @@
       "types": "./dist/agents.d.ts",
       "import": "./dist/agents.js"
     },
+    "./permissions": {
+      "types": "./dist/permissions.d.ts",
+      "import": "./dist/permissions.js"
+    },
     "./audit-log": {
       "types": "./dist/audit-log.d.ts",
       "import": "./dist/audit-log.js"
