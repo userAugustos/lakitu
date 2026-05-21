@@ -12,7 +12,7 @@ import { routeTree } from './routeTree.gen';
 authActions.hydrate();
 
 const queryClient = new QueryClient();
-const router = createRouter({ routeTree, context: { queryClient } });
+export const router = createRouter({ routeTree, context: { queryClient } });
 
 declare module '@tanstack/react-router' {
   interface Register {
