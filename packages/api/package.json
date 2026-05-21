@@ -30,6 +30,10 @@
     "./agents": {
       "types": "./dist/agents.d.ts",
       "import": "./dist/agents.js"
+    },
+    "./audit-log": {
+      "types": "./dist/audit-log.d.ts",
+      "import": "./dist/audit-log.js"
     }
   },
   "scripts": {
