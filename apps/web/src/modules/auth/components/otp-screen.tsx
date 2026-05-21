@@ -1,12 +1,19 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { ArrowRight, Loader2 } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
 import { Button } from '@repo/ui/shadcn/button';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@repo/ui/shadcn/input-otp';
 import { Label } from '@repo/ui/shadcn/label';
+
+import { apiCall, lakituPublicApi } from '@/api';
 import { webEnv } from '@/modules/core/lib/env';
 
-import { sendChallenge } from '../auth-setup.api';
 import { FieldError } from './field-error';
+import { otpSchema } from '../auth-setup.schemas';
+import type { OtpFormValues } from '../auth-setup.schemas';
 
 interface OtpScreenProps {
   email: string;
@@ -18,11 +25,15 @@ interface OtpScreenProps {
 
 export function OtpScreen({ email, onSubmit, onBack, isSubmitting, error }: OtpScreenProps) {
   const [seconds, setSeconds] = useState(30);
-  const [shake, setShake] = useState(false);
   const [dirty, setDirty] = useState(false);
-  const [digits, setDigits] = useState<string[]>(['', '', '', '', '', '']);
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const prevError = useRef<string | null>(null);
+
+  const form = useForm<OtpFormValues>({
+    resolver: zodResolver(otpSchema),
+    defaultValues: { code: '' },
+  });
+
+  const code = form.watch('code');
+  const isComplete = code.length === 6;
 
   useEffect(() => {
     if (seconds <= 0) return;
@@ -31,103 +42,30 @@ export function OtpScreen({ email, onSubmit, onBack, isSubmitting, error }: OtpS
   }, [seconds]);
 
   useEffect(() => {
-    if (error && error !== prevError.current) {
-      setShake(true);
+    if (error) {
       setDirty(false);
-      setDigits(['', '', '', '', '', '']);
-      const t = setTimeout(() => setShake(false), 400);
-      return () => clearTimeout(t);
+      form.setValue('code', '');
     }
-    prevError.current = error;
-  }, [error]);
+  }, [error, form]);
 
-  const setRef = useCallback((el: HTMLInputElement | null, i: number) => {
-    inputRefs.current[i] = el;
-  }, []);
-
-  const updateDigit = useCallback(
-    (index: number, value: string) => {
-      setDirty(true);
-      const next = [...digits];
-      next[index] = value;
-      setDigits(next);
-
-      if (value && index < 5) {
-        inputRefs.current[index + 1]?.focus();
-      }
-
-      const code = next.join('');
-      if (code.length === 6 && /^\d{6}$/.test(code) && !isSubmitting) {
-        onSubmit(code);
-      }
-    },
-    [digits, isSubmitting, onSubmit]
-  );
-
-  const handleInput = useCallback(
-    (e: React.FormEvent<HTMLInputElement>, index: number) => {
-      const raw = (e.target as HTMLInputElement).value.replace(/\D/g, '');
-      updateDigit(index, raw.slice(-1));
-    },
-    [updateDigit]
-  );
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
-      if (e.key === 'Backspace' && !digits[index] && index > 0) {
-        updateDigit(index - 1, '');
-        inputRefs.current[index - 1]?.focus();
-      }
-      if (e.key === 'ArrowLeft' && index > 0) inputRefs.current[index - 1]?.focus();
-      if (e.key === 'ArrowRight' && index < 5) inputRefs.current[index + 1]?.focus();
-    },
-    [digits, updateDigit]
-  );
-
-  const handlePaste = useCallback(
-    (e: React.ClipboardEvent<HTMLInputElement>) => {
-      const txt = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-      if (!txt) return;
-      e.preventDefault();
-      const next = ['', '', '', '', '', ''];
-      for (let k = 0; k < 6; k++) next[k] = txt[k] || '';
-      setDigits(next);
-      const focusIdx = Math.min(txt.length, 5);
-      inputRefs.current[focusIdx]?.focus();
-
-      if (txt.length === 6 && !isSubmitting) {
-        onSubmit(txt);
-      }
-    },
-    [isSubmitting, onSubmit]
-  );
+  const handleComplete = (value: string) => {
+    form.setValue('code', value);
+    if (!isSubmitting) onSubmit(value);
+  };
 
   const handleResend = useCallback(async () => {
     try {
-      await sendChallenge(email);
+      await apiCall(() => lakituPublicApi.auth.challenge.post({ email }));
       setSeconds(30);
-      setDigits(['', '', '', '', '', '']);
-      inputRefs.current[0]?.focus();
+      form.setValue('code', '');
       toast.success('Code sent', { description: `A new code was sent to ${email}` });
     } catch (err) {
       toast.error('Failed to resend code', {
         description: err instanceof Error ? err.message : 'Please try again',
       });
     }
-  }, [email]);
+  }, [email, form]);
 
-  const handleSubmitForm = useCallback(
-    (e: React.FormEvent) => {
-      e.preventDefault();
-      const code = digits.join('');
-      if (code.length !== 6 || isSubmitting) return;
-      onSubmit(code);
-    },
-    [digits, isSubmitting, onSubmit]
-  );
-
-  const code = digits.join('');
-  const isComplete = code.length === 6 && /^\d{6}$/.test(code);
   const avatarLetter = email[0]?.toUpperCase() ?? 'A';
 
   return (
@@ -151,61 +89,43 @@ export function OtpScreen({ email, onSubmit, onBack, isSubmitting, error }: OtpS
         </span>
       </p>
 
-      <form onSubmit={handleSubmitForm} noValidate className="flex flex-col gap-2.5">
+      <form
+        onSubmit={form.handleSubmit(() => onSubmit(code))}
+        noValidate
+        className="flex flex-col gap-2.5"
+      >
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="otp-0" className="text-xs font-semibold tracking-wide">
-            Verification code
-          </Label>
-          <div
-            className={`grid grid-cols-6 gap-2.5 ${shake ? 'animate-shake' : ''}`}
+          <Label className="text-xs font-semibold tracking-wide">Verification code</Label>
+          <InputOTP
+            maxLength={6}
+            value={code}
+            onChange={(value) => {
+              form.setValue('code', value);
+              setDirty(true);
+            }}
+            onComplete={handleComplete}
+            disabled={isSubmitting}
             data-testid="otp-input"
           >
-            {digits.map((digit, i) => (
-              <input
-                key={i}
-                ref={(el) => setRef(el, i)}
-                className={`text-foreground h-14 w-full rounded-xl border bg-white text-center font-mono text-lg font-semibold outline-none ${
-                  digit ? 'border-foreground bg-[#fbfcfd]' : 'border-input'
-                }`}
-                id={`otp-${i}`}
-                type="text"
-                inputMode="numeric"
-                maxLength={1}
-                autoComplete={i === 0 ? 'one-time-code' : undefined}
-                aria-label={`Digit ${i + 1}`}
-                value={digit}
-                onInput={(e) => handleInput(e, i)}
-                onKeyDown={(e) => handleKeyDown(e, i)}
-                onPaste={handlePaste}
-                disabled={isSubmitting}
-              />
-            ))}
-          </div>
+            <InputOTPGroup>
+              {Array.from({ length: 6 }, (_, i) => (
+                <InputOTPSlot key={i} index={i} />
+              ))}
+            </InputOTPGroup>
+          </InputOTP>
           <FieldError message={dirty ? null : error} />
         </div>
 
         <Button type="submit" disabled={!isComplete || isSubmitting} data-testid="otp-submit">
           {isSubmitting ? (
             <>
-              <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              <Loader2 className="animate-spin" />
               <span>Verifying...</span>
             </>
           ) : (
             <>
               <span>Verify and sign in</span>
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M5 12h14M13 6l6 6-6 6" />
-              </svg>
+              <ArrowRight />
             </>
           )}
         </Button>

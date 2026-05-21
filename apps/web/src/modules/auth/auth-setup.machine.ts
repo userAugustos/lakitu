@@ -1,21 +1,12 @@
 import { assign, fromPromise, setup } from 'xstate';
 
-import type { User } from '@lakitu/api/auth';
+import type { ChallengeResponse, User, VerifyResponse } from '@lakitu/api/auth';
 import type { OnboardingStatus } from '@lakitu/api/onboarding';
 
+import { apiCall, lakituAuthApi, lakituPublicApi } from '@/api';
 import { router } from '@/main';
 import { authActions } from '@/modules/auth/auth.store';
 
-import {
-  completeVeryAiLink,
-  createCompany,
-  fetchOnboardingStatus,
-  fetchProfile,
-  joinCompany,
-  sendChallenge,
-  startVeryAiLink,
-  verifyOtp,
-} from './auth-setup.api';
 import { isTokenExpired } from './lib/jwt-decode';
 import type { AuthSetupContext, AuthSetupEvent } from './auth-setup.types';
 
@@ -42,46 +33,58 @@ export const authSetupMachine = setup({
         const token = authActions.getToken();
         if (!token || isTokenExpired(token)) return null;
 
-        const user = await fetchProfile();
-        const onboardingStatus = await fetchOnboardingStatus();
+        const user = await apiCall<User>(() => lakituAuthApi.auth.profile.get());
+        const onboardingStatus = await apiCall<OnboardingStatus>(() =>
+          lakituAuthApi.onboarding.status.get()
+        );
         return { token, user, onboardingStatus };
       }
     ),
 
     sendChallenge: fromPromise(async ({ input }: { input: { email: string } }) => {
-      const result = await sendChallenge(input.email);
+      const result = await apiCall<ChallengeResponse>(() =>
+        lakituPublicApi.auth.challenge.post({ email: input.email })
+      );
       return { challengeId: result.challenge_id };
     }),
 
     verifyOtp: fromPromise(async ({ input }: { input: { email: string; code: string } }) => {
-      const result = await verifyOtp(input.email, input.code);
+      const result = await apiCall<VerifyResponse>(() =>
+        lakituPublicApi.auth.verify.post({ email: input.email, code: input.code })
+      );
       return { token: result.token, user: result.user };
     }),
 
     checkOnboardingStatus: fromPromise(async () => {
-      return fetchOnboardingStatus();
+      return apiCall<OnboardingStatus>(() => lakituAuthApi.onboarding.status.get());
     }),
 
     createCompanyActor: fromPromise(async ({ input }: { input: { name: string } }) => {
-      await createCompany(input.name);
+      await apiCall(() => lakituAuthApi.companies.post({ name: input.name }));
     }),
 
     joinCompanyActor: fromPromise(async ({ input }: { input: { companyId: string } }) => {
-      await joinCompany(input.companyId);
+      await apiCall(() => lakituAuthApi.companies[input.companyId]!.join.post());
     }),
 
     startVeryAiLinkActor: fromPromise(async () => {
-      const result = await startVeryAiLink();
+      const result = await apiCall<{ authorize_url: string }>(() =>
+        lakituAuthApi.onboarding['very-ai'].start.post()
+      );
       return { authorizeUrl: result.authorize_url };
     }),
 
     completeVeryAiLinkActor: fromPromise(async () => {
       const params = new URLSearchParams(window.location.search);
-      const code = params.get('code')!;
-      const state = params.get('state')!;
-      await completeVeryAiLink(code, state);
+      await apiCall(() =>
+        lakituPublicApi.onboarding['very-ai'].callback.get({
+          $query: { code: params.get('code')!, state: params.get('state')! },
+        })
+      );
       window.history.replaceState({}, '', window.location.pathname);
-      const onboardingStatus = await fetchOnboardingStatus();
+      const onboardingStatus = await apiCall<OnboardingStatus>(() =>
+        lakituAuthApi.onboarding.status.get()
+      );
       return { onboardingStatus };
     }),
   },

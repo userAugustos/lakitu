@@ -1,17 +1,18 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Loader2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { ChangeEvent } from 'react';
 
-import type { Company } from '@lakitu/api/companies';
-
+import type { Company, SearchCompaniesResponse } from '@lakitu/api/companies';
 import { Button } from '@repo/ui/shadcn/button';
 import { Input } from '@repo/ui/shadcn/input';
 import { Label } from '@repo/ui/shadcn/label';
 
-import { searchCompanies } from '../auth-setup.api';
-import { createCompanySchema } from '../auth-setup.schemas';
+import { apiCall, lakituAuthApi } from '@/api';
+
 import { FieldError } from './field-error';
+import { createCompanySchema } from '../auth-setup.schemas';
 import type { CreateCompanyFormValues } from '../auth-setup.schemas';
 
 interface CompanyScreenProps {
@@ -120,7 +121,7 @@ function CreateMode({
       <Button type="submit" disabled={isSubmitting} data-testid="company-create-submit">
         {isSubmitting ? (
           <>
-            <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            <Loader2 className="animate-spin" />
             <span>Creating...</span>
           </>
         ) : (
@@ -158,7 +159,9 @@ function JoinMode({
     setSearching(true);
     const timeout = setTimeout(async () => {
       try {
-        const data = await searchCompanies(query);
+        const data = await apiCall<SearchCompaniesResponse>(() =>
+          lakituAuthApi.companies.get({ $query: { q: query } })
+        );
         setResults(data.companies);
       } catch {
         setResults([]);
@@ -194,7 +197,7 @@ function JoinMode({
       <div className="flex flex-col gap-1">
         {searching && (
           <div className="text-muted-foreground inline-flex items-center gap-2.5 text-[13px]">
-            <span className="border-muted-foreground size-3.5 animate-spin rounded-full border-2 border-t-transparent" />
+            <Loader2 className="text-muted-foreground size-3.5 animate-spin" />
             Searching...
           </div>
         )}
