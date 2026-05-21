@@ -24,22 +24,25 @@ export function CompanyScreen({
   const [mode, setMode] = useState<'create' | 'join'>('create');
 
   return (
-    <div className="auth-form">
+    <div>
       {mode === 'create' ? (
         <CreateMode onSubmit={onCreateCompany} isSubmitting={isSubmitting} error={error} />
       ) : (
         <JoinMode onJoin={onJoinCompany} isSubmitting={isSubmitting} error={error} />
       )}
 
-      <button
-        type="button"
-        className="link-btn"
-        style={{ alignSelf: 'flex-start', marginTop: 8 }}
-        onClick={() => setMode(mode === 'create' ? 'join' : 'create')}
-        data-testid="company-mode-toggle"
-      >
-        {mode === 'create' ? 'Join an existing company' : 'Create a new company'}
-      </button>
+      <p className="meta" style={{ marginTop: 16 }}>
+        <a
+          href="#"
+          onClick={(e) => {
+            e.preventDefault();
+            setMode(mode === 'create' ? 'join' : 'create');
+          }}
+          data-testid="company-mode-toggle"
+        >
+          {mode === 'create' ? 'Join an existing company' : 'Create a new company'}
+        </a>
+      </p>
     </div>
   );
 }
@@ -67,32 +70,32 @@ function CreateMode({
   };
 
   return (
-    <form className="auth-form" onSubmit={handleSubmit(onValid)}>
-      <label className="field-label" htmlFor="company-name">
-        Company name
-      </label>
-      <input
-        id="company-name"
-        className="text-input"
-        type="text"
-        autoFocus
-        placeholder="Acme Corp"
-        data-testid="company-name-input"
-        {...register('name')}
-      />
+    <form onSubmit={handleSubmit(onValid)} noValidate>
+      <div className="field">
+        <label htmlFor="company-name">Company name</label>
+        <input
+          id="company-name"
+          className="input"
+          type="text"
+          autoFocus
+          placeholder="Acme Corp"
+          data-testid="company-name-input"
+          {...register('name')}
+        />
+      </div>
       {errors.name && <div className="field-error">{errors.name.message}</div>}
       {error && <div className="field-error">{error}</div>}
 
       <button
         type="submit"
-        className="primary-btn"
+        className="btn"
         disabled={!isValid || isSubmitting}
         data-testid="company-create-submit"
       >
         {isSubmitting ? (
           <>
             <span className="spinner" />
-            Creating...
+            <span>Creating...</span>
           </>
         ) : (
           'Create company'
@@ -137,44 +140,53 @@ function JoinMode({
   }, [query]);
 
   return (
-    <div className="auth-form">
-      <label className="field-label" htmlFor="company-search">
-        Search companies
-      </label>
-      <input
-        id="company-search"
-        className="text-input"
-        type="text"
-        autoFocus
-        placeholder="Type to search..."
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        data-testid="company-search-input"
-      />
+    <div>
+      <div className="field">
+        <label htmlFor="company-search">Search companies</label>
+        <input
+          id="company-search"
+          className="input"
+          type="text"
+          autoFocus
+          placeholder="Type to search..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          data-testid="company-search-input"
+        />
+      </div>
 
       {error && <div className="field-error">{error}</div>}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
         {searching && (
-          <div className="verify-state">
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 10,
+              fontSize: 13,
+              color: 'var(--muted)',
+            }}
+          >
             <span className="spinner" />
             Searching...
           </div>
         )}
 
         {!searching && query.length > 0 && results.length === 0 && (
-          <p style={{ color: 'var(--auth-muted)', fontSize: 13 }}>No companies found</p>
+          <p style={{ color: 'var(--muted)', fontSize: 13 }}>No companies found</p>
         )}
 
         {results.map((company) => (
           <button
             key={company.id}
             type="button"
-            className="primary-btn"
+            className="btn"
             style={{
               background: '#ffffff',
               color: 'var(--ink)',
-              border: '1.5px solid var(--line-2)',
+              border: '1px solid var(--line-2)',
+              boxShadow: 'none',
             }}
             disabled={isSubmitting}
             onClick={() => onJoin(company.id)}

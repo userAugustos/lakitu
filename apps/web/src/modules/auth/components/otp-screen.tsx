@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
-import { InputOTP, InputOTPGroup, InputOTPSlot } from '@repo/ui/shadcn/input-otp';
 import { webEnv } from '@/modules/core/lib/env';
 
 import { sendChallenge } from '../auth-setup.api';
@@ -17,7 +16,8 @@ interface OtpScreenProps {
 export function OtpScreen({ email, onSubmit, onBack, isSubmitting, error }: OtpScreenProps) {
   const [seconds, setSeconds] = useState(30);
   const [shake, setShake] = useState(false);
-  const [value, setValue] = useState('');
+  const [digits, setDigits] = useState<string[]>(['', '', '', '', '', '']);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const prevError = useRef<string | null>(null);
 
   useEffect(() => {
@@ -29,17 +29,69 @@ export function OtpScreen({ email, onSubmit, onBack, isSubmitting, error }: OtpS
   useEffect(() => {
     if (error && error !== prevError.current) {
       setShake(true);
-      setValue('');
+      setDigits(['', '', '', '', '', '']);
       const t = setTimeout(() => setShake(false), 400);
       return () => clearTimeout(t);
     }
     prevError.current = error;
   }, [error]);
 
-  const handleComplete = useCallback(
-    (code: string) => {
-      if (isSubmitting) return;
-      onSubmit(code);
+  const setRef = useCallback((el: HTMLInputElement | null, i: number) => {
+    inputRefs.current[i] = el;
+  }, []);
+
+  const updateDigit = useCallback(
+    (index: number, value: string) => {
+      const next = [...digits];
+      next[index] = value;
+      setDigits(next);
+
+      if (value && index < 5) {
+        inputRefs.current[index + 1]?.focus();
+      }
+
+      const code = next.join('');
+      if (code.length === 6 && /^\d{6}$/.test(code) && !isSubmitting) {
+        onSubmit(code);
+      }
+    },
+    [digits, isSubmitting, onSubmit]
+  );
+
+  const handleInput = useCallback(
+    (e: React.FormEvent<HTMLInputElement>, index: number) => {
+      const raw = (e.target as HTMLInputElement).value.replace(/\D/g, '');
+      updateDigit(index, raw.slice(-1));
+    },
+    [updateDigit]
+  );
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
+      if (e.key === 'Backspace' && !digits[index] && index > 0) {
+        updateDigit(index - 1, '');
+        inputRefs.current[index - 1]?.focus();
+      }
+      if (e.key === 'ArrowLeft' && index > 0) inputRefs.current[index - 1]?.focus();
+      if (e.key === 'ArrowRight' && index < 5) inputRefs.current[index + 1]?.focus();
+    },
+    [digits, updateDigit]
+  );
+
+  const handlePaste = useCallback(
+    (e: React.ClipboardEvent<HTMLInputElement>) => {
+      const txt = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+      if (!txt) return;
+      e.preventDefault();
+      const next = ['', '', '', '', '', ''];
+      for (let k = 0; k < 6; k++) next[k] = txt[k] || '';
+      setDigits(next);
+      const focusIdx = Math.min(txt.length, 5);
+      inputRefs.current[focusIdx]?.focus();
+
+      if (txt.length === 6 && !isSubmitting) {
+        onSubmit(txt);
+      }
     },
     [isSubmitting, onSubmit]
   );
@@ -48,6 +100,8 @@ export function OtpScreen({ email, onSubmit, onBack, isSubmitting, error }: OtpS
     try {
       await sendChallenge(email);
       setSeconds(30);
+      setDigits(['', '', '', '', '', '']);
+      inputRefs.current[0]?.focus();
       toast.success('Code sent', { description: `A new code was sent to ${email}` });
     } catch (err) {
       toast.error('Failed to resend code', {
@@ -56,83 +110,115 @@ export function OtpScreen({ email, onSubmit, onBack, isSubmitting, error }: OtpS
     }
   }, [email]);
 
+  const handleSubmitForm = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      const code = digits.join('');
+      if (code.length !== 6 || isSubmitting) return;
+      onSubmit(code);
+    },
+    [digits, isSubmitting, onSubmit]
+  );
+
+  const code = digits.join('');
+  const isComplete = code.length === 6 && /^\d{6}$/.test(code);
+  const avatarLetter = email[0]?.toUpperCase() ?? 'A';
+
   return (
-    <div className="auth-form">
-      <button className="back-link" onClick={onBack} type="button" data-testid="otp-back">
-        <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
-          <path
-            d="M10 3l-5 5 5 5"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            fill="none"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-        Use a different email
-      </button>
+    <>
+      <p className="lede">
+        We sent a 6-digit code to{' '}
+        <span className="email-pill">
+          <span className="av">{avatarLetter}</span>
+          <span>{email}</span>
+          <button type="button" onClick={onBack} aria-label="Change email" data-testid="otp-back">
+            Change
+          </button>
+        </span>
+      </p>
 
-      <div className="otp-meta">
-        <div className="otp-label">Enter the 6-digit code</div>
-        <div className="otp-sub">
-          Sent to <strong>{email}</strong>
+      <form onSubmit={handleSubmitForm} noValidate>
+        <div className="field">
+          <label htmlFor="otp-0">Verification code</label>
+          <div className={shake ? 'otp-row shake' : 'otp-row'} data-testid="otp-input">
+            {digits.map((digit, i) => (
+              <input
+                key={i}
+                ref={(el) => setRef(el, i)}
+                className={digit ? 'otp-cell filled' : 'otp-cell'}
+                id={`otp-${i}`}
+                type="text"
+                inputMode="numeric"
+                maxLength={1}
+                autoComplete={i === 0 ? 'one-time-code' : undefined}
+                aria-label={`Digit ${i + 1}`}
+                value={digit}
+                onInput={(e) => handleInput(e, i)}
+                onKeyDown={(e) => handleKeyDown(e, i)}
+                onPaste={handlePaste}
+                disabled={isSubmitting}
+              />
+            ))}
+          </div>
         </div>
-      </div>
 
-      <div className={`otp-row ${shake ? 'shake' : ''}`} data-testid="otp-input">
-        <InputOTP
-          maxLength={6}
-          pattern="^\d+$"
-          value={value}
-          onChange={setValue}
-          onComplete={handleComplete}
-          disabled={isSubmitting}
+        {error && <div className="field-error">{error}</div>}
+
+        <button
+          className="btn"
+          type="submit"
+          disabled={!isComplete || isSubmitting}
+          data-testid="otp-submit"
         >
-          <InputOTPGroup>
-            <InputOTPSlot index={0} />
-            <InputOTPSlot index={1} />
-            <InputOTPSlot index={2} />
-            <InputOTPSlot index={3} />
-            <InputOTPSlot index={4} />
-            <InputOTPSlot index={5} />
-          </InputOTPGroup>
-        </InputOTP>
-      </div>
+          {isSubmitting ? (
+            <>
+              <span className="spinner" />
+              <span>Verifying...</span>
+            </>
+          ) : (
+            <>
+              <span>Verify and sign in</span>
+              <svg
+                className="arr"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            </>
+          )}
+        </button>
 
-      {error && <div className="field-error">{error}</div>}
-
-      <div className="otp-footer">
-        {seconds > 0 ? (
-          <span style={{ color: 'var(--auth-muted)' }}>
-            Resend code in{' '}
-            <strong style={{ color: 'var(--ink)' }}>0:{seconds.toString().padStart(2, '0')}</strong>
-          </span>
-        ) : (
+        <p className="resend">
+          Didn't get it?{' '}
           <button
             type="button"
-            className="link-btn"
             onClick={handleResend}
+            disabled={seconds > 0}
             data-testid="otp-resend"
           >
             Resend code
           </button>
-        )}
-        {webEnv.app.isDevelopment && (
-          <>
-            <span style={{ color: 'var(--auth-muted)', opacity: 0.5 }}>·</span>
-            <span style={{ color: 'var(--auth-muted)' }}>
-              Hint: <code>111111</code>
-            </span>
-          </>
-        )}
-      </div>
+          {seconds > 0 && <span>&nbsp;(in {seconds}s)</span>}
+        </p>
+      </form>
 
-      {isSubmitting && (
-        <div className="verify-state">
-          <div className="spinner" />
-          Verifying code...
-        </div>
+      <p className="meta" style={{ marginTop: 32 }}>
+        Code expires in 10 minutes. <a href="#">Need help?</a>
+      </p>
+
+      {webEnv.app.isDevelopment && (
+        <p className="meta" style={{ marginTop: 8, opacity: 0.5 }}>
+          Dev hint: <code style={{ fontFamily: 'var(--font-mono)' }}>111111</code>
+        </p>
       )}
-    </div>
+    </>
   );
 }

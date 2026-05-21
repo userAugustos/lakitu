@@ -13,7 +13,7 @@ interface AuthLayoutProps {
 
 export function AuthLayout({ screen, children }: AuthLayoutProps) {
   return (
-    <div className="page">
+    <div className="shell">
       <BrandPanel />
       <FormPanel screen={screen}>{children}</FormPanel>
     </div>

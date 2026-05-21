@@ -14,10 +14,10 @@ export function EmailScreen({ onSubmit, isSubmitting, error }: EmailScreenProps)
   const {
     register,
     handleSubmit,
-    formState: { errors, isValid },
+    formState: { errors },
   } = useForm<EmailFormValues>({
     resolver: zodResolver(emailSchema),
-    mode: 'onChange',
+    mode: 'onSubmit',
   });
 
   const onValid = (data: EmailFormValues) => {
@@ -25,50 +25,58 @@ export function EmailScreen({ onSubmit, isSubmitting, error }: EmailScreenProps)
   };
 
   return (
-    <form className="auth-form" onSubmit={handleSubmit(onValid)}>
-      <label className="field-label" htmlFor="email">
-        Work email
-      </label>
-      <input
-        id="email"
-        className="text-input"
-        type="email"
-        autoFocus
-        autoComplete="email"
-        placeholder="you@company.com"
-        data-testid="email-input"
-        {...register('email')}
-      />
-      {errors.email && <div className="field-error">{errors.email.message}</div>}
-      {error && <div className="field-error">{error}</div>}
+    <form onSubmit={handleSubmit(onValid)} noValidate>
+      <div className="field">
+        <label htmlFor="email">Work email</label>
+        <input
+          id="email"
+          className={errors.email ? 'input error' : 'input'}
+          type="email"
+          autoFocus
+          autoComplete="email"
+          placeholder="you@company.com"
+          data-testid="email-input"
+          {...register('email')}
+        />
+        {errors.email && <div className="field-error">{errors.email.message}</div>}
+        {error && <div className="field-error">{error}</div>}
+      </div>
 
-      <button
-        type="submit"
-        className="primary-btn"
-        disabled={!isValid || isSubmitting}
-        data-testid="email-submit"
-      >
+      <button type="submit" className="btn" disabled={isSubmitting} data-testid="email-submit">
         {isSubmitting ? (
           <>
             <span className="spinner" />
-            Sending...
+            <span>Sending...</span>
           </>
         ) : (
           <>
-            <span>Send one-time code</span>
-            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-              <path
-                d="M3 8h9.5M9 4.5l4 3.5-4 3.5"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
+            <span>Send code</span>
+            <svg
+              className="arr"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M5 12h14M13 6l6 6-6 6" />
             </svg>
           </>
         )}
       </button>
+
+      <p className="help">
+        By continuing you agree to Lakitu's <a href="#">Terms</a> and <a href="#">Privacy Policy</a>
+        .
+      </p>
+
+      <p className="meta">
+        Trouble signing in? <a href="#">Contact your admin</a>
+      </p>
     </form>
   );
 }

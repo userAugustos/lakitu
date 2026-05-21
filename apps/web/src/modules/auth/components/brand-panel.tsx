@@ -1,65 +1,86 @@
-import { CheckeredStripe } from './checkered-stripe';
-import { Cloud } from './cloud';
-import { LakituLogo } from './lakitu-logo';
-
 export function BrandPanel() {
   return (
-    <div className="brand">
-      <div className="brand-sky" />
-      <Cloud style={{ top: 80, left: -40 }} scale={0.8} opacity={0.9} />
-      <Cloud style={{ top: 220, right: -60 }} scale={1.1} opacity={0.85} />
-      <Cloud style={{ bottom: 180, left: 40 }} scale={0.6} opacity={0.7} />
-      <Cloud style={{ bottom: 60, right: 80 }} scale={0.9} opacity={0.6} />
+    <section className="brand">
+      <div className="cloud c1" />
+      <div className="cloud c2" />
+      <div className="cloud c3" />
+      <div className="cloud c4" />
 
-      <div className="brand-top">
-        <div className="brand-mark">
-          <LakituLogo size={32} />
-          <span className="brand-wordmark">Lakitu</span>
+      <header className="brand-top">
+        <div className="wordmark">
+          <span className="dot" aria-hidden="true" />
+          <span>Lakitu</span>
         </div>
-        <div className="brand-pill">
-          <span className="dot" />
-          Agent control tower
-        </div>
-      </div>
+      </header>
 
-      <div className="brand-stage">
-        <div className="mascot-frame">
-          <div className="mascot-halo" />
-          <img src="/lakitu-world.png" alt="Lakitu mascot" className="mascot-img" />
-          <div className="mascot-flag">
-            <svg width="64" height="120" viewBox="0 0 64 120" aria-hidden="true">
-              <rect x="30" y="0" width="2.4" height="120" fill="#0e1726" />
-              <g transform="translate(0,6)">
-                <rect x="0" y="0" width="32" height="22" fill="#ffffff" />
-                <rect x="0" y="0" width="8" height="5.5" fill="#0e1726" />
-                <rect x="16" y="0" width="8" height="5.5" fill="#0e1726" />
-                <rect x="8" y="5.5" width="8" height="5.5" fill="#0e1726" />
-                <rect x="24" y="5.5" width="8" height="5.5" fill="#0e1726" />
-                <rect x="0" y="11" width="8" height="5.5" fill="#0e1726" />
-                <rect x="16" y="11" width="8" height="5.5" fill="#0e1726" />
-                <rect x="8" y="16.5" width="8" height="5.5" fill="#0e1726" />
-                <rect x="24" y="16.5" width="8" height="5.5" fill="#0e1726" />
-              </g>
-            </svg>
-          </div>
+      <div className="brand-body">
+        <div className="lakitu-wrap">
+          <img className="lakitu" src="/lakitu-world.png" alt="Lakitu waving the checkered flag" />
         </div>
 
         <div className="brand-copy">
-          <h1>
-            Start the match.
+          <span className="eyebrow">
+            <span className="pulse" />
+            Agent validation &amp; management
+          </span>
+          <h2 className="brand-title">
+            Start the run.
             <br />
-            <span className="brand-muted">Validate every agent.</span>
-          </h1>
-          <p>
-            Lakitu watches the line — running evals, gating deploys, and waving in agents that pass.
-            Sign in to manage your fleet.
+            <em>Wave the flag.</em>
+          </h2>
+          <p className="brand-sub">
+            Lakitu officiates every agent run — kicking off evals, watching the track, and calling
+            the finish. One source of truth for what your agents do, and how well they do it.
           </p>
+
+          <div className="brand-foot">
+            <span>
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                aria-hidden="true"
+              >
+                <path d="M12 22s8-4 8-12V5l-8-3-8 3v5c0 8 8 12 8 12Z" />
+              </svg>
+              SOC 2 Type II
+            </span>
+            <span>
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="9" />
+                <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+              </svg>
+              GDPR &amp; HIPAA ready
+            </span>
+            <span>
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                aria-hidden="true"
+              >
+                <path d="m9 12 2 2 4-4" />
+                <circle cx="12" cy="12" r="9" />
+              </svg>
+              99.99% uptime
+            </span>
+          </div>
         </div>
       </div>
-
-      <div className="brand-flag-stripe">
-        <CheckeredStripe rows={2} cols={36} cell={22} />
-      </div>
-    </div>
+    </section>
   );
 }

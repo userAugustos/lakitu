@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 
-import { StepIndicator } from './step-indicator';
 import type { AuthScreen } from '../auth-setup.types';
 
 interface FormPanelProps {
@@ -8,29 +7,14 @@ interface FormPanelProps {
   children: ReactNode;
 }
 
-function getStepInfo(screen: AuthScreen): { current: number; total: number } | null {
-  switch (screen) {
-    case 'email':
-      return { current: 1, total: 2 };
-    case 'otp':
-      return { current: 2, total: 2 };
-    case 'company':
-      return { current: 1, total: 2 };
-    case 'very-ai':
-      return { current: 2, total: 2 };
-    default:
-      return null;
-  }
-}
-
 function getTitle(screen: AuthScreen): string {
   switch (screen) {
     case 'loading':
       return 'Setting up...';
     case 'email':
-      return 'Sign in to Lakitu';
+      return 'Welcome back';
     case 'otp':
-      return 'Check your inbox';
+      return 'Check your email';
     case 'company':
       return 'Set up your company';
     case 'very-ai':
@@ -42,14 +26,19 @@ function getTitle(screen: AuthScreen): string {
   }
 }
 
-function getSubtitle(screen: AuthScreen): string {
+function getSubtitle(screen: AuthScreen): ReactNode {
   switch (screen) {
     case 'loading':
       return 'Checking your session...';
     case 'email':
-      return "Use your work email. We'll send a single-use code — no password to forget.";
+      return (
+        <>
+          Sign in to your workspace. We'll send a <b>6-digit code</b> to your work email — no
+          password required.
+        </>
+      );
     case 'otp':
-      return 'Codes expire in 10 minutes. Keep this tab open while you fetch it.';
+      return null;
     case 'company':
       return 'Create a new company or join an existing one.';
     case 'very-ai':
@@ -62,29 +51,24 @@ function getSubtitle(screen: AuthScreen): string {
 }
 
 export function FormPanel({ screen, children }: FormPanelProps) {
-  const stepInfo = getStepInfo(screen);
+  const subtitle = getSubtitle(screen);
 
   return (
-    <div className="login-panel">
-      <div className="login-inner">
-        <header className="login-header">
-          {stepInfo && <StepIndicator currentStep={stepInfo.current} totalSteps={stepInfo.total} />}
-          <h2 className="login-title">{getTitle(screen)}</h2>
-          <p className="login-sub">{getSubtitle(screen)}</p>
-        </header>
-
-        <div className="step-stage">{children}</div>
-
-        <footer className="login-foot">
-          <span>&copy; 2026 Lakitu Labs</span>
-          <span className="foot-sep">&middot;</span>
-          <a href="#">Privacy</a>
-          <a href="#">Terms</a>
-          <a href="#">
-            Status <span className="status-dot" />
-          </a>
-        </footer>
+    <section className="panel">
+      <div className="card">
+        <div className="step-content" key={screen}>
+          <h1>{getTitle(screen)}</h1>
+          {subtitle && <p className="lede">{subtitle}</p>}
+          {children}
+        </div>
       </div>
-    </div>
+
+      <div className="panel-foot">
+        <span>&copy; 2026 Lakitu Labs, Inc.</span>
+        <span>
+          <a href="mailto:support@lakitu.dev">support@lakitu.dev</a>
+        </span>
+      </div>
+    </section>
   );
 }
