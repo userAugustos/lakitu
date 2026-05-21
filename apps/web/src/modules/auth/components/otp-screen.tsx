@@ -3,10 +3,10 @@ import { toast } from 'sonner';
 
 import { Button } from '@repo/ui/shadcn/button';
 import { Label } from '@repo/ui/shadcn/label';
-
 import { webEnv } from '@/modules/core/lib/env';
 
 import { sendChallenge } from '../auth-setup.api';
+import { FieldError } from './field-error';
 
 interface OtpScreenProps {
   email: string;
@@ -19,6 +19,7 @@ interface OtpScreenProps {
 export function OtpScreen({ email, onSubmit, onBack, isSubmitting, error }: OtpScreenProps) {
   const [seconds, setSeconds] = useState(30);
   const [shake, setShake] = useState(false);
+  const [dirty, setDirty] = useState(false);
   const [digits, setDigits] = useState<string[]>(['', '', '', '', '', '']);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const prevError = useRef<string | null>(null);
@@ -32,6 +33,7 @@ export function OtpScreen({ email, onSubmit, onBack, isSubmitting, error }: OtpS
   useEffect(() => {
     if (error && error !== prevError.current) {
       setShake(true);
+      setDirty(false);
       setDigits(['', '', '', '', '', '']);
       const t = setTimeout(() => setShake(false), 400);
       return () => clearTimeout(t);
@@ -45,6 +47,7 @@ export function OtpScreen({ email, onSubmit, onBack, isSubmitting, error }: OtpS
 
   const updateDigit = useCallback(
     (index: number, value: string) => {
+      setDirty(true);
       const next = [...digits];
       next[index] = value;
       setDigits(next);
@@ -129,9 +132,9 @@ export function OtpScreen({ email, onSubmit, onBack, isSubmitting, error }: OtpS
 
   return (
     <>
-      <p className="m-0 mb-7 text-sm leading-relaxed text-muted-foreground">
+      <p className="text-muted-foreground m-0 mb-7 text-sm leading-relaxed">
         We sent a 6-digit code to{' '}
-        <span className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-2.5 py-1 pl-1.5 text-[13px] font-medium text-foreground">
+        <span className="border-border bg-secondary text-foreground inline-flex items-center gap-2 rounded-full border px-2.5 py-1 pl-1.5 text-[13px] font-medium">
           <span className="inline-flex size-5 items-center justify-center rounded-full bg-gradient-to-br from-[#7fc2ff] to-[#1e73cc] text-[11px] font-bold text-white">
             {avatarLetter}
           </span>
@@ -139,7 +142,7 @@ export function OtpScreen({ email, onSubmit, onBack, isSubmitting, error }: OtpS
           <button
             type="button"
             onClick={onBack}
-            className="cursor-pointer border-0 bg-transparent p-0 px-1 font-inherit text-xs text-muted-foreground hover:text-foreground"
+            className="font-inherit text-muted-foreground hover:text-foreground cursor-pointer border-0 bg-transparent p-0 px-1 text-xs"
             aria-label="Change email"
             data-testid="otp-back"
           >
@@ -148,9 +151,9 @@ export function OtpScreen({ email, onSubmit, onBack, isSubmitting, error }: OtpS
         </span>
       </p>
 
-      <form onSubmit={handleSubmitForm} noValidate>
-        <div className="mb-3.5">
-          <Label htmlFor="otp-0" className="mb-2 block text-xs font-semibold tracking-wide">
+      <form onSubmit={handleSubmitForm} noValidate className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="otp-0" className="text-xs font-semibold tracking-wide">
             Verification code
           </Label>
           <div
@@ -161,7 +164,7 @@ export function OtpScreen({ email, onSubmit, onBack, isSubmitting, error }: OtpS
               <input
                 key={i}
                 ref={(el) => setRef(el, i)}
-                className={`h-14 w-full rounded-xl border bg-white text-center font-mono text-lg font-semibold text-foreground outline-none ${
+                className={`text-foreground h-14 w-full rounded-xl border bg-white text-center font-mono text-lg font-semibold outline-none ${
                   digit ? 'border-foreground bg-[#fbfcfd]' : 'border-input'
                 }`}
                 id={`otp-${i}`}
@@ -178,9 +181,8 @@ export function OtpScreen({ email, onSubmit, onBack, isSubmitting, error }: OtpS
               />
             ))}
           </div>
+          <FieldError message={dirty ? null : error} />
         </div>
-
-        {error && <p className="mt-1 text-[13px] text-destructive">{error}</p>}
 
         <Button type="submit" disabled={!isComplete || isSubmitting} data-testid="otp-submit">
           {isSubmitting ? (
@@ -208,13 +210,13 @@ export function OtpScreen({ email, onSubmit, onBack, isSubmitting, error }: OtpS
           )}
         </Button>
 
-        <p className="mt-2.5 text-[13px] text-muted-foreground">
+        <p className="text-muted-foreground text-[13px]">
           Didn&apos;t get it?{' '}
           <button
             type="button"
             onClick={handleResend}
             disabled={seconds > 0}
-            className="cursor-pointer border-0 border-b border-border bg-transparent p-0 font-inherit text-[13px] font-medium text-foreground/70 disabled:cursor-not-allowed disabled:text-muted-foreground/50 disabled:border-transparent"
+            className="border-border font-inherit text-foreground/70 disabled:text-muted-foreground/50 cursor-pointer border-0 border-b bg-transparent p-0 text-[13px] font-medium disabled:cursor-not-allowed disabled:border-transparent"
             data-testid="otp-resend"
           >
             Resend code
@@ -223,15 +225,18 @@ export function OtpScreen({ email, onSubmit, onBack, isSubmitting, error }: OtpS
         </p>
       </form>
 
-      <p className="mt-8 text-center text-xs text-muted-foreground">
+      <p className="text-muted-foreground pt-5 text-center text-xs">
         Code expires in 10 minutes.{' '}
-        <a href="#" className="border-b border-transparent text-foreground/70 hover:border-foreground/50 hover:text-foreground">
+        <a
+          href="#"
+          className="text-foreground/70 hover:border-foreground/50 hover:text-foreground border-b border-transparent"
+        >
           Need help?
         </a>
       </p>
 
       {webEnv.app.isDevelopment && (
-        <p className="mt-2 text-center text-xs text-muted-foreground/50">
+        <p className="text-muted-foreground/50 pt-1.5 text-center text-xs">
           Dev hint: <code className="font-mono">111111</code>
         </p>
       )}

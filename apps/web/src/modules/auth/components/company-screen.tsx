@@ -1,14 +1,17 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import type { ChangeEvent } from 'react';
 
 import type { Company } from '@lakitu/api/companies';
+
 import { Button } from '@repo/ui/shadcn/button';
 import { Input } from '@repo/ui/shadcn/input';
 import { Label } from '@repo/ui/shadcn/label';
 
 import { searchCompanies } from '../auth-setup.api';
 import { createCompanySchema } from '../auth-setup.schemas';
+import { FieldError } from './field-error';
 import type { CreateCompanyFormValues } from '../auth-setup.schemas';
 
 interface CompanyScreenProps {
@@ -35,21 +38,21 @@ export function CompanyScreen({
   };
 
   return (
-    <div>
+    <div className="flex flex-col gap-3.5">
       {mode === 'create' ? (
         <CreateMode onSubmit={onCreateCompany} isSubmitting={isSubmitting} error={visibleError} />
       ) : (
         <JoinMode onJoin={onJoinCompany} isSubmitting={isSubmitting} error={visibleError} />
       )}
 
-      <p className="mt-4 text-center text-xs text-muted-foreground">
+      <p className="text-muted-foreground text-center text-xs">
         <a
           href="#"
           onClick={(e) => {
             e.preventDefault();
             handleModeSwitch();
           }}
-          className="border-b border-transparent text-foreground/70 hover:border-foreground/50 hover:text-foreground"
+          className="text-foreground/70 hover:border-foreground/50 hover:text-foreground border-b border-transparent"
           data-testid="company-mode-toggle"
         >
           {mode === 'create' ? 'Join an existing company' : 'Create a new company'}
@@ -68,23 +71,34 @@ function CreateMode({
   isSubmitting: boolean;
   error: string | null;
 }) {
+  const [dirty, setDirty] = useState(false);
+
   const {
     register,
     handleSubmit,
     formState: { errors },
+    clearErrors,
   } = useForm<CreateCompanyFormValues>({
     resolver: zodResolver(createCompanySchema),
     mode: 'onSubmit',
   });
 
+  useEffect(() => {
+    if (error) setDirty(false);
+  }, [error]);
+
   const onValid = (data: CreateCompanyFormValues) => {
+    setDirty(false);
     onSubmit(data.name);
   };
 
+  const { onChange: rhfOnChange, ...nameRegister } = register('name');
+  const visibleError = dirty ? null : (errors.name?.message ?? error);
+
   return (
-    <form onSubmit={handleSubmit(onValid)} noValidate>
-      <div className="mb-3.5">
-        <Label htmlFor="company-name" className="mb-2 block text-xs font-semibold tracking-wide">
+    <form onSubmit={handleSubmit(onValid)} noValidate className="flex flex-col gap-2.5">
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="company-name" className="text-xs font-semibold tracking-wide">
           Company name
         </Label>
         <Input
@@ -93,11 +107,15 @@ function CreateMode({
           autoFocus
           placeholder="Acme Corp"
           data-testid="company-name-input"
-          {...register('name')}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+            void rhfOnChange(e);
+            setDirty(true);
+            clearErrors();
+          }}
+          {...nameRegister}
         />
+        <FieldError message={visibleError} />
       </div>
-      {errors.name && <p className="mt-1 text-[13px] text-destructive">{errors.name.message}</p>}
-      {error && <p className="mt-1 text-[13px] text-destructive">{error}</p>}
 
       <Button type="submit" disabled={isSubmitting} data-testid="company-create-submit">
         {isSubmitting ? (
@@ -125,6 +143,11 @@ function JoinMode({
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Company[]>([]);
   const [searching, setSearching] = useState(false);
+  const [dirty, setDirty] = useState(false);
+
+  useEffect(() => {
+    if (error) setDirty(false);
+  }, [error]);
 
   useEffect(() => {
     if (query.length < 1) {
@@ -148,9 +171,9 @@ function JoinMode({
   }, [query]);
 
   return (
-    <div>
-      <div className="mb-3.5">
-        <Label htmlFor="company-search" className="mb-2 block text-xs font-semibold tracking-wide">
+    <div className="flex flex-col gap-2.5">
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="company-search" className="text-xs font-semibold tracking-wide">
           Search companies
         </Label>
         <Input
@@ -159,23 +182,25 @@ function JoinMode({
           autoFocus
           placeholder="Type to search..."
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setDirty(true);
+          }}
           data-testid="company-search-input"
         />
+        <FieldError message={dirty ? null : error} />
       </div>
 
-      {error && <p className="mt-1 text-[13px] text-destructive">{error}</p>}
-
-      <div className="mt-1 flex flex-col gap-1">
+      <div className="flex flex-col gap-1">
         {searching && (
-          <div className="inline-flex items-center gap-2.5 text-[13px] text-muted-foreground">
-            <span className="size-3.5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+          <div className="text-muted-foreground inline-flex items-center gap-2.5 text-[13px]">
+            <span className="border-muted-foreground size-3.5 animate-spin rounded-full border-2 border-t-transparent" />
             Searching...
           </div>
         )}
 
         {!searching && query.length > 0 && results.length === 0 && (
-          <p className="text-[13px] text-muted-foreground">No companies found</p>
+          <p className="text-muted-foreground text-[13px]">No companies found</p>
         )}
 
         {results.map((company) => (
