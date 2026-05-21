@@ -97,6 +97,7 @@ async function create(userId: string, input: CreateAgentRequest): Promise<Create
 
   return {
     agent: toAgentDto(row, []),
+    ed25519_private_key: keyPair.privateKeyBase64,
     registration_url: clawkeyResult.registrationUrl,
   };
 }
@@ -219,6 +220,7 @@ async function rotateKey(userId: string, agentId: string): Promise<RotateKeyResp
   const updated = await agentsRepository.findById(agentId);
   return {
     agent: toAgentDto(updated!, await getPermissionsForAgent(agentId)),
+    ed25519_private_key: keyPair.privateKeyBase64,
     registration_url: clawkeyResult.registrationUrl,
   };
 }

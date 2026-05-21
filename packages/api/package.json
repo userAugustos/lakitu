@@ -42,6 +42,10 @@
     "./audit-log": {
       "types": "./dist/audit-log.d.ts",
       "import": "./dist/audit-log.js"
+    },
+    "./gateway": {
+      "types": "./dist/gateway.d.ts",
+      "import": "./dist/gateway.js"
     }
   },
   "scripts": {

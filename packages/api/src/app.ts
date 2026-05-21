@@ -10,6 +10,7 @@ import { db } from '@api/db/client';
 import { agentsRoutes } from '@api/modules/agents/agents.routes';
 import { authRoutes } from '@api/modules/auth/auth.routes';
 import { companiesRoutes } from '@api/modules/companies/companies.routes';
+import { gatewayRoutes } from '@api/modules/gateway/gateway.routes';
 import { onboardingRoutes } from '@api/modules/onboarding/onboarding.routes';
 import { pendingActionsRoutes } from '@api/modules/pending-actions/pending-actions.routes';
 import { permissionsRoutes } from '@api/modules/permissions/permissions.routes';
@@ -83,7 +84,8 @@ export const createApp = () =>
     .use(companiesRoutes)
     .use(agentsRoutes)
     .use(pendingActionsRoutes)
-    .use(permissionsRoutes);
+    .use(permissionsRoutes)
+    .use(gatewayRoutes);
 
 export const lakituApi = createApp();
 
