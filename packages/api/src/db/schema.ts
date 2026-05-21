@@ -180,8 +180,55 @@ export type AuthChallengeRow = typeof authChallenges.$inferSelect;
 export type NewAuthChallengeRow = typeof authChallenges.$inferInsert;
 export type VeryAiOauthStateRow = typeof veryAiOauthStates.$inferSelect;
 export type NewVeryAiOauthStateRow = typeof veryAiOauthStates.$inferInsert;
+
+export const AUDIT_DECISIONS = [
+  'allow',
+  'deny',
+  'approval_required',
+  'approved',
+  'denied',
+  'expired',
+] as const;
+export type AuditDecision = (typeof AUDIT_DECISIONS)[number];
+
+export const auditLogs = sqliteTable(
+  'audit_logs',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    auditId: text('audit_id').notNull(),
+    agentId: text('agent_id')
+      .notNull()
+      .references(() => agents.id),
+    ownerId: text('owner_id')
+      .notNull()
+      .references(() => users.id),
+    companyId: text('company_id')
+      .notNull()
+      .references(() => companies.id),
+    action: text('action').notNull(),
+    decision: text('decision', { enum: AUDIT_DECISIONS }).notNull(),
+    reasons: text('reasons').notNull(),
+    policyHit: text('policy_hit'),
+    requestId: text('request_id'),
+    context: text('context'),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+  },
+  (t) => ({
+    agentCreatedIdx: index('idx_audit_logs_agent_created').on(t.agentId, t.createdAt),
+    ownerCreatedIdx: index('idx_audit_logs_owner_created').on(t.ownerId, t.createdAt),
+    decisionIdx: index('idx_audit_logs_decision').on(t.decision),
+    auditIdIdx: index('idx_audit_logs_audit_id').on(t.auditId),
+  })
+);
+
 export type AgentRow = typeof agents.$inferSelect;
 export type NewAgentRow = typeof agents.$inferInsert;
+export type AuditLogRow = typeof auditLogs.$inferSelect;
+export type NewAuditLogRow = typeof auditLogs.$inferInsert;
 export type AgentPermissionRow = typeof agentPermissions.$inferSelect;
 export type NewAgentPermissionRow = typeof agentPermissions.$inferInsert;
 export type PermissionAuditLogRow = typeof permissionAuditLog.$inferSelect;
