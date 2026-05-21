@@ -26,6 +26,10 @@
     "./onboarding": {
       "types": "./dist/onboarding.d.ts",
       "import": "./dist/onboarding.js"
+    },
+    "./agents": {
+      "types": "./dist/agents.d.ts",
+      "import": "./dist/agents.js"
     }
   },
   "scripts": {
