@@ -34,7 +34,6 @@ export const authSetupMachine = setup({
       const token = authActions.getToken();
       if (!token || isTokenExpired(token)) return null;
 
-      authActions.hydrate();
       const user = await fetchProfile();
       const onboardingStatus = await fetchOnboardingStatus();
       return { token, user, onboardingStatus };
