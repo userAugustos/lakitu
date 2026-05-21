@@ -10,6 +10,8 @@ export default defineConfig((options) => ({
     onboarding: 'src/sdk/onboarding.ts',
     agents: 'src/sdk/agents.ts',
     'pending-actions': 'src/sdk/pending-actions.ts',
+    permissions: 'src/sdk/permissions.ts',
+    'audit-log': 'src/sdk/audit-log.ts',
   },
   format: ['esm'],
   dts: true,
