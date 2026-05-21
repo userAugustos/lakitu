@@ -5,14 +5,10 @@ import { createRoot } from 'react-dom/client';
 
 import '@repo/ui/styles';
 
-import { authActions } from '@/modules/auth/auth.store';
-
 import { routeTree } from './routeTree.gen';
 
-authActions.hydrate();
-
 const queryClient = new QueryClient();
-const router = createRouter({ routeTree, context: { queryClient } });
+export const router = createRouter({ routeTree, context: { queryClient } });
 
 declare module '@tanstack/react-router' {
   interface Register {

@@ -11,7 +11,8 @@
     "**/*.d.ts",
     "**/global.d.ts",
     "**/vite-env.d.ts",
-    "**/migrations/**"
+    "**/migrations/**",
+    "design/**"
   ],
   "rules": {
     "typescript/consistent-type-imports": [

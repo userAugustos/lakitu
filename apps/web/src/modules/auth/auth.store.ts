@@ -1,30 +1,78 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 import type { User } from '@lakitu/api/auth';
 
 interface AuthState {
   user: User | null;
   token: string | null;
+  returnUrl: string | null;
+
+  login: (token: string, user: User) => void;
+  logout: () => void;
+  setReturnUrl: (url: string | null) => void;
 }
 
-export const useAuthStore = create<AuthState>(() => ({ user: null, token: null }));
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      user: null,
+      token: null,
+      returnUrl: null,
 
-const TOKEN_KEY = 'auth_token';
+      login: (token, user) => {
+        set({ user, token });
+      },
+
+      logout: () => {
+        set({ user: null, token: null, returnUrl: null });
+      },
+
+      setReturnUrl: (url) => {
+        set({ returnUrl: url });
+      },
+    }),
+    {
+      name: 'lakitu-auth-storage',
+      partialize: (state) => ({
+        user: state.user,
+        token: state.token,
+      }),
+    }
+  )
+);
+
+export const authStoreState = () => useAuthStore.getState();
 
 export const authActions = {
-  login(user: User, token: string) {
-    useAuthStore.setState({ user, token });
-    localStorage.setItem(TOKEN_KEY, token);
+  isAuthenticated: () => {
+    const state = authStoreState();
+    return Boolean(state.token && state.user);
   },
-  logout() {
-    useAuthStore.setState({ user: null, token: null });
-    localStorage.removeItem(TOKEN_KEY);
+
+  getToken: () => {
+    return authStoreState().token;
   },
-  hydrate() {
-    const token = localStorage.getItem(TOKEN_KEY);
-    if (token) useAuthStore.setState({ token });
+
+  login: (user: User, token: string) => {
+    useAuthStore.getState().login(token, user);
   },
-  getToken(): string | null {
-    return useAuthStore.getState().token ?? localStorage.getItem(TOKEN_KEY);
+
+  logout: () => {
+    useAuthStore.getState().logout();
   },
+
+  setReturnUrl: (url: string | null) => {
+    useAuthStore.getState().setReturnUrl(url);
+  },
+
+  getReturnUrl: () => {
+    return authStoreState().returnUrl;
+  },
+};
+
+export const authSelectors = {
+  isAuthenticated: (state: AuthState) => Boolean(state.token && state.user),
+  user: (state: AuthState) => state.user,
+  token: (state: AuthState) => state.token,
 };

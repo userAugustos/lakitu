@@ -4,13 +4,13 @@ import type { OnboardingStatus } from '@lakitu/api/onboarding';
 
 import { apiCall, ApiResponseError, lakituAuthApi } from '@/api';
 import { authActions } from '@/modules/auth/auth.store';
-import { mapNextStepToRoute } from '@/modules/onboarding/onboarding.utils';
 
 export const Route = createFileRoute('/_authenticated')({
-  beforeLoad: async () => {
+  beforeLoad: async ({ location }) => {
     const token = authActions.getToken();
 
     if (!token) {
+      authActions.setReturnUrl(location.pathname);
       throw redirect({ to: '/login' });
     }
 
@@ -21,17 +21,16 @@ export const Route = createFileRoute('/_authenticated')({
     } catch (error: unknown) {
       if (error instanceof ApiResponseError && error.status === 401) {
         authActions.logout();
+        authActions.setReturnUrl(location.pathname);
         throw redirect({ to: '/login' });
       }
 
       throw error;
     }
 
-    if (!status.onboarded && status.next_step) {
-      throw redirect({
-        to: '/onboarding/$step',
-        params: { step: mapNextStepToRoute(status.next_step) },
-      });
+    if (!status.onboarded) {
+      authActions.setReturnUrl(location.pathname);
+      throw redirect({ to: '/login' });
     }
 
     return { onboardingStatus: status };
