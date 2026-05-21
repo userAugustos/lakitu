@@ -11,6 +11,7 @@ import { agentsRoutes } from '@api/modules/agents/agents.routes';
 import { authRoutes } from '@api/modules/auth/auth.routes';
 import { companiesRoutes } from '@api/modules/companies/companies.routes';
 import { onboardingRoutes } from '@api/modules/onboarding/onboarding.routes';
+import { pendingActionsRoutes } from '@api/modules/pending-actions/pending-actions.routes';
 import { veryAiRoutes } from '@api/modules/very-ai/very-ai.routes';
 import { config } from '@core/env';
 import { errorPlugin } from '@core/errors';
@@ -79,7 +80,8 @@ export const createApp = () =>
     .use(onboardingRoutes)
     .use(veryAiRoutes)
     .use(companiesRoutes)
-    .use(agentsRoutes);
+    .use(agentsRoutes)
+    .use(pendingActionsRoutes);
 
 export const lakituApi = createApp();
 

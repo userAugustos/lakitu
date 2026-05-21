@@ -9,6 +9,7 @@ export default defineConfig((options) => ({
     companies: 'src/sdk/companies.ts',
     onboarding: 'src/sdk/onboarding.ts',
     agents: 'src/sdk/agents.ts',
+    'pending-actions': 'src/sdk/pending-actions.ts',
   },
   format: ['esm'],
   dts: true,
