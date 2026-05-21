@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
+import { Button } from '@repo/ui/shadcn/button';
+import { Label } from '@repo/ui/shadcn/label';
+
 import { webEnv } from '@/modules/core/lib/env';
 
 import { sendChallenge } from '../auth-setup.api';
@@ -126,26 +129,41 @@ export function OtpScreen({ email, onSubmit, onBack, isSubmitting, error }: OtpS
 
   return (
     <>
-      <p className="lede">
+      <p className="m-0 mb-7 text-sm leading-relaxed text-muted-foreground">
         We sent a 6-digit code to{' '}
-        <span className="email-pill">
-          <span className="av">{avatarLetter}</span>
+        <span className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-2.5 py-1 pl-1.5 text-[13px] font-medium text-foreground">
+          <span className="inline-flex size-5 items-center justify-center rounded-full bg-gradient-to-br from-[#7fc2ff] to-[#1e73cc] text-[11px] font-bold text-white">
+            {avatarLetter}
+          </span>
           <span>{email}</span>
-          <button type="button" onClick={onBack} aria-label="Change email" data-testid="otp-back">
+          <button
+            type="button"
+            onClick={onBack}
+            className="cursor-pointer border-0 bg-transparent p-0 px-1 font-inherit text-xs text-muted-foreground hover:text-foreground"
+            aria-label="Change email"
+            data-testid="otp-back"
+          >
             Change
           </button>
         </span>
       </p>
 
       <form onSubmit={handleSubmitForm} noValidate>
-        <div className="field">
-          <label htmlFor="otp-0">Verification code</label>
-          <div className={shake ? 'otp-row shake' : 'otp-row'} data-testid="otp-input">
+        <div className="mb-3.5">
+          <Label htmlFor="otp-0" className="mb-2 block text-xs font-semibold tracking-wide">
+            Verification code
+          </Label>
+          <div
+            className={`grid grid-cols-6 gap-2.5 ${shake ? 'animate-shake' : ''}`}
+            data-testid="otp-input"
+          >
             {digits.map((digit, i) => (
               <input
                 key={i}
                 ref={(el) => setRef(el, i)}
-                className={digit ? 'otp-cell filled' : 'otp-cell'}
+                className={`h-14 w-full rounded-xl border bg-white text-center font-mono text-lg font-semibold text-foreground outline-none ${
+                  digit ? 'border-foreground bg-[#fbfcfd]' : 'border-input'
+                }`}
                 id={`otp-${i}`}
                 type="text"
                 inputMode="numeric"
@@ -162,24 +180,18 @@ export function OtpScreen({ email, onSubmit, onBack, isSubmitting, error }: OtpS
           </div>
         </div>
 
-        {error && <div className="field-error">{error}</div>}
+        {error && <p className="mt-1 text-[13px] text-destructive">{error}</p>}
 
-        <button
-          className="btn"
-          type="submit"
-          disabled={!isComplete || isSubmitting}
-          data-testid="otp-submit"
-        >
+        <Button type="submit" disabled={!isComplete || isSubmitting} data-testid="otp-submit">
           {isSubmitting ? (
             <>
-              <span className="spinner" />
+              <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
               <span>Verifying...</span>
             </>
           ) : (
             <>
               <span>Verify and sign in</span>
               <svg
-                className="arr"
                 width="16"
                 height="16"
                 viewBox="0 0 24 24"
@@ -194,14 +206,15 @@ export function OtpScreen({ email, onSubmit, onBack, isSubmitting, error }: OtpS
               </svg>
             </>
           )}
-        </button>
+        </Button>
 
-        <p className="resend">
-          Didn't get it?{' '}
+        <p className="mt-2.5 text-[13px] text-muted-foreground">
+          Didn&apos;t get it?{' '}
           <button
             type="button"
             onClick={handleResend}
             disabled={seconds > 0}
+            className="cursor-pointer border-0 border-b border-border bg-transparent p-0 font-inherit text-[13px] font-medium text-foreground/70 disabled:cursor-not-allowed disabled:text-muted-foreground/50 disabled:border-transparent"
             data-testid="otp-resend"
           >
             Resend code
@@ -210,13 +223,16 @@ export function OtpScreen({ email, onSubmit, onBack, isSubmitting, error }: OtpS
         </p>
       </form>
 
-      <p className="meta" style={{ marginTop: 32 }}>
-        Code expires in 10 minutes. <a href="#">Need help?</a>
+      <p className="mt-8 text-center text-xs text-muted-foreground">
+        Code expires in 10 minutes.{' '}
+        <a href="#" className="border-b border-transparent text-foreground/70 hover:border-foreground/50 hover:text-foreground">
+          Need help?
+        </a>
       </p>
 
       {webEnv.app.isDevelopment && (
-        <p className="meta" style={{ marginTop: 8, opacity: 0.5 }}>
-          Dev hint: <code style={{ fontFamily: 'var(--font-mono)' }}>111111</code>
+        <p className="mt-2 text-center text-xs text-muted-foreground/50">
+          Dev hint: <code className="font-mono">111111</code>
         </p>
       )}
     </>

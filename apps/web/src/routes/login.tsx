@@ -63,7 +63,7 @@ function ScreenSwitch({ screen, email, error, isSubmitting, canRetry, send }: Sc
     case 'loading':
       return (
         <div className="flex items-center justify-center py-12" data-testid="auth-loading">
-          <div className="spinner" />
+          <span className="size-3.5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
         </div>
       );
     case 'email':

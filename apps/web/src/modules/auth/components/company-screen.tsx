@@ -1,8 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import type { Company } from '@lakitu/api/companies';
+import { Button } from '@repo/ui/shadcn/button';
+import { Input } from '@repo/ui/shadcn/input';
+import { Label } from '@repo/ui/shadcn/label';
 
 import { searchCompanies } from '../auth-setup.api';
 import { createCompanySchema } from '../auth-setup.schemas';
@@ -22,22 +25,31 @@ export function CompanyScreen({
   error,
 }: CompanyScreenProps) {
   const [mode, setMode] = useState<'create' | 'join'>('create');
+  const errorAtModeSwitch = useRef(error);
+
+  const visibleError = error === errorAtModeSwitch.current ? null : error;
+
+  const handleModeSwitch = () => {
+    errorAtModeSwitch.current = error;
+    setMode(mode === 'create' ? 'join' : 'create');
+  };
 
   return (
     <div>
       {mode === 'create' ? (
-        <CreateMode onSubmit={onCreateCompany} isSubmitting={isSubmitting} error={error} />
+        <CreateMode onSubmit={onCreateCompany} isSubmitting={isSubmitting} error={visibleError} />
       ) : (
-        <JoinMode onJoin={onJoinCompany} isSubmitting={isSubmitting} error={error} />
+        <JoinMode onJoin={onJoinCompany} isSubmitting={isSubmitting} error={visibleError} />
       )}
 
-      <p className="meta" style={{ marginTop: 16 }}>
+      <p className="mt-4 text-center text-xs text-muted-foreground">
         <a
           href="#"
           onClick={(e) => {
             e.preventDefault();
-            setMode(mode === 'create' ? 'join' : 'create');
+            handleModeSwitch();
           }}
+          className="border-b border-transparent text-foreground/70 hover:border-foreground/50 hover:text-foreground"
           data-testid="company-mode-toggle"
         >
           {mode === 'create' ? 'Join an existing company' : 'Create a new company'}
@@ -59,10 +71,10 @@ function CreateMode({
   const {
     register,
     handleSubmit,
-    formState: { errors, isValid },
+    formState: { errors },
   } = useForm<CreateCompanyFormValues>({
     resolver: zodResolver(createCompanySchema),
-    mode: 'onChange',
+    mode: 'onSubmit',
   });
 
   const onValid = (data: CreateCompanyFormValues) => {
@@ -71,11 +83,12 @@ function CreateMode({
 
   return (
     <form onSubmit={handleSubmit(onValid)} noValidate>
-      <div className="field">
-        <label htmlFor="company-name">Company name</label>
-        <input
+      <div className="mb-3.5">
+        <Label htmlFor="company-name" className="mb-2 block text-xs font-semibold tracking-wide">
+          Company name
+        </Label>
+        <Input
           id="company-name"
-          className="input"
           type="text"
           autoFocus
           placeholder="Acme Corp"
@@ -83,24 +96,19 @@ function CreateMode({
           {...register('name')}
         />
       </div>
-      {errors.name && <div className="field-error">{errors.name.message}</div>}
-      {error && <div className="field-error">{error}</div>}
+      {errors.name && <p className="mt-1 text-[13px] text-destructive">{errors.name.message}</p>}
+      {error && <p className="mt-1 text-[13px] text-destructive">{error}</p>}
 
-      <button
-        type="submit"
-        className="btn"
-        disabled={!isValid || isSubmitting}
-        data-testid="company-create-submit"
-      >
+      <Button type="submit" disabled={isSubmitting} data-testid="company-create-submit">
         {isSubmitting ? (
           <>
-            <span className="spinner" />
+            <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
             <span>Creating...</span>
           </>
         ) : (
           'Create company'
         )}
-      </button>
+      </Button>
     </form>
   );
 }
@@ -141,11 +149,12 @@ function JoinMode({
 
   return (
     <div>
-      <div className="field">
-        <label htmlFor="company-search">Search companies</label>
-        <input
+      <div className="mb-3.5">
+        <Label htmlFor="company-search" className="mb-2 block text-xs font-semibold tracking-wide">
+          Search companies
+        </Label>
+        <Input
           id="company-search"
-          className="input"
           type="text"
           autoFocus
           placeholder="Type to search..."
@@ -155,45 +164,31 @@ function JoinMode({
         />
       </div>
 
-      {error && <div className="field-error">{error}</div>}
+      {error && <p className="mt-1 text-[13px] text-destructive">{error}</p>}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+      <div className="mt-1 flex flex-col gap-1">
         {searching && (
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 10,
-              fontSize: 13,
-              color: 'var(--muted)',
-            }}
-          >
-            <span className="spinner" />
+          <div className="inline-flex items-center gap-2.5 text-[13px] text-muted-foreground">
+            <span className="size-3.5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
             Searching...
           </div>
         )}
 
         {!searching && query.length > 0 && results.length === 0 && (
-          <p style={{ color: 'var(--muted)', fontSize: 13 }}>No companies found</p>
+          <p className="text-[13px] text-muted-foreground">No companies found</p>
         )}
 
         {results.map((company) => (
-          <button
+          <Button
             key={company.id}
             type="button"
-            className="btn"
-            style={{
-              background: '#ffffff',
-              color: 'var(--ink)',
-              border: '1px solid var(--line-2)',
-              boxShadow: 'none',
-            }}
+            variant="outline"
             disabled={isSubmitting}
             onClick={() => onJoin(company.id)}
             data-testid={`company-join-${company.id}`}
           >
             {company.name}
-          </button>
+          </Button>
         ))}
       </div>
     </div>

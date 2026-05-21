@@ -1,6 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 
+import { Button } from '@repo/ui/shadcn/button';
+import { Input } from '@repo/ui/shadcn/input';
+import { Label } from '@repo/ui/shadcn/label';
+
 import { emailSchema } from '../auth-setup.schemas';
 import type { EmailFormValues } from '../auth-setup.schemas';
 
@@ -26,33 +30,40 @@ export function EmailScreen({ onSubmit, isSubmitting, error }: EmailScreenProps)
 
   return (
     <form onSubmit={handleSubmit(onValid)} noValidate>
-      <div className="field">
-        <label htmlFor="email">Work email</label>
-        <input
+      <div className="mb-3.5">
+        <Label htmlFor="email" className="mb-2 block text-xs font-semibold tracking-wide">
+          Work email
+        </Label>
+        <Input
           id="email"
-          className={errors.email ? 'input error' : 'input'}
           type="email"
           autoFocus
           autoComplete="email"
           placeholder="you@company.com"
           data-testid="email-input"
+          className={
+            errors.email || error
+              ? 'border-destructive shadow-[0_0_0_4px_rgba(230,57,70,0.12)]'
+              : ''
+          }
           {...register('email')}
         />
-        {errors.email && <div className="field-error">{errors.email.message}</div>}
-        {error && <div className="field-error">{error}</div>}
+        {errors.email && (
+          <p className="text-destructive mt-1 text-[13px]">{errors.email.message}</p>
+        )}
+        {error && <p className="text-destructive mt-1 text-[13px]">{error}</p>}
       </div>
 
-      <button type="submit" className="btn" disabled={isSubmitting} data-testid="email-submit">
+      <Button type="submit" disabled={isSubmitting} data-testid="email-submit">
         {isSubmitting ? (
           <>
-            <span className="spinner" />
+            <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
             <span>Sending...</span>
           </>
         ) : (
           <>
             <span>Send code</span>
             <svg
-              className="arr"
               width="16"
               height="16"
               viewBox="0 0 24 24"
@@ -67,15 +78,28 @@ export function EmailScreen({ onSubmit, isSubmitting, error }: EmailScreenProps)
             </svg>
           </>
         )}
-      </button>
+      </Button>
 
-      <p className="help">
-        By continuing you agree to Lakitu's <a href="#">Terms</a> and <a href="#">Privacy Policy</a>
+      <p className="text-muted-foreground mt-2.5 text-xs leading-relaxed">
+        By continuing you agree to Lakitu&apos;s{' '}
+        <a href="#" className="border-border text-foreground/70 hover:text-foreground border-b">
+          Terms
+        </a>{' '}
+        and{' '}
+        <a href="#" className="border-border text-foreground/70 hover:text-foreground border-b">
+          Privacy Policy
+        </a>
         .
       </p>
 
-      <p className="meta">
-        Trouble signing in? <a href="#">Contact your admin</a>
+      <p className="text-muted-foreground mt-7 text-center text-xs">
+        Trouble signing in?{' '}
+        <a
+          href="#"
+          className="text-foreground/70 hover:border-foreground/50 hover:text-foreground border-b border-transparent"
+        >
+          Contact your admin
+        </a>
       </p>
     </form>
   );
