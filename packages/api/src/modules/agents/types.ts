@@ -32,6 +32,7 @@ export interface CreateAgentRequest {
 
 export interface CreateAgentResponse {
   agent: Agent;
+  ed25519_private_key: string;
   registration_url: string;
 }
 
@@ -46,6 +47,7 @@ export interface AgentClawKeyStatusResponse {
 
 export interface RotateKeyResponse {
   agent: Agent;
+  ed25519_private_key: string;
   registration_url: string;
 }
 
@@ -79,6 +81,7 @@ export const AgentIdParamSchema = z.object({
 
 export const CreateAgentResponseSchema = z.object({
   agent: AgentSchema,
+  ed25519_private_key: z.string(),
   registration_url: z.string(),
 });
 
@@ -93,5 +96,6 @@ export const AgentClawKeyStatusResponseSchema = z.object({
 
 export const RotateKeyResponseSchema = z.object({
   agent: AgentSchema,
+  ed25519_private_key: z.string(),
   registration_url: z.string(),
 });
