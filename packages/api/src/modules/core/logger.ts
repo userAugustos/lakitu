@@ -23,6 +23,7 @@ export const LOG_DOMAINS = {
   WORKER: '[Worker]',
   TELEMETRY: '[Telemetry]',
   ERROR: '[Error]',
+  PENDING_ACTIONS: '[PendingActions]',
 } as const;
 
 const isTestEnv = Bun.env.NODE_ENV === 'test';

@@ -1,4 +1,4 @@
-import { t } from 'elysia';
+import { z } from 'zod';
 
 export interface Company {
   id: string;
@@ -28,34 +28,34 @@ export interface ListMembersResponse {
   members: CompanyMember[];
 }
 
-export const CompanySchema = t.Object({
-  id: t.String(),
-  name: t.String(),
-  created_at: t.Number(),
+export const CompanySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  created_at: z.number(),
 });
 
-export const CompanyMemberSchema = t.Object({
-  id: t.String(),
-  name: t.Union([t.String(), t.Null()]),
-  email: t.String(),
+export const CompanyMemberSchema = z.object({
+  id: z.string(),
+  name: z.string().nullable(),
+  email: z.string(),
 });
 
-export const CreateCompanyBodySchema = t.Object({
-  name: t.String({ minLength: 1, maxLength: 100 }),
+export const CreateCompanyBodySchema = z.object({
+  name: z.string().min(1).max(100),
 });
 
-export const CompanyIdParamSchema = t.Object({
-  id: t.String(),
+export const CompanyIdParamSchema = z.object({
+  id: z.string(),
 });
 
-export const SearchCompaniesQuerySchema = t.Object({
-  q: t.String({ minLength: 1 }),
+export const SearchCompaniesQuerySchema = z.object({
+  q: z.string().min(1),
 });
 
-export const SearchCompaniesResponseSchema = t.Object({
-  companies: t.Array(CompanySchema),
+export const SearchCompaniesResponseSchema = z.object({
+  companies: z.array(CompanySchema),
 });
 
-export const ListMembersResponseSchema = t.Object({
-  members: t.Array(CompanyMemberSchema),
+export const ListMembersResponseSchema = z.object({
+  members: z.array(CompanyMemberSchema),
 });

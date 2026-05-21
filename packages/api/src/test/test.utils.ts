@@ -36,4 +36,13 @@ export const testClient = {
       body: JSON.stringify(body),
     });
   },
+  patch<T>(path: string, body: unknown, headers?: Record<string, string>): Promise<ApiResult<T>> {
+    return call<T>('PATCH', path, {
+      headers: { 'content-type': 'application/json', ...(headers ?? {}) },
+      body: JSON.stringify(body),
+    });
+  },
+  delete<T>(path: string, headers?: Record<string, string>): Promise<ApiResult<T>> {
+    return call<T>('DELETE', path, { headers });
+  },
 };

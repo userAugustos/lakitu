@@ -7,9 +7,12 @@ import { Elysia } from 'elysia';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 
 import { db } from '@api/db/client';
+import { agentsRoutes } from '@api/modules/agents/agents.routes';
 import { authRoutes } from '@api/modules/auth/auth.routes';
 import { companiesRoutes } from '@api/modules/companies/companies.routes';
 import { onboardingRoutes } from '@api/modules/onboarding/onboarding.routes';
+import { pendingActionsRoutes } from '@api/modules/pending-actions/pending-actions.routes';
+import { permissionsRoutes } from '@api/modules/permissions/permissions.routes';
 import { veryAiRoutes } from '@api/modules/very-ai/very-ai.routes';
 import { config } from '@core/env';
 import { errorPlugin } from '@core/errors';
@@ -77,7 +80,10 @@ export const createApp = () =>
     .use(authRoutes)
     .use(onboardingRoutes)
     .use(veryAiRoutes)
-    .use(companiesRoutes);
+    .use(companiesRoutes)
+    .use(agentsRoutes)
+    .use(pendingActionsRoutes)
+    .use(permissionsRoutes);
 
 export const lakituApi = createApp();
 

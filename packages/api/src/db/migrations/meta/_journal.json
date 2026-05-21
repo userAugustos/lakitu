@@ -29,6 +29,34 @@
       "when": 1779402800000,
       "tag": "0003_companies",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1747700000000,
+      "tag": "0004_agents",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1747800000000,
+      "tag": "0005_agent_permissions",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1747900000000,
+      "tag": "0006_audit_log",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1748000000000,
+      "tag": "0007_pending_actions",
+      "breakpoints": true
     }
   ]
 }

@@ -50,6 +50,9 @@ export const config = {
     clientSecret: env.VERY_AI_CLIENT_SECRET ?? '',
     redirectUri: env.VERY_AI_REDIRECT_URI ?? 'http://localhost:5173/login',
   },
+  clawkey: {
+    baseUrl: env.CLAWKEY_BASE_URL ?? 'https://api.clawkey.ai/v1',
+  },
 };
 
 export type Config = typeof config;

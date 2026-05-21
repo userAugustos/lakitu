@@ -107,7 +107,7 @@ Adding a new API module requires the three-step recipe:
 
 The `apps/web/src/__sdk-smoke.ts` file is **permanent** — it forces type resolution at compile time so a broken bridge surfaces in `bun check`, not at runtime. Do not delete it.
 
-**Important type-shape rule**: don't export `Static<typeof Schema>` types through the SDK. The dist .d.ts then imports `@sinclair/typebox` internals which consumers can't always resolve. Export plain TypeScript interfaces that mirror the schema shape (see `src/modules/auth/types.ts` for the canonical pattern), and keep the Elysia `t.Object(...)` schema as a separate runtime export.
+**Important type-shape rule**: export plain TypeScript interfaces that mirror the schema shape (see `src/modules/auth/types.ts` for the canonical pattern), and keep the Zod `z.object(...)` schema as a separate runtime export. Avoid exporting `z.infer<typeof Schema>` types through the SDK — prefer explicit interfaces so the dist .d.ts stays clean.
 
 ## Path Aliases
 
