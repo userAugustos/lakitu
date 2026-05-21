@@ -50,6 +50,9 @@ export const config = {
     clientSecret: env.VERY_AI_CLIENT_SECRET ?? '',
     redirectUri: env.VERY_AI_REDIRECT_URI ?? 'http://localhost:3000/onboarding/very-ai/callback',
   },
+  clawkey: {
+    baseUrl: env.CLAWKEY_BASE_URL ?? 'https://api.clawkey.ai/v1',
+  },
 };
 
 export type Config = typeof config;
