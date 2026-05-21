@@ -3,9 +3,9 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
-@source "../shadcn";
-@source "../components";
-@source "../hooks";
+@source '../shadcn';
+@source '../components';
+@source '../hooks';
 
 @layer base {
   :root {
