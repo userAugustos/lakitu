@@ -6,6 +6,11 @@ export type ClawKeyStatusValue = (typeof CLAWKEY_STATUS_VALUES)[number];
 export const AGENT_STATUS_VALUES = ['active', 'revoked'] as const;
 export type AgentStatusValue = (typeof AGENT_STATUS_VALUES)[number];
 
+export interface AgentPermissionSummary {
+  action: string;
+  policy_limits: Record<string, unknown> | null;
+}
+
 export interface Agent {
   id: string;
   name: string;
@@ -16,6 +21,7 @@ export interface Agent {
   clawkey_status: ClawKeyStatusValue;
   clawkey_registered_at: number | null;
   status: AgentStatusValue;
+  permissions: AgentPermissionSummary[];
   created_at: number;
   updated_at: number;
 }
@@ -43,6 +49,11 @@ export interface RotateKeyResponse {
   registration_url: string;
 }
 
+export const AgentPermissionSummarySchema = z.object({
+  action: z.string(),
+  policy_limits: z.record(z.unknown()).nullable(),
+});
+
 export const AgentSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -53,6 +64,7 @@ export const AgentSchema = z.object({
   clawkey_status: z.enum(['pending', 'completed', 'expired', 'failed']),
   clawkey_registered_at: z.number().nullable(),
   status: z.enum(['active', 'revoked']),
+  permissions: z.array(AgentPermissionSummarySchema),
   created_at: z.number(),
   updated_at: z.number(),
 });
