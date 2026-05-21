@@ -12,6 +12,7 @@ export default defineConfig((options) => ({
     'pending-actions': 'src/sdk/pending-actions.ts',
     permissions: 'src/sdk/permissions.ts',
     'audit-log': 'src/sdk/audit-log.ts',
+    gateway: 'src/sdk/gateway.ts',
   },
   format: ['esm'],
   dts: true,
