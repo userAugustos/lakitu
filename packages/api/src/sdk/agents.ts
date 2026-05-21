@@ -1,5 +1,6 @@
 export type {
   Agent,
+  AgentPermissionSummary,
   CreateAgentRequest,
   CreateAgentResponse,
   ListAgentsResponse,
