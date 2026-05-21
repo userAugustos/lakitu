@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 export const companies = sqliteTable('companies', {
   id: text('id')
@@ -119,6 +119,59 @@ export const agents = sqliteTable(
   })
 );
 
+export const PERMISSION_AUDIT_ACTIONS = ['grant', 'revoke', 'update_policy'] as const;
+export type PermissionAuditAction = (typeof PERMISSION_AUDIT_ACTIONS)[number];
+
+export const agentPermissions = sqliteTable(
+  'agent_permissions',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    agentId: text('agent_id')
+      .notNull()
+      .references(() => agents.id),
+    action: text('action').notNull(),
+    policyLimits: text('policy_limits'),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+    updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+  },
+  (t) => ({
+    agentActionUniq: uniqueIndex('uniq_agent_permissions_agent_action').on(t.agentId, t.action),
+    agentIdx: index('idx_agent_permissions_agent').on(t.agentId),
+  })
+);
+
+export const permissionAuditLog = sqliteTable(
+  'permission_audit_log',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    agentId: text('agent_id')
+      .notNull()
+      .references(() => agents.id),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id),
+    action: text('action').notNull(),
+    auditAction: text('audit_action', { enum: PERMISSION_AUDIT_ACTIONS }).notNull(),
+    oldPolicyLimits: text('old_policy_limits'),
+    newPolicyLimits: text('new_policy_limits'),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+  },
+  (t) => ({
+    agentIdx: index('idx_permission_audit_agent').on(t.agentId, t.createdAt),
+    userIdx: index('idx_permission_audit_user').on(t.userId, t.createdAt),
+  })
+);
+
 export type CompanyRow = typeof companies.$inferSelect;
 export type NewCompanyRow = typeof companies.$inferInsert;
 export type UserRow = typeof users.$inferSelect;
@@ -129,3 +182,7 @@ export type VeryAiOauthStateRow = typeof veryAiOauthStates.$inferSelect;
 export type NewVeryAiOauthStateRow = typeof veryAiOauthStates.$inferInsert;
 export type AgentRow = typeof agents.$inferSelect;
 export type NewAgentRow = typeof agents.$inferInsert;
+export type AgentPermissionRow = typeof agentPermissions.$inferSelect;
+export type NewAgentPermissionRow = typeof agentPermissions.$inferInsert;
+export type PermissionAuditLogRow = typeof permissionAuditLog.$inferSelect;
+export type NewPermissionAuditLogRow = typeof permissionAuditLog.$inferInsert;

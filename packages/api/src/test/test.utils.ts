@@ -42,4 +42,7 @@ export const testClient = {
       body: JSON.stringify(body),
     });
   },
+  delete<T>(path: string, headers?: Record<string, string>): Promise<ApiResult<T>> {
+    return call<T>('DELETE', path, { headers });
+  },
 };
