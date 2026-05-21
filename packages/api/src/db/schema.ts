@@ -81,6 +81,44 @@ export const veryAiOauthStates = sqliteTable(
   })
 );
 
+export const CLAWKEY_STATUSES = ['pending', 'completed', 'expired', 'failed'] as const;
+export type ClawKeyStatus = (typeof CLAWKEY_STATUSES)[number];
+
+export const AGENT_STATUSES = ['active', 'revoked'] as const;
+export type AgentStatus = (typeof AGENT_STATUSES)[number];
+
+export const agents = sqliteTable(
+  'agents',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    name: text('name').notNull(),
+    ownerId: text('owner_id')
+      .notNull()
+      .references(() => users.id),
+    companyId: text('company_id')
+      .notNull()
+      .references(() => companies.id),
+    ed25519PublicKey: text('ed25519_public_key').notNull(),
+    ed25519PrivateKey: text('ed25519_private_key').notNull(),
+    clawkeySessionId: text('clawkey_session_id'),
+    clawkeyStatus: text('clawkey_status', { enum: CLAWKEY_STATUSES }).notNull().default('pending'),
+    clawkeyRegisteredAt: integer('clawkey_registered_at', { mode: 'timestamp_ms' }),
+    status: text('status', { enum: AGENT_STATUSES }).notNull().default('active'),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+    updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+  },
+  (t) => ({
+    ownerIdx: index('idx_agents_owner').on(t.ownerId),
+    companyIdx: index('idx_agents_company').on(t.companyId),
+  })
+);
+
 export type CompanyRow = typeof companies.$inferSelect;
 export type NewCompanyRow = typeof companies.$inferInsert;
 export type UserRow = typeof users.$inferSelect;
@@ -89,3 +127,5 @@ export type AuthChallengeRow = typeof authChallenges.$inferSelect;
 export type NewAuthChallengeRow = typeof authChallenges.$inferInsert;
 export type VeryAiOauthStateRow = typeof veryAiOauthStates.$inferSelect;
 export type NewVeryAiOauthStateRow = typeof veryAiOauthStates.$inferInsert;
+export type AgentRow = typeof agents.$inferSelect;
+export type NewAgentRow = typeof agents.$inferInsert;
