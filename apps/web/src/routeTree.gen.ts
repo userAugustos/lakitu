@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard/index'
+import { Route as AuthenticatedDashboardRotateKeyResultRouteImport } from './routes/_authenticated/dashboard/rotate-key-result'
 import { Route as AuthenticatedDashboardCreateAgentRouteImport } from './routes/_authenticated/dashboard/create-agent'
 
 const LoginRoute = LoginRouteImport.update({
@@ -41,6 +42,12 @@ const AuthenticatedDashboardIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AuthenticatedDashboardRotateKeyResultRoute =
+  AuthenticatedDashboardRotateKeyResultRouteImport.update({
+    id: '/rotate-key-result',
+    path: '/rotate-key-result',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 const AuthenticatedDashboardCreateAgentRoute =
   AuthenticatedDashboardCreateAgentRouteImport.update({
     id: '/create-agent',
@@ -53,12 +60,14 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/dashboard/create-agent': typeof AuthenticatedDashboardCreateAgentRoute
+  '/dashboard/rotate-key-result': typeof AuthenticatedDashboardRotateKeyResultRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/dashboard/create-agent': typeof AuthenticatedDashboardCreateAgentRoute
+  '/dashboard/rotate-key-result': typeof AuthenticatedDashboardRotateKeyResultRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
 }
 export interface FileRoutesById {
@@ -68,6 +77,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/_authenticated/dashboard/create-agent': typeof AuthenticatedDashboardCreateAgentRoute
+  '/_authenticated/dashboard/rotate-key-result': typeof AuthenticatedDashboardRotateKeyResultRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
 }
 export interface FileRouteTypes {
@@ -77,9 +87,15 @@ export interface FileRouteTypes {
     | '/login'
     | '/dashboard'
     | '/dashboard/create-agent'
+    | '/dashboard/rotate-key-result'
     | '/dashboard/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/dashboard/create-agent' | '/dashboard'
+  to:
+    | '/'
+    | '/login'
+    | '/dashboard/create-agent'
+    | '/dashboard/rotate-key-result'
+    | '/dashboard'
   id:
     | '__root__'
     | '/'
@@ -87,6 +103,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/_authenticated/dashboard'
     | '/_authenticated/dashboard/create-agent'
+    | '/_authenticated/dashboard/rotate-key-result'
     | '/_authenticated/dashboard/'
   fileRoutesById: FileRoutesById
 }
@@ -133,6 +150,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardIndexRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/dashboard/rotate-key-result': {
+      id: '/_authenticated/dashboard/rotate-key-result'
+      path: '/rotate-key-result'
+      fullPath: '/dashboard/rotate-key-result'
+      preLoaderRoute: typeof AuthenticatedDashboardRotateKeyResultRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
     '/_authenticated/dashboard/create-agent': {
       id: '/_authenticated/dashboard/create-agent'
       path: '/create-agent'
@@ -145,6 +169,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardCreateAgentRoute: typeof AuthenticatedDashboardCreateAgentRoute
+  AuthenticatedDashboardRotateKeyResultRoute: typeof AuthenticatedDashboardRotateKeyResultRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
 }
 
@@ -152,6 +177,8 @@ const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
   {
     AuthenticatedDashboardCreateAgentRoute:
       AuthenticatedDashboardCreateAgentRoute,
+    AuthenticatedDashboardRotateKeyResultRoute:
+      AuthenticatedDashboardRotateKeyResultRoute,
     AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
   }
 

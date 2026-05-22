@@ -8,7 +8,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@repo/ui/shadcn/tooltip
 
 import { agentActionMachine } from '../agent-action.machine';
 import { ConfirmActionContent } from './confirm-action-card';
-import { RotateKeyResultDialog } from './rotate-key-result';
 import type { AgentActionKind } from '../agent-action.types';
 
 interface RowActionsProps {
@@ -23,15 +22,17 @@ export function RowActions({ agentId, agentName, isRevoked }: RowActionsProps) {
 
   useEffect(() => {
     if (state.value === 'success' && prevStateRef.current !== 'success') {
-      const actionName = state.context.input?.kind === 'restore' ? 'restored' : 'revoked';
-      toast.success(`Agent ${actionName} successfully`);
+      const kind = state.context.input?.kind;
+      if (kind === 'revoke' || kind === 'restore') {
+        const label = kind === 'restore' ? 'restored' : 'revoked';
+        toast.success(`Agent ${label} successfully`);
+      }
     }
     prevStateRef.current = state.value;
   }, [state.value, state.context.input?.kind]);
 
   const isIdle = state.matches('idle');
   const isExecuting = state.matches('executing');
-  const isShowingResult = state.matches('showingResult');
   const activeKind = state.context.input?.kind ?? null;
   const showConfirm = state.matches('confirming') || isExecuting || state.matches('error');
 
@@ -126,17 +127,6 @@ export function RowActions({ agentId, agentName, isRevoked }: RowActionsProps) {
           {confirmContent}
         </PopoverContent>
       </Popover>
-
-      {isShowingResult && state.context.rotateResult && (
-        <RotateKeyResultDialog
-          result={state.context.rotateResult}
-          open={isShowingResult}
-          onDone={() => {
-            toast.success('Key rotated successfully');
-            send({ type: 'DISMISS' });
-          }}
-        />
-      )}
     </div>
   );
 }

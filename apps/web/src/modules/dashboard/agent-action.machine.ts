@@ -3,7 +3,7 @@ import { assign, fromPromise, setup } from 'xstate';
 import type { Agent, RotateKeyResponse } from '@lakitu/api/agents';
 
 import { apiCall, lakituAuthApi } from '@/api';
-import { queryClient } from '@/main';
+import { queryClient, router } from '@/main';
 
 import type { AgentActionContext, AgentActionEvent, AgentActionKind } from './agent-action.types';
 
@@ -34,7 +34,6 @@ export const agentActionMachine = setup({
   initial: 'idle',
   context: {
     input: null,
-    rotateResult: null,
     error: null,
   },
 
@@ -45,7 +44,6 @@ export const agentActionMachine = setup({
           target: 'confirming',
           actions: assign(({ event }) => ({
             input: { kind: event.kind, agentId: event.agentId, agentName: event.agentName },
-            rotateResult: null,
             error: null,
           })),
         },
@@ -72,11 +70,14 @@ export const agentActionMachine = setup({
         onDone: [
           {
             guard: ({ context }) => context.input!.kind === 'rotate-key',
-            target: 'showingResult',
-            actions: [
-              assign(({ event }) => ({ rotateResult: event.output as RotateKeyResponse })),
-              () => void queryClient.invalidateQueries({ queryKey: ['agents'] }),
-            ],
+            target: 'success',
+            actions: ({ event }) => {
+              void queryClient.invalidateQueries({ queryKey: ['agents'] });
+              void router.navigate({
+                to: '/dashboard/rotate-key-result' as string,
+                state: event.output as unknown as Record<string, unknown>,
+              });
+            },
           },
           {
             target: 'success',
@@ -94,15 +95,6 @@ export const agentActionMachine = setup({
 
     success: {
       after: { 0: 'idle' },
-    },
-
-    showingResult: {
-      on: {
-        DISMISS: {
-          target: 'idle',
-          actions: assign({ input: null, rotateResult: null }),
-        },
-      },
     },
 
     error: {

@@ -1,5 +1,3 @@
-import type { RotateKeyResponse } from '@lakitu/api/agents';
-
 export type AgentActionKind = 'revoke' | 'restore' | 'rotate-key';
 
 export interface AgentActionInput {
@@ -10,12 +8,10 @@ export interface AgentActionInput {
 
 export interface AgentActionContext {
   input: AgentActionInput | null;
-  rotateResult: RotateKeyResponse | null;
   error: string | null;
 }
 
 export type AgentActionEvent =
   | { type: 'START'; kind: AgentActionKind; agentId: string; agentName: string }
   | { type: 'CONFIRM' }
-  | { type: 'CANCEL' }
-  | { type: 'DISMISS' };
+  | { type: 'CANCEL' };
