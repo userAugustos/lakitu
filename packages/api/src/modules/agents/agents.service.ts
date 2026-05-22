@@ -225,6 +225,20 @@ async function rotateKey(userId: string, agentId: string): Promise<RotateKeyResp
   };
 }
 
+async function bypassClawKey(userId: string, agentId: string): Promise<Agent> {
+  const agent = await agentsRepository.findById(agentId);
+  if (!agent) throw notFound('agents.not_found', 'Agent not found');
+
+  const user = await authRepository.findUserById(userId);
+  if (!user || user.companyId !== agent.companyId) {
+    throw forbidden('agents.not_member', 'You do not have access to this agent');
+  }
+
+  agentsRepository.updateClawKeyStatus(agentId, 'completed', new Date());
+  const updated = await agentsRepository.findById(agentId);
+  return toAgentDto(updated!, await getPermissionsForAgent(agentId));
+}
+
 export const agentsService = {
   create,
   list,
@@ -232,4 +246,5 @@ export const agentsService = {
   revoke,
   restore,
   rotateKey,
+  bypassClawKey,
 };

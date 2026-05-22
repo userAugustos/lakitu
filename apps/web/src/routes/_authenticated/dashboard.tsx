@@ -1,14 +1,35 @@
+import { useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 
-export const Route = createFileRoute('/_authenticated/dashboard')({ component: DashboardPage });
+import '@/modules/dashboard/dashboard.css';
 
-function DashboardPage() {
+import { AnimatedOutlet } from '@/modules/dashboard/components/animated-outlet';
+import { AvatarFloat } from '@/modules/dashboard/components/avatar-float';
+import { BrandFloat } from '@/modules/dashboard/components/brand-float';
+import { CompanyFloat } from '@/modules/dashboard/components/company-float';
+import { DashboardHero } from '@/modules/dashboard/components/dashboard-hero';
+import { QuickActionsGrid } from '@/modules/dashboard/components/quick-actions-grid';
+import { agentsQueryOptions } from '@/modules/dashboard/lib/agents-query';
+
+export const Route = createFileRoute('/_authenticated/dashboard')({
+  loader: ({ context }) => context.queryClient.ensureQueryData(agentsQueryOptions),
+  component: DashboardLayout,
+});
+
+function DashboardLayout() {
+  const { data } = useQuery(agentsQueryOptions);
+
   return (
-    <main className="flex min-h-screen items-center justify-center">
-      <div data-testid="dashboard-page" className="space-y-2 text-center">
-        <h1 className="text-2xl font-semibold">Dashboard</h1>
-        <p className="text-muted-foreground text-sm">Welcome. You are onboarded.</p>
-      </div>
-    </main>
+    <div className="bg-dash-paper min-h-screen" data-testid="dashboard-page">
+      <BrandFloat />
+      <AvatarFloat />
+      <CompanyFloat />
+
+      <main className="mx-auto max-w-[1400px] px-8 pt-20 pb-30">
+        <DashboardHero agentCount={data?.agents.length ?? 0} />
+        <QuickActionsGrid />
+        <AnimatedOutlet />
+      </main>
+    </div>
   );
 }

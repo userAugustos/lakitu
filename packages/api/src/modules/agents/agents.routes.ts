@@ -54,4 +54,13 @@ export const agentsRoutes = new Elysia({
       response: RotateKeyResponseSchema,
       detail: { summary: 'Rotate agent keys', tags: ['agents'] },
     }
+  )
+  .patch(
+    '/:id/clawkey/bypass',
+    async ({ auth, params }) => agentsService.bypassClawKey(auth.sub, params.id),
+    {
+      params: AgentIdParamSchema,
+      response: AgentSchema,
+      detail: { summary: 'Bypass ClawKey registration', tags: ['agents'] },
+    }
   );
