@@ -1,9 +1,9 @@
 import { createFileRoute, useNavigate, useRouter } from '@tanstack/react-router';
-import { useState } from 'react';
 
 import type { RotateKeyResponse } from '@lakitu/api/agents';
 
 import { Button } from '@repo/ui/shadcn/button';
+import { useCopyToClipboard } from '@/modules/core/lib/use-copy-to-clipboard';
 
 export const Route = createFileRoute('/_authenticated/dashboard/rotate-key-result')({
   component: RotateKeyResultPage,
@@ -13,23 +13,13 @@ function RotateKeyResultPage() {
   const router = useRouter();
   const navigate = useNavigate();
   const result = router.state.location.state as unknown as RotateKeyResponse | undefined;
-  const [copiedUrl, setCopiedUrl] = useState(false);
-  const [copiedKey, setCopiedKey] = useState(false);
+  const registrationUrlCopy = useCopyToClipboard();
+  const privateKeyCopy = useCopyToClipboard();
 
   if (!result?.ed25519_private_key) {
     void navigate({ to: '/dashboard' });
     return null;
   }
-
-  const copyToClipboard = async (text: string, setter: (v: boolean) => void) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setter(true);
-      setTimeout(() => setter(false), 2000);
-    } catch {
-      /* clipboard unavailable */
-    }
-  };
 
   return (
     <div className="mx-auto max-w-lg py-8">
@@ -56,10 +46,10 @@ function RotateKeyResultPage() {
               </a>
               <button
                 type="button"
-                onClick={() => copyToClipboard(result.registration_url, setCopiedUrl)}
+                onClick={() => registrationUrlCopy.copyToClipboard(result.registration_url)}
                 className="border-dash-line text-dash-ink-2 hover:bg-dash-gray-bg shrink-0 cursor-pointer rounded-md border bg-white px-2 py-0.5 text-[11px] font-medium"
               >
-                {copiedUrl ? 'Copied!' : 'Copy'}
+                {registrationUrlCopy.message}
               </button>
             </div>
           </div>
@@ -77,10 +67,10 @@ function RotateKeyResultPage() {
               </pre>
               <button
                 type="button"
-                onClick={() => copyToClipboard(result.ed25519_private_key, setCopiedKey)}
+                onClick={() => privateKeyCopy.copyToClipboard(result.ed25519_private_key)}
                 className="border-dash-line text-dash-ink-2 hover:bg-dash-gray-bg absolute top-2 right-2 cursor-pointer rounded-md border bg-white px-2 py-1 text-[11px] font-medium"
               >
-                {copiedKey ? 'Copied!' : 'Copy'}
+                {privateKeyCopy.message}
               </button>
             </div>
           </div>

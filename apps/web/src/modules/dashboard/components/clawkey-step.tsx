@@ -1,7 +1,7 @@
 import { Loader2 } from 'lucide-react';
-import { useState } from 'react';
 
 import { Button } from '@repo/ui/shadcn/button';
+import { useCopyToClipboard } from '@/modules/core/lib/use-copy-to-clipboard';
 
 interface ClawkeyStepProps {
   registrationUrl: string;
@@ -20,17 +20,7 @@ export function ClawkeyStep({
   isBypassing,
   error,
 }: ClawkeyStepProps) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(privateKey);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      /* clipboard unavailable */
-    }
-  };
+  const privateKeyCopy = useCopyToClipboard();
 
   return (
     <div className="flex flex-col gap-6">
@@ -69,10 +59,10 @@ export function ClawkeyStep({
           </pre>
           <button
             type="button"
-            onClick={handleCopy}
+            onClick={() => privateKeyCopy.copyToClipboard(privateKey)}
             className="border-dash-line text-dash-ink-2 hover:bg-dash-gray-bg absolute top-2 right-2 cursor-pointer rounded-md border bg-white px-2 py-1 text-[11px] font-medium"
           >
-            {copied ? 'Copied!' : 'Copy'}
+            {privateKeyCopy.message}
           </button>
         </div>
         <p className="text-dash-amber text-[12px] font-medium">

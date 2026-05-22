@@ -26,7 +26,7 @@ const MOCK_PERMISSION_RESPONSE = {
   permission: {
     id: 'perm_e2e_001',
     agent_id: 'agt_e2e_test_001',
-    action: 'read:telemetry',
+    action: 'read:emails',
     policy_limits: null,
     created_at: Date.now(),
     updated_at: Date.now(),
@@ -47,12 +47,27 @@ function interceptAgentCreation(page: Page) {
 }
 
 function interceptPermissionGrant(page: Page) {
+  let permissionCounter = 0;
+
   return page.route('**/agents/*/permissions', (route) => {
     if (route.request().method() === 'POST') {
+      permissionCounter += 1;
+      const body = route.request().postDataJSON() as {
+        action: string;
+        policy_limits?: Record<string, unknown> | null;
+      };
+
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify(MOCK_PERMISSION_RESPONSE),
+        body: JSON.stringify({
+          permission: {
+            ...MOCK_PERMISSION_RESPONSE.permission,
+            id: `perm_e2e_${permissionCounter.toString().padStart(3, '0')}`,
+            action: body.action,
+            policy_limits: body.policy_limits ?? null,
+          },
+        }),
       });
     }
     return route.continue();
@@ -105,22 +120,55 @@ test.describe('Create Agent flow', () => {
     await expect(page.getByText('Agent E2E Test Agent is live')).toBeVisible();
   });
 
-  test('permissions step: add a permission before continuing', async ({ page }) => {
+  test('permissions step: add a default permission before continuing', async ({ page }) => {
     await page.goto('/dashboard/create-agent');
 
     await page.getByTestId('agent-name-input').fill('Permission Test Agent');
     await page.getByTestId('create-agent-submit').click();
 
-    await expect(page.getByTestId('permission-action-input')).toBeVisible();
+    await expect(page.getByTestId('permission-action-select')).toBeVisible();
 
-    await page.getByTestId('permission-action-input').fill('read:telemetry');
+    await page.getByTestId('permission-action-select').click();
+    await page.getByRole('option', { name: 'Read emails' }).click();
     await page.getByTestId('add-permission-submit').click();
 
-    await expect(page.getByText('read:telemetry')).toBeVisible();
+    await expect(page.getByText('read:emails')).toBeVisible();
 
     await page.getByTestId('permissions-continue').click();
 
     await expect(page.getByTestId('clawkey-registration-url')).toBeVisible();
+  });
+
+  test('permissions step: collects transaction policy limits for create transaction', async ({
+    page,
+  }) => {
+    let grantBody: { action: string; policy_limits?: Record<string, unknown> | null } | null = null;
+    page.on('request', (request) => {
+      if (request.method() === 'POST' && request.url().includes('/permissions')) {
+        grantBody = request.postDataJSON() as typeof grantBody;
+      }
+    });
+
+    await page.goto('/dashboard/create-agent');
+
+    await page.getByTestId('agent-name-input').fill('Policy Test Agent');
+    await page.getByTestId('create-agent-submit').click();
+
+    await page.getByTestId('permission-action-select').click();
+    await page.getByRole('option', { name: 'Create transaction' }).click();
+
+    await expect(page.getByTestId('policy-max-value-input')).toBeVisible();
+    await expect(page.getByTestId('policy-max-by-day-input')).toBeVisible();
+
+    await page.getByTestId('policy-max-value-input').fill('2500');
+    await page.getByTestId('policy-max-by-day-input').fill('7');
+    await page.getByTestId('add-permission-submit').click();
+
+    expect(grantBody).toEqual({
+      action: 'create:transaction',
+      policy_limits: { max_value: 2500, max_by_day: 7 },
+    });
+    await expect(page.getByText('max_value')).toBeVisible();
   });
 
   test('clawkey step displays the registration URL and private key', async ({ page }) => {

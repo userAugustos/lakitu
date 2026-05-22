@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
+import { useMemo } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
 import { Button } from '@repo/ui/shadcn/button';
@@ -11,7 +12,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@repo/ui/shadcn/dialog';
-import { Input } from '@repo/ui/shadcn/input';
 import { Label } from '@repo/ui/shadcn/label';
 import {
   Select,
@@ -22,6 +22,7 @@ import {
 } from '@repo/ui/shadcn/select';
 import { Textarea } from '@repo/ui/shadcn/textarea';
 import { FieldError } from '@/modules/auth/components/field-error';
+import { formatAgentActionLabel } from '@/modules/core/lib/agent-actions';
 import { agentsQueryOptions } from '@/modules/dashboard/lib/agents-query';
 
 import { simulateFormSchema } from '../approvals.schemas';
@@ -45,11 +46,24 @@ export function SimulateDialog({ open, onClose, onSubmit, isLoading, error }: Si
     control,
     formState: { errors },
     setError,
+    setValue,
+    watch,
     reset,
   } = useForm<SimulateFormValues>({
     resolver: zodResolver(simulateFormSchema),
     defaultValues: { agent_id: '', action: '', context: '' },
   });
+
+  const selectedAgentId = watch('agent_id');
+  const selectedAction = watch('action');
+  const selectedAgent = useMemo(
+    () => agents.find((agent) => agent.id === selectedAgentId),
+    [agents, selectedAgentId]
+  );
+  const availablePermissions = selectedAgent?.permissions ?? [];
+  const selectedPermission = availablePermissions.find(
+    (permission) => permission.action === selectedAction
+  );
 
   const onValid = (data: SimulateFormValues) => {
     let parsedContext: Record<string, unknown> | undefined;
@@ -81,7 +95,13 @@ export function SimulateDialog({ open, onClose, onSubmit, isLoading, error }: Si
               control={control}
               name="agent_id"
               render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
+                <Select
+                  value={field.value}
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    setValue('action', '');
+                  }}
+                >
                   <SelectTrigger data-testid="simulate-agent-select" id="sim-agent">
                     <SelectValue placeholder="Select an agent..." />
                   </SelectTrigger>
@@ -100,14 +120,41 @@ export function SimulateDialog({ open, onClose, onSubmit, isLoading, error }: Si
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="sim-action">Action</Label>
-            <Input
-              id="sim-action"
-              type="text"
-              placeholder="e.g. transfer_funds"
-              data-testid="simulate-action-input"
-              className={errors.action ? 'border-destructive' : ''}
-              {...register('action')}
+            <Controller
+              control={control}
+              name="action"
+              render={({ field }) => (
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  disabled={!selectedAgent || availablePermissions.length === 0}
+                >
+                  <SelectTrigger
+                    data-testid="simulate-action-select"
+                    id="sim-action"
+                    className={errors.action ? 'border-destructive' : ''}
+                  >
+                    <SelectValue
+                      placeholder={
+                        selectedAgent ? 'Select a granted action...' : 'Select an agent first...'
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availablePermissions.map((permission) => (
+                      <SelectItem key={permission.action} value={permission.action}>
+                        {formatAgentActionLabel(permission.action)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             />
+            {selectedPermission?.policy_limits && (
+              <p className="text-muted-foreground font-mono text-[11px]">
+                Policy: {JSON.stringify(selectedPermission.policy_limits)}
+              </p>
+            )}
             <FieldError message={errors.action?.message} />
           </div>
 

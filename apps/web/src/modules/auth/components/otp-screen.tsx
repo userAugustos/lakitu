@@ -98,6 +98,7 @@ export function OtpScreen({ email, onSubmit, onBack, isSubmitting, error }: OtpS
           <InputOTP
             maxLength={6}
             value={code}
+            containerClassName="w-full"
             onChange={(value) => {
               form.setValue('code', value);
               setDirty(true);
@@ -106,9 +107,13 @@ export function OtpScreen({ email, onSubmit, onBack, isSubmitting, error }: OtpS
             disabled={isSubmitting}
             data-testid="otp-input"
           >
-            <InputOTPGroup>
+            <InputOTPGroup className="w-full">
               {Array.from({ length: 6 }, (_, i) => (
-                <InputOTPSlot key={i} index={i} />
+                <InputOTPSlot
+                  key={i}
+                  index={i}
+                  className="h-11 w-full flex-1 text-lg font-semibold"
+                />
               ))}
             </InputOTPGroup>
           </InputOTP>

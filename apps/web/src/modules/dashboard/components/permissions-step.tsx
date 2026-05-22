@@ -1,14 +1,22 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 
 import type { AgentPermission } from '@lakitu/api/permissions';
 
 import { Button } from '@repo/ui/shadcn/button';
 import { Input } from '@repo/ui/shadcn/input';
 import { Label } from '@repo/ui/shadcn/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@repo/ui/shadcn/select';
 import { FieldError } from '@/modules/auth/components/field-error';
+import { PLATFORM_AGENT_ACTIONS } from '@/modules/core/lib/agent-actions';
 
 import { permissionFormSchema } from '../create-agent.schemas';
 import { CheckIcon } from '../lib/dashboard-icons';
@@ -23,21 +31,10 @@ interface PermissionsStepProps {
   error: string | null;
 }
 
-function formatActionValue(raw: string): string {
-  return raw
-    .toLowerCase()
-    .replace(/\s+/g, '_')
-    .replace(/[^a-z0-9_:]/g, '');
-}
-
-function parsePolicyLimits(raw: string): Record<string, unknown> | null {
-  const trimmed = raw.trim();
-  if (!trimmed) return null;
-  try {
-    return JSON.parse(trimmed) as Record<string, unknown>;
-  } catch {
-    return null;
-  }
+function parsePositiveNumber(raw: string | undefined): number | null {
+  const value = Number(raw);
+  if (!raw?.trim() || !Number.isFinite(value) || value <= 0) return null;
+  return value;
 }
 
 export function PermissionsStep({
@@ -49,10 +46,10 @@ export function PermissionsStep({
   error,
 }: PermissionsStepProps) {
   const [dirty, setDirty] = useState(false);
-  const [limitsError, setLimitsError] = useState<string | null>(null);
+  const [policyErrors, setPolicyErrors] = useState<Record<string, string>>({});
 
   const {
-    register,
+    control,
     handleSubmit,
     formState: { errors },
     clearErrors,
@@ -62,7 +59,7 @@ export function PermissionsStep({
   } = useForm<PermissionFormValues>({
     resolver: zodResolver(permissionFormSchema),
     mode: 'onSubmit',
-    defaultValues: { action: '', policyLimits: '' },
+    defaultValues: { action: undefined, policyMaxValue: '', policyMaxByDay: '' },
   });
 
   useEffect(() => {
@@ -71,24 +68,37 @@ export function PermissionsStep({
 
   const onValid = (data: PermissionFormValues) => {
     setDirty(false);
-    setLimitsError(null);
+    setPolicyErrors({});
 
-    const rawLimits = data.policyLimits?.trim() ?? '';
-    if (rawLimits) {
-      try {
-        JSON.parse(rawLimits);
-      } catch {
-        setLimitsError('Invalid JSON');
-        return;
+    const selectedAction = PLATFORM_AGENT_ACTIONS.find((action) => action.value === data.action);
+    const policyLimits: Record<string, unknown> = {};
+    const nextPolicyErrors: Record<string, string> = {};
+
+    for (const field of selectedAction?.policyFields ?? []) {
+      const formValue = field.key === 'max_value' ? data.policyMaxValue : data.policyMaxByDay;
+      const parsedValue = parsePositiveNumber(formValue);
+      if (parsedValue === null) {
+        nextPolicyErrors[field.key] = `${field.label} is required`;
+      } else {
+        policyLimits[field.key] = parsedValue;
       }
     }
 
-    onAddPermission(data.action, parsePolicyLimits(rawLimits));
-    reset();
+    if (Object.keys(nextPolicyErrors).length > 0) {
+      setPolicyErrors(nextPolicyErrors);
+      return;
+    }
+
+    onAddPermission(data.action, Object.keys(policyLimits).length > 0 ? policyLimits : null);
+    reset({ action: undefined, policyMaxValue: '', policyMaxByDay: '' });
   };
 
   const actionValue = watch('action');
-  const { onChange: _actionOnChange, ...actionRest } = register('action');
+  const selectedAction = PLATFORM_AGENT_ACTIONS.find((action) => action.value === actionValue);
+  const grantedActionValues = new Set(grantedPermissions.map((permission) => permission.action));
+  const availableActions = PLATFORM_AGENT_ACTIONS.filter(
+    (action) => !grantedActionValues.has(action.value)
+  );
   const visibleError = dirty ? null : (errors.action?.message ?? error);
 
   return (
@@ -105,51 +115,99 @@ export function PermissionsStep({
           <Label htmlFor="permission-action" className="text-xs font-semibold tracking-wide">
             Action
           </Label>
-          <Input
-            id="permission-action"
-            type="text"
-            placeholder="e.g. read:telemetry"
-            data-testid="permission-action-input"
-            className={
-              visibleError ? 'border-destructive shadow-[0_0_0_4px_rgba(230,57,70,0.12)]' : ''
-            }
-            onChange={(e) => {
-              const formatted = formatActionValue(e.target.value);
-              setValue('action', formatted, { shouldValidate: dirty });
-              setDirty(true);
-              clearErrors('action');
-            }}
-            value={actionValue}
-            ref={actionRest.ref}
-            name={actionRest.name}
-            onBlur={actionRest.onBlur}
+          <Controller
+            control={control}
+            name="action"
+            render={({ field }) => (
+              <Select
+                value={field.value}
+                onValueChange={(value) => {
+                  field.onChange(value);
+                  setValue('policyMaxValue', '');
+                  setValue('policyMaxByDay', '');
+                  setPolicyErrors({});
+                  setDirty(true);
+                  clearErrors('action');
+                }}
+              >
+                <SelectTrigger
+                  id="permission-action"
+                  data-testid="permission-action-select"
+                  className={
+                    visibleError ? 'border-destructive shadow-[0_0_0_4px_rgba(230,57,70,0.12)]' : ''
+                  }
+                >
+                  <SelectValue placeholder="Select an action..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableActions.map((action) => (
+                    <SelectItem key={action.value} value={action.value}>
+                      {action.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           />
-          <p className="text-dash-muted text-[11px]">
-            Lowercase, colons for namespacing. Spaces become underscores.
-          </p>
+          {selectedAction ? (
+            <p className="text-dash-muted text-[11px]">{selectedAction.description}</p>
+          ) : (
+            <p className="text-dash-muted text-[11px]">
+              Choose one of the platform actions this agent can perform.
+            </p>
+          )}
           <FieldError message={visibleError} />
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="policy-limits" className="text-xs font-semibold tracking-wide">
-            Policy limits{' '}
-            <span className="text-dash-muted font-normal tracking-normal normal-case">
-              (optional)
+        {selectedAction && selectedAction.policyFields.length > 0 && (
+          <div className="border-dash-line bg-dash-paper flex flex-col gap-3 rounded-xl border p-3">
+            <span className="text-dash-muted text-[11.5px] font-semibold tracking-[0.04em] uppercase">
+              Policy limits
             </span>
-          </Label>
-          <textarea
-            id="policy-limits"
-            data-testid="policy-limits-input"
-            placeholder='e.g. { "max_calls": 100, "rate_limit": "10/min" }'
-            className="border-input placeholder:text-dash-muted text-dash-ink min-h-[72px] w-full resize-y rounded-md border bg-white px-3 py-2 font-mono text-[13px] transition-colors outline-none focus:border-[var(--dash-ink)] focus:shadow-[0_0_0_4px_rgba(11,27,51,0.08)]"
-            {...register('policyLimits')}
-          />
-          <FieldError message={limitsError} />
-        </div>
+            {selectedAction.policyFields.map((field) => (
+              <div key={field.key} className="flex flex-col gap-1.5">
+                <Label
+                  htmlFor={`policy-${field.key}`}
+                  className="text-xs font-semibold tracking-wide"
+                >
+                  {field.label}
+                </Label>
+                <Input
+                  id={`policy-${field.key}`}
+                  type="number"
+                  min="1"
+                  step="1"
+                  placeholder={field.placeholder}
+                  data-testid={`policy-${field.key.replace(/_/g, '-')}-input`}
+                  className={
+                    policyErrors[field.key]
+                      ? 'border-destructive shadow-[0_0_0_4px_rgba(230,57,70,0.12)]'
+                      : ''
+                  }
+                  value={
+                    field.key === 'max_value' ? watch('policyMaxValue') : watch('policyMaxByDay')
+                  }
+                  onChange={(event) => {
+                    setValue(
+                      field.key === 'max_value' ? 'policyMaxValue' : 'policyMaxByDay',
+                      event.target.value
+                    );
+                    setPolicyErrors((current) => {
+                      const { [field.key]: _removed, ...rest } = current;
+                      return rest;
+                    });
+                  }}
+                />
+                <p className="text-dash-muted text-[11px]">{field.description}</p>
+                <FieldError message={policyErrors[field.key]} />
+              </div>
+            ))}
+          </div>
+        )}
 
         <Button
           type="submit"
-          disabled={isGranting}
+          disabled={isGranting || availableActions.length === 0}
           variant="outline"
           data-testid="add-permission-submit"
           className="self-start"
