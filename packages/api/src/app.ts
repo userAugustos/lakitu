@@ -8,6 +8,7 @@ import { zodToJsonSchema } from 'zod-to-json-schema';
 
 import { db } from '@api/db/client';
 import { agentsRoutes } from '@api/modules/agents/agents.routes';
+import { auditLogRoutes } from '@api/modules/audit-log/audit-log.routes';
 import { authRoutes } from '@api/modules/auth/auth.routes';
 import { companiesRoutes } from '@api/modules/companies/companies.routes';
 import { gatewayRoutes } from '@api/modules/gateway/gateway.routes';
@@ -85,7 +86,8 @@ export const createApp = () =>
     .use(agentsRoutes)
     .use(pendingActionsRoutes)
     .use(permissionsRoutes)
-    .use(gatewayRoutes);
+    .use(gatewayRoutes)
+    .use(auditLogRoutes);
 
 export const lakituApi = createApp();
 

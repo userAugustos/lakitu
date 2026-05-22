@@ -82,3 +82,27 @@ export const SearchAuditLogParamsSchema = z.object({
   from: z.number().optional(),
   to: z.number().optional(),
 });
+
+export interface AuditLogListEntry extends AuditLogEntry {
+  agent_name: string;
+}
+
+export interface AuditLogListResponse {
+  entries: AuditLogListEntry[];
+}
+
+export const ListAuditLogsQuerySchema = z.object({
+  decision: z
+    .enum(['allow', 'deny', 'approval_required', 'approved', 'denied', 'expired'])
+    .optional(),
+});
+
+export type ListAuditLogsQuery = z.infer<typeof ListAuditLogsQuerySchema>;
+
+export const AuditLogListEntrySchema = AuditLogEntrySchema.extend({
+  agent_name: z.string(),
+});
+
+export const AuditLogListResponseSchema = z.object({
+  entries: z.array(AuditLogListEntrySchema),
+});
