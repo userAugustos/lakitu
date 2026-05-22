@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root';
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated';
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard';
+import { Route as AuthenticatedDashboardAuditLogsRouteImport } from './routes/_authenticated/dashboard/audit-logs';
 import { Route as AuthenticatedDashboardCreateAgentRouteImport } from './routes/_authenticated/dashboard/create-agent';
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard/index';
 import { Route as IndexRouteImport } from './routes/index';
@@ -45,17 +46,24 @@ const AuthenticatedDashboardCreateAgentRoute = AuthenticatedDashboardCreateAgent
   path: '/create-agent',
   getParentRoute: () => AuthenticatedDashboardRoute,
 } as any);
+const AuthenticatedDashboardAuditLogsRoute = AuthenticatedDashboardAuditLogsRouteImport.update({
+  id: '/audit-logs',
+  path: '/audit-logs',
+  getParentRoute: () => AuthenticatedDashboardRoute,
+} as any);
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
   '/login': typeof LoginRoute;
   '/dashboard': typeof AuthenticatedDashboardRouteWithChildren;
+  '/dashboard/audit-logs': typeof AuthenticatedDashboardAuditLogsRoute;
   '/dashboard/create-agent': typeof AuthenticatedDashboardCreateAgentRoute;
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute;
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute;
   '/login': typeof LoginRoute;
+  '/dashboard/audit-logs': typeof AuthenticatedDashboardAuditLogsRoute;
   '/dashboard/create-agent': typeof AuthenticatedDashboardCreateAgentRoute;
   '/dashboard': typeof AuthenticatedDashboardIndexRoute;
 }
@@ -65,20 +73,28 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren;
   '/login': typeof LoginRoute;
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren;
+  '/_authenticated/dashboard/audit-logs': typeof AuthenticatedDashboardAuditLogsRoute;
   '/_authenticated/dashboard/create-agent': typeof AuthenticatedDashboardCreateAgentRoute;
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute;
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
-  fullPaths: '/' | '/login' | '/dashboard' | '/dashboard/create-agent' | '/dashboard/';
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/dashboard'
+    | '/dashboard/audit-logs'
+    | '/dashboard/create-agent'
+    | '/dashboard/';
   fileRoutesByTo: FileRoutesByTo;
-  to: '/' | '/login' | '/dashboard/create-agent' | '/dashboard';
+  to: '/' | '/login' | '/dashboard/audit-logs' | '/dashboard/create-agent' | '/dashboard';
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/login'
     | '/_authenticated/dashboard'
+    | '/_authenticated/dashboard/audit-logs'
     | '/_authenticated/dashboard/create-agent'
     | '/_authenticated/dashboard/';
   fileRoutesById: FileRoutesById;
@@ -133,15 +149,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardCreateAgentRouteImport;
       parentRoute: typeof AuthenticatedDashboardRoute;
     };
+    '/_authenticated/dashboard/audit-logs': {
+      id: '/_authenticated/dashboard/audit-logs';
+      path: '/audit-logs';
+      fullPath: '/dashboard/audit-logs';
+      preLoaderRoute: typeof AuthenticatedDashboardAuditLogsRouteImport;
+      parentRoute: typeof AuthenticatedDashboardRoute;
+    };
   }
 }
 
 interface AuthenticatedDashboardRouteChildren {
+  AuthenticatedDashboardAuditLogsRoute: typeof AuthenticatedDashboardAuditLogsRoute;
   AuthenticatedDashboardCreateAgentRoute: typeof AuthenticatedDashboardCreateAgentRoute;
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute;
 }
 
 const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren = {
+  AuthenticatedDashboardAuditLogsRoute: AuthenticatedDashboardAuditLogsRoute,
   AuthenticatedDashboardCreateAgentRoute: AuthenticatedDashboardCreateAgentRoute,
   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
 };
