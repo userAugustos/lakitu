@@ -1,6 +1,7 @@
 import {
   flexRender,
   getCoreRowModel,
+  getFilteredRowModel,
   getPaginationRowModel,
   useReactTable,
 } from '@tanstack/react-table';
@@ -20,6 +21,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from '../lib/dashboard-icons';
 interface AgentsDataTableProps<TData> {
   columns: ColumnDef<TData, unknown>[];
   data: TData[];
+  globalFilter?: string;
 }
 
 const PAGE_SIZE = 8;
@@ -29,11 +31,17 @@ const HEAD_CLASS =
 
 const CELL_CLASS = 'border-dash-line-3 border-b px-4 py-3.5 align-middle';
 
-export function AgentsDataTable<TData>({ columns, data }: AgentsDataTableProps<TData>) {
+export function AgentsDataTable<TData>({
+  columns,
+  data,
+  globalFilter,
+}: AgentsDataTableProps<TData>) {
   const table = useReactTable({
     data,
     columns,
+    state: { globalFilter },
     getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     initialState: {
       pagination: { pageSize: PAGE_SIZE },
