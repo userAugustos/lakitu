@@ -1,26 +1,10 @@
-import nodemailer from 'nodemailer';
-import type { Transporter } from 'nodemailer';
-
 import { config } from '@core/env';
 import { LOG_DOMAINS, logger } from '@core/logger';
 
+import { createResendTransport } from './transports/resend';
+import { createSmtpTransport } from './transports/smtp';
+
 const mailLogger = logger.child({ domain: LOG_DOMAINS.MAIL });
-
-let _transport: Transporter | null = null;
-
-function getTransport(): Transporter | null {
-  if (_transport) return _transport;
-  if (!config.email.enabled) return null;
-  _transport = nodemailer.createTransport({
-    host: config.email.smtpHost,
-    port: config.email.smtpPort,
-    secure: config.email.secure,
-    auth: config.email.smtpUsername
-      ? { user: config.email.smtpUsername, pass: config.email.smtpPassword }
-      : undefined,
-  });
-  return _transport;
-}
 
 export interface SendArgs {
   from: string;
@@ -30,6 +14,23 @@ export interface SendArgs {
   text?: string;
 }
 
+export interface MailTransport {
+  send(args: SendArgs): Promise<void>;
+}
+
+let _transport: MailTransport | null = null;
+
+function getTransport(): MailTransport | null {
+  if (_transport) return _transport;
+  if (!config.email.enabled) return null;
+
+  _transport = config.email.resendApiKey
+    ? createResendTransport(config.email.resendApiKey)
+    : createSmtpTransport(config.email);
+
+  return _transport;
+}
+
 export async function sendEmail(args: SendArgs): Promise<{ ok: boolean }> {
   const transport = getTransport();
   if (!transport) {
@@ -37,7 +38,7 @@ export async function sendEmail(args: SendArgs): Promise<{ ok: boolean }> {
     return { ok: true };
   }
   try {
-    await transport.sendMail(args);
+    await transport.send(args);
     mailLogger.info('Email sent', { to: args.to, subject: args.subject });
     return { ok: true };
   } catch (error) {
