@@ -35,15 +35,17 @@ export function QuickActionsGrid() {
           subtitle={subtitle}
         />
       </Link>
-      <QuickActionCard
-        icon={
-          <span className="text-dash-sky-4 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[9px] bg-[#E3F0FF]">
-            <ListIcon className="h-[17px] w-[17px]" />
-          </span>
-        }
-        title="Audit Logs"
-        subtitle="View activity, key rotations & revocations"
-      />
+      <Link to="/dashboard/audit-logs" className="contents">
+        <QuickActionCard
+          icon={
+            <span className="text-dash-sky-4 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[9px] bg-[#E3F0FF]">
+              <ListIcon className="h-[17px] w-[17px]" />
+            </span>
+          }
+          title="Audit Logs"
+          subtitle="View activity, key rotations & revocations"
+        />
+      </Link>
     </section>
   );
 }

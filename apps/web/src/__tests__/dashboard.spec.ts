@@ -46,4 +46,12 @@ test.describe('Dashboard', () => {
     await expect(page).toHaveURL(/\/dashboard\/create-agent/);
     await expect(page.getByTestId('agent-name-input')).toBeVisible();
   });
+
+  test('navigating to audit logs via the quick action card', async ({ page }) => {
+    await page.goto('/dashboard');
+
+    await page.getByText('Audit Logs').click();
+
+    await expect(page).toHaveURL(/\/dashboard\/audit-logs/);
+  });
 });
