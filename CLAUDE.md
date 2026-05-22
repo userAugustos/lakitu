@@ -95,6 +95,8 @@ Key conventions:
 
 When a shadcn primitive imports from `./lib/utils` (or similar internal module), use a **relative** path — `@/*` paths only resolve inside the UI package and break when web consumes the file via `@repo/ui/shadcn/*`.
 
+**Adding shadcn components**: always use the CLI from the `packages/ui` directory — `bunx --bun shadcn@latest add <component>`. Never create shadcn component files manually.
+
 ## API SDK Exports
 
 The API package emits typed subpath modules (`@lakitu/api/client`, `@lakitu/api/core`, `@lakitu/api/auth`) built by tsup. The web app consumes these for type-safe API integration.

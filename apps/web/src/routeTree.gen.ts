@@ -8,71 +8,94 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root';
-import { Route as AuthenticatedRouteImport } from './routes/_authenticated';
-import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard';
-import { Route as AuthenticatedDashboardCreateAgentRouteImport } from './routes/_authenticated/dashboard/create-agent';
-import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard/index';
-import { Route as IndexRouteImport } from './routes/index';
-import { Route as LoginRouteImport } from './routes/login';
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard/index'
+import { Route as AuthenticatedDashboardRotateKeyResultRouteImport } from './routes/_authenticated/dashboard/rotate-key-result'
+import { Route as AuthenticatedDashboardCreateAgentRouteImport } from './routes/_authenticated/dashboard/create-agent'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRoute,
-} as any);
-const AuthenticatedDashboardIndexRoute = AuthenticatedDashboardIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AuthenticatedDashboardRoute,
-} as any);
-const AuthenticatedDashboardCreateAgentRoute = AuthenticatedDashboardCreateAgentRouteImport.update({
-  id: '/create-agent',
-  path: '/create-agent',
-  getParentRoute: () => AuthenticatedDashboardRoute,
-} as any);
+} as any)
+const AuthenticatedDashboardIndexRoute =
+  AuthenticatedDashboardIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedDashboardRotateKeyResultRoute =
+  AuthenticatedDashboardRotateKeyResultRouteImport.update({
+    id: '/rotate-key-result',
+    path: '/rotate-key-result',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedDashboardCreateAgentRoute =
+  AuthenticatedDashboardCreateAgentRouteImport.update({
+    id: '/create-agent',
+    path: '/create-agent',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute;
-  '/login': typeof LoginRoute;
-  '/dashboard': typeof AuthenticatedDashboardRouteWithChildren;
-  '/dashboard/create-agent': typeof AuthenticatedDashboardCreateAgentRoute;
-  '/dashboard/': typeof AuthenticatedDashboardIndexRoute;
+  '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
+  '/dashboard/create-agent': typeof AuthenticatedDashboardCreateAgentRoute
+  '/dashboard/rotate-key-result': typeof AuthenticatedDashboardRotateKeyResultRoute
+  '/dashboard/': typeof AuthenticatedDashboardIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute;
-  '/login': typeof LoginRoute;
-  '/dashboard/create-agent': typeof AuthenticatedDashboardCreateAgentRoute;
-  '/dashboard': typeof AuthenticatedDashboardIndexRoute;
+  '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/dashboard/create-agent': typeof AuthenticatedDashboardCreateAgentRoute
+  '/dashboard/rotate-key-result': typeof AuthenticatedDashboardRotateKeyResultRoute
+  '/dashboard': typeof AuthenticatedDashboardIndexRoute
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport;
-  '/': typeof IndexRoute;
-  '/_authenticated': typeof AuthenticatedRouteWithChildren;
-  '/login': typeof LoginRoute;
-  '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren;
-  '/_authenticated/dashboard/create-agent': typeof AuthenticatedDashboardCreateAgentRoute;
-  '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute;
+  __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteWithChildren
+  '/login': typeof LoginRoute
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
+  '/_authenticated/dashboard/create-agent': typeof AuthenticatedDashboardCreateAgentRoute
+  '/_authenticated/dashboard/rotate-key-result': typeof AuthenticatedDashboardRotateKeyResultRoute
+  '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath;
-  fullPaths: '/' | '/login' | '/dashboard' | '/dashboard/create-agent' | '/dashboard/';
-  fileRoutesByTo: FileRoutesByTo;
-  to: '/' | '/login' | '/dashboard/create-agent' | '/dashboard';
+  fileRoutesByFullPath: FileRoutesByFullPath
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/dashboard'
+    | '/dashboard/create-agent'
+    | '/dashboard/rotate-key-result'
+    | '/dashboard/'
+  fileRoutesByTo: FileRoutesByTo
+  to:
+    | '/'
+    | '/login'
+    | '/dashboard/create-agent'
+    | '/dashboard/rotate-key-result'
+    | '/dashboard'
   id:
     | '__root__'
     | '/'
@@ -80,93 +103,107 @@ export interface FileRouteTypes {
     | '/login'
     | '/_authenticated/dashboard'
     | '/_authenticated/dashboard/create-agent'
-    | '/_authenticated/dashboard/';
-  fileRoutesById: FileRoutesById;
+    | '/_authenticated/dashboard/rotate-key-result'
+    | '/_authenticated/dashboard/'
+  fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute;
-  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren;
-  LoginRoute: typeof LoginRoute;
+  IndexRoute: typeof IndexRoute
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  LoginRoute: typeof LoginRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
     '/login': {
-      id: '/login';
-      path: '/login';
-      fullPath: '/login';
-      preLoaderRoute: typeof LoginRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated': {
-      id: '/_authenticated';
-      path: '';
-      fullPath: '/';
-      preLoaderRoute: typeof AuthenticatedRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
-      id: '/';
-      path: '/';
-      fullPath: '/';
-      preLoaderRoute: typeof IndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/dashboard': {
-      id: '/_authenticated/dashboard';
-      path: '/dashboard';
-      fullPath: '/dashboard';
-      preLoaderRoute: typeof AuthenticatedDashboardRouteImport;
-      parentRoute: typeof AuthenticatedRoute;
-    };
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/dashboard/': {
-      id: '/_authenticated/dashboard/';
-      path: '/';
-      fullPath: '/dashboard/';
-      preLoaderRoute: typeof AuthenticatedDashboardIndexRouteImport;
-      parentRoute: typeof AuthenticatedDashboardRoute;
-    };
+      id: '/_authenticated/dashboard/'
+      path: '/'
+      fullPath: '/dashboard/'
+      preLoaderRoute: typeof AuthenticatedDashboardIndexRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
+    '/_authenticated/dashboard/rotate-key-result': {
+      id: '/_authenticated/dashboard/rotate-key-result'
+      path: '/rotate-key-result'
+      fullPath: '/dashboard/rotate-key-result'
+      preLoaderRoute: typeof AuthenticatedDashboardRotateKeyResultRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
     '/_authenticated/dashboard/create-agent': {
-      id: '/_authenticated/dashboard/create-agent';
-      path: '/create-agent';
-      fullPath: '/dashboard/create-agent';
-      preLoaderRoute: typeof AuthenticatedDashboardCreateAgentRouteImport;
-      parentRoute: typeof AuthenticatedDashboardRoute;
-    };
+      id: '/_authenticated/dashboard/create-agent'
+      path: '/create-agent'
+      fullPath: '/dashboard/create-agent'
+      preLoaderRoute: typeof AuthenticatedDashboardCreateAgentRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
   }
 }
 
 interface AuthenticatedDashboardRouteChildren {
-  AuthenticatedDashboardCreateAgentRoute: typeof AuthenticatedDashboardCreateAgentRoute;
-  AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute;
+  AuthenticatedDashboardCreateAgentRoute: typeof AuthenticatedDashboardCreateAgentRoute
+  AuthenticatedDashboardRotateKeyResultRoute: typeof AuthenticatedDashboardRotateKeyResultRoute
+  AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
 }
 
-const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren = {
-  AuthenticatedDashboardCreateAgentRoute: AuthenticatedDashboardCreateAgentRoute,
-  AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
-};
+const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
+  {
+    AuthenticatedDashboardCreateAgentRoute:
+      AuthenticatedDashboardCreateAgentRoute,
+    AuthenticatedDashboardRotateKeyResultRoute:
+      AuthenticatedDashboardRotateKeyResultRoute,
+    AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
+  }
 
-const AuthenticatedDashboardRouteWithChildren = AuthenticatedDashboardRoute._addFileChildren(
-  AuthenticatedDashboardRouteChildren
-);
+const AuthenticatedDashboardRouteWithChildren =
+  AuthenticatedDashboardRoute._addFileChildren(
+    AuthenticatedDashboardRouteChildren,
+  )
 
 interface AuthenticatedRouteChildren {
-  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRouteWithChildren;
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRouteWithChildren
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRouteWithChildren,
-};
+}
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
-  AuthenticatedRouteChildren
-);
+  AuthenticatedRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LoginRoute: LoginRoute,
-};
+}
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>();
+  ._addFileTypes<FileRouteTypes>()

@@ -1,7 +1,11 @@
-import type { AgentActionKind } from '../agent-action.types';
+import { Loader2 } from 'lucide-react';
 
-interface ConfirmActionCardProps {
-  kind: AgentActionKind;
+import { cn } from '@repo/ui/utils';
+
+type ActionKind = 'revoke' | 'restore' | 'rotate-key';
+
+interface ConfirmActionContentProps {
+  kind: ActionKind;
   agentName: string;
   isExecuting: boolean;
   error: string | null;
@@ -9,7 +13,7 @@ interface ConfirmActionCardProps {
   onCancel: () => void;
 }
 
-const ACTION_COPY: Record<AgentActionKind, { title: string; description: string }> = {
+const ACTION_COPY: Record<ActionKind, { title: string; description: string }> = {
   revoke: {
     title: 'Revoke Agent',
     description: 'This will immediately disable the agent and invalidate its keys.',
@@ -20,32 +24,30 @@ const ACTION_COPY: Record<AgentActionKind, { title: string; description: string 
   },
   'rotate-key': {
     title: 'Rotate Key',
-    description: 'This will generate a new keypair. The old key will be invalidated immediately.',
+    description:
+      'A new keypair will be generated. The current key will be invalidated immediately.',
   },
 };
 
-export function ConfirmActionCard({
+export function ConfirmActionContent({
   kind,
   agentName,
   isExecuting,
   error,
   onConfirm,
   onCancel,
-}: ConfirmActionCardProps) {
+}: ConfirmActionContentProps) {
   const copy = ACTION_COPY[kind];
   const isDestructive = kind === 'revoke' || kind === 'rotate-key';
 
   return (
-    <div
-      data-testid={`confirm-${kind}-card`}
-      className="border-dash-line absolute top-full right-0 z-40 mt-1 w-[260px] rounded-lg border bg-white p-3 shadow-lg"
-    >
+    <div data-testid={`confirm-${kind}-card`}>
       <p className="text-dash-ink text-[13px] font-semibold">{copy.title}</p>
       <p className="text-dash-muted mt-0.5 text-[12px]">
         {copy.description} ({agentName})
       </p>
 
-      {error && <p className="text-dash-red mt-2 text-[12px]">{error}</p>}
+      <p className={cn('text-dash-red mt-2 text-[12px]', !error && 'hidden')}>{error}</p>
 
       <div className="mt-3 flex items-center gap-2">
         <button
@@ -57,17 +59,7 @@ export function ConfirmActionCard({
             isDestructive ? 'bg-dash-red hover:bg-dash-red/90' : 'bg-dash-ink hover:bg-dash-ink/90'
           }`}
         >
-          {isExecuting && (
-            <svg
-              className="h-3 w-3 animate-spin"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2.5}
-            >
-              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-            </svg>
-          )}
+          {isExecuting && <Loader2 className="h-3 w-3 animate-spin" />}
           {isExecuting ? 'Processing...' : 'Confirm'}
         </button>
         <button
