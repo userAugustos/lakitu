@@ -83,15 +83,7 @@ export function EmailScreen({ onSubmit, isSubmitting, error }: EmailScreenProps)
       </Button>
 
       <p className="text-muted-foreground text-xs leading-relaxed">
-        By continuing you agree to Lakitu&apos;s{' '}
-        <a href="#" className="border-border text-foreground/70 hover:text-foreground border-b">
-          Terms
-        </a>{' '}
-        and{' '}
-        <a href="#" className="border-border text-foreground/70 hover:text-foreground border-b">
-          Privacy Policy
-        </a>
-        .
+        By continuing you agree with me! You do, don't you?
       </p>
 
       <p className="text-muted-foreground pt-4 text-center text-xs">
@@ -100,7 +92,7 @@ export function EmailScreen({ onSubmit, isSubmitting, error }: EmailScreenProps)
           href="#"
           className="text-foreground/70 hover:border-foreground/50 hover:text-foreground border-b border-transparent"
         >
-          Contact your admin
+          Can't help you :/
         </a>
       </p>
     </form>
