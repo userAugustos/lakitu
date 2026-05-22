@@ -103,9 +103,9 @@ export function RowActions({ agentId, agentName, isRevoked }: RowActionsProps) {
         </Popover>
       )}
 
-      <RotateKeyDialog agentId={agentId} agentName={agentName}>
-        <Tooltip>
-          <TooltipTrigger asChild>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <RotateKeyDialog agentId={agentId} agentName={agentName}>
             <button
               type="button"
               data-testid="rotate-key-btn"
@@ -115,10 +115,10 @@ export function RowActions({ agentId, agentName, isRevoked }: RowActionsProps) {
             >
               <RefreshCw className="h-[15px] w-[15px]" />
             </button>
-          </TooltipTrigger>
-          <TooltipContent>Rotate key</TooltipContent>
-        </Tooltip>
-      </RotateKeyDialog>
+          </RotateKeyDialog>
+        </TooltipTrigger>
+        <TooltipContent>Rotate key</TooltipContent>
+      </Tooltip>
     </div>
   );
 }
