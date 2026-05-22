@@ -1,7 +1,6 @@
 import { Elysia } from 'elysia';
 
 import { authMiddleware } from '@api/modules/auth/auth.middleware';
-import { config } from '@core/env';
 
 import { pendingActionsService } from './pending-actions.service';
 import {
@@ -14,15 +13,13 @@ import {
   SimulatePendingActionBodySchema,
 } from './types';
 
-const simulateRoute = config.isProduction
-  ? new Elysia({ name: 'pending-actions.simulate.disabled' })
-  : new Elysia({ name: 'pending-actions.simulate' })
-      .use(authMiddleware)
-      .post('/simulate', async ({ auth, body }) => pendingActionsService.simulate(auth.sub, body), {
-        body: SimulatePendingActionBodySchema,
-        response: PendingActionSchema,
-        detail: { summary: 'Simulate a pending action (dev bypass)', tags: ['pending-actions'] },
-      });
+const simulateRoute = new Elysia({ name: 'pending-actions.simulate' })
+  .use(authMiddleware)
+  .post('/simulate', async ({ auth, body }) => pendingActionsService.simulate(auth.sub, body), {
+    body: SimulatePendingActionBodySchema,
+    response: PendingActionSchema,
+    detail: { summary: 'Simulate a pending action', tags: ['pending-actions'] },
+  });
 
 export const pendingActionsRoutes = new Elysia({
   name: 'pending-actions.routes',
