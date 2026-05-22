@@ -17,28 +17,6 @@
   }
 }
 
-@keyframes dash-slide-in-right {
-  from {
-    opacity: 0;
-    transform: translateX(24px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes dash-slide-in-left {
-  from {
-    opacity: 0;
-    transform: translateX(-24px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
 .brand-dot {
   background: repeating-conic-gradient(#0b1b33 0% 25%, #ffffff 0% 50%) 50% / 11px 11px;
 }

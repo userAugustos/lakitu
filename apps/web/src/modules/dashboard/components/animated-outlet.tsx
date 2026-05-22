@@ -1,4 +1,5 @@
 import { Outlet, useRouterState } from '@tanstack/react-router';
+import { AnimatePresence, motion } from 'motion/react';
 import { useRef } from 'react';
 
 function getDepth(path: string): number {
@@ -7,23 +8,27 @@ function getDepth(path: string): number {
 
 export function AnimatedOutlet() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const prevPathRef = useRef<string | null>(null);
+  const prevPathRef = useRef(pathname);
 
-  let animationName: string | undefined;
-  if (prevPathRef.current !== null && prevPathRef.current !== pathname) {
-    const prevDepth = getDepth(prevPathRef.current);
-    const currDepth = getDepth(pathname);
-    animationName = currDepth >= prevDepth ? 'dash-slide-in-right' : 'dash-slide-in-left';
+  const prevDepth = getDepth(prevPathRef.current);
+  const currDepth = getDepth(pathname);
+  const goingDeeper = currDepth >= prevDepth;
+
+  if (prevPathRef.current !== pathname) {
+    prevPathRef.current = pathname;
   }
 
-  prevPathRef.current = pathname;
-
   return (
-    <div
-      key={pathname}
-      style={animationName ? { animation: `${animationName} 0.28s ease-out both` } : undefined}
-    >
-      <Outlet />
-    </div>
+    <AnimatePresence mode="wait" initial={false}>
+      <motion.div
+        key={pathname}
+        initial={{ opacity: 0, x: goingDeeper ? 24 : -24 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: goingDeeper ? -24 : 24 }}
+        transition={{ duration: 0.22, ease: 'easeOut' }}
+      >
+        <Outlet />
+      </motion.div>
+    </AnimatePresence>
   );
 }

@@ -30,6 +30,7 @@
     "@tanstack/react-router": "^1.121.34",
     "@xstate/react": "^6.1.0",
     "elysia": "1.4.22",
+    "motion": "^12.40.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-hook-form": "^7.76.0",
