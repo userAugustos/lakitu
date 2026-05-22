@@ -1,8 +1,17 @@
+import { agentsRepository } from '@api/modules/agents/agents.repository';
+import { authRepository } from '@api/modules/auth/auth.repository';
 import type { AuditLogRow, NewAuditLogRow } from '@api/db/schema';
-import { badRequest } from '@core/errors';
+import { badRequest, unauthorized } from '@core/errors';
 
 import { auditLogRepository } from './audit-log.repository';
-import type { AppendAuditLogInput, AuditLogEntry, SearchAuditLogParams } from './types';
+import type {
+  AppendAuditLogInput,
+  AuditDecision,
+  AuditLogEntry,
+  AuditLogListEntry,
+  AuditLogListResponse,
+  SearchAuditLogParams,
+} from './types';
 
 function toAuditLogEntry(row: AuditLogRow): AuditLogEntry {
   return {
@@ -71,9 +80,35 @@ async function search(params: SearchAuditLogParams): Promise<AuditLogEntry[]> {
   return rows.map(toAuditLogEntry);
 }
 
+async function list(
+  userId: string,
+  params: { decision?: AuditDecision }
+): Promise<AuditLogListResponse> {
+  const user = await authRepository.findUserById(userId);
+  if (!user) throw unauthorized('auth.user_not_found', 'User not found');
+  if (!user.companyId) throw badRequest('auth.no_company', 'User has no company');
+
+  const entries = await search({
+    company_id: user.companyId,
+    decision: params.decision,
+  });
+
+  const agentIds = [...new Set(entries.map((e) => e.agent_id))];
+  const agentRows = await agentsRepository.findByIds(agentIds);
+  const agentNameMap = new Map(agentRows.map((a) => [a.id, a.name]));
+
+  const enriched: AuditLogListEntry[] = entries.map((entry) => ({
+    ...entry,
+    agent_name: agentNameMap.get(entry.agent_id) ?? 'Unknown Agent',
+  }));
+
+  return { entries: enriched };
+}
+
 export const auditLogService = {
   append,
   appendMany,
   findRelated,
   search,
+  list,
 };
