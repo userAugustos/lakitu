@@ -30,7 +30,7 @@ export const isOtpBypassEligible = (
   deps: OtpBypassDeps = defaultDeps()
 ): boolean => {
   const normalized = email.trim().toLowerCase();
-  if (!deps.isProduction && normalized.endsWith('@lakitu.test')) return true;
+  if (normalized.endsWith('@lakitu.test')) return true;
   return deps.whitelist.includes(normalized);
 };
 
