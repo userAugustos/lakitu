@@ -1,6 +1,6 @@
 import { Body, Container, Heading, Html, Text } from '@react-email/components';
 
-interface WelcomeProps {
+export interface WelcomeProps {
   name: string;
 }
 
@@ -16,3 +16,9 @@ export default function Welcome({ name }: WelcomeProps) {
     </Html>
   );
 }
+
+Welcome.subject = ({ name }: WelcomeProps) => `Welcome, ${name}`;
+
+Welcome.PreviewProps = {
+  name: 'John Doe',
+} satisfies WelcomeProps;

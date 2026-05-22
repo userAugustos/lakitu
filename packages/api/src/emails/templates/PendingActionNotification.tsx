@@ -1,6 +1,6 @@
 import { Body, Button, Container, Heading, Html, Section, Text } from '@react-email/components';
 
-interface PendingActionNotificationProps {
+export interface PendingActionNotificationProps {
   agentName: string;
   action: string;
   policyHit: string;
@@ -34,3 +34,13 @@ export default function PendingActionNotification({
     </Html>
   );
 }
+
+PendingActionNotification.subject = ({ agentName, action }: PendingActionNotificationProps) =>
+  `Approval required: ${agentName} wants to ${action}`;
+
+PendingActionNotification.PreviewProps = {
+  agentName: 'deploy-bot',
+  action: 'deploy to production',
+  policyHit: 'requires_owner_approval',
+  approvalUrl: 'http://localhost:5173/pending-actions/abc-123',
+} satisfies PendingActionNotificationProps;

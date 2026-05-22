@@ -1,6 +1,6 @@
 import { Body, Container, Heading, Html, Section, Text } from '@react-email/components';
 
-interface AuthOtpProps {
+export interface AuthOtpProps {
   code: string;
   ttlMinutes: number;
 }
@@ -23,3 +23,10 @@ export default function AuthOtp({ code, ttlMinutes }: AuthOtpProps) {
     </Html>
   );
 }
+
+AuthOtp.subject = () => 'Your sign-in code';
+
+AuthOtp.PreviewProps = {
+  code: '483291',
+  ttlMinutes: 15,
+} satisfies AuthOtpProps;
