@@ -2,6 +2,7 @@ export type {
   PendingAction,
   CreatePendingActionInput,
   ListPendingActionsResponse,
+  PendingActionsCountResponse,
   ResolvePendingActionRequest,
   SimulatePendingActionRequest,
   PendingActionStatusValue,

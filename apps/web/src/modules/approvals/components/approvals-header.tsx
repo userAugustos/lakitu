@@ -1,9 +1,16 @@
 import type { PendingActionStatusValue } from '@lakitu/api/pending-actions';
 
 import { Button } from '@repo/ui/shadcn/button';
+import { Label } from '@repo/ui/shadcn/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@repo/ui/shadcn/select';
 
-const STATUSES: { value: PendingActionStatusValue | ''; label: string }[] = [
-  { value: '', label: 'All' },
+const STATUSES: { value: PendingActionStatusValue; label: string }[] = [
   { value: 'pending', label: 'Pending' },
   { value: 'approved', label: 'Approved' },
   { value: 'denied', label: 'Denied' },
@@ -24,25 +31,27 @@ export function ApprovalsHeader({
   return (
     <div className="mb-4 flex items-center justify-between gap-4">
       <div className="flex items-center gap-2">
-        <label htmlFor="status-filter" className="text-dash-muted text-[12px] font-semibold">
+        <Label htmlFor="status-filter" className="text-muted-foreground text-xs font-semibold">
           Filter:
-        </label>
-        <select
-          id="status-filter"
-          data-testid="filter-select"
-          value={statusFilter ?? ''}
-          onChange={(e) => {
-            const val = e.target.value;
-            onFilterChange(val ? (val as PendingActionStatusValue) : undefined);
-          }}
-          className="border-dash-line text-dash-ink h-8 appearance-none rounded-lg border bg-white px-3 text-[13px] outline-none"
+        </Label>
+        <Select
+          value={statusFilter ?? 'all'}
+          onValueChange={(v) =>
+            onFilterChange(v === 'all' ? undefined : (v as PendingActionStatusValue))
+          }
         >
-          {STATUSES.map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.label}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger data-testid="filter-select" id="status-filter" className="h-8 w-[130px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All</SelectItem>
+            {STATUSES.map((s) => (
+              <SelectItem key={s.value} value={s.value}>
+                {s.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <Button
@@ -50,7 +59,6 @@ export function ApprovalsHeader({
         data-testid="simulate-btn"
         variant="outline"
         size="sm"
-        className="h-8 w-auto px-3.5 text-[13px]"
         onClick={onTriggerAction}
       >
         Trigger Action

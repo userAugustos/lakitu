@@ -1,8 +1,7 @@
-import type { PendingAction, PendingActionStatusValue } from '@lakitu/api/pending-actions';
+import type { PendingAction } from '@lakitu/api/pending-actions';
 
 export interface ApprovalsContext {
   selectedAction: PendingAction | null;
-  statusFilter: PendingActionStatusValue | undefined;
   simulateOpen: boolean;
   error: { message: string } | null;
 }
@@ -10,7 +9,6 @@ export interface ApprovalsContext {
 export type ApprovalsEvent =
   | { type: 'SELECT'; pendingAction: PendingAction }
   | { type: 'BACK' }
-  | { type: 'SET_FILTER'; status: PendingActionStatusValue | undefined }
   | { type: 'APPROVE'; note?: string }
   | { type: 'DENY'; note?: string }
   | { type: 'OPEN_SIMULATE' }

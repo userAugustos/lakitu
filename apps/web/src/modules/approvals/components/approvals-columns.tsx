@@ -56,6 +56,7 @@ export const approvalsColumns: ColumnDef<PendingAction>[] = [
     accessorKey: 'status',
     header: 'Status',
     size: 120,
+    filterFn: 'equals',
     cell: ({ row }) => <ApprovalStatusBadge status={row.original.status} />,
   },
   {

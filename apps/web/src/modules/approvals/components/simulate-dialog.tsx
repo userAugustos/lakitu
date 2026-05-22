@@ -1,10 +1,26 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 
 import { Button } from '@repo/ui/shadcn/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@repo/ui/shadcn/dialog';
 import { Input } from '@repo/ui/shadcn/input';
 import { Label } from '@repo/ui/shadcn/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@repo/ui/shadcn/select';
+import { Textarea } from '@repo/ui/shadcn/textarea';
 import { FieldError } from '@/modules/auth/components/field-error';
 import { agentsQueryOptions } from '@/modules/dashboard/lib/agents-query';
 
@@ -26,6 +42,7 @@ export function SimulateDialog({ open, onClose, onSubmit, isLoading, error }: Si
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
     setError,
     reset,
@@ -49,48 +66,40 @@ export function SimulateDialog({ open, onClose, onSubmit, isLoading, error }: Si
     reset();
   };
 
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} role="presentation" />
-      <div
-        data-testid="simulate-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Trigger Action"
-        className="relative z-10 w-full max-w-[480px] rounded-2xl border border-[#EAEDF2] bg-white p-6 shadow-xl"
-      >
-        <h2 className="text-dash-ink mb-1 text-[18px] font-semibold">Trigger Action</h2>
-        <p className="text-dash-muted mb-5 text-[13px]">
-          Simulate a pending action for testing purposes.
-        </p>
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent data-testid="simulate-dialog">
+        <DialogHeader>
+          <DialogTitle>Trigger Action</DialogTitle>
+          <DialogDescription>Simulate a pending action for testing purposes.</DialogDescription>
+        </DialogHeader>
 
         <form onSubmit={handleSubmit(onValid)} noValidate className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="sim-agent" className="text-xs font-semibold tracking-wide">
-              Agent
-            </Label>
-            <select
-              id="sim-agent"
-              data-testid="simulate-agent-select"
-              className="border-input text-dash-ink h-11 w-full appearance-none rounded-xl border bg-white px-4 text-sm outline-none"
-              {...register('agent_id')}
-            >
-              <option value="">Select an agent...</option>
-              {agents.map((agent) => (
-                <option key={agent.id} value={agent.id}>
-                  {agent.name}
-                </option>
-              ))}
-            </select>
+            <Label htmlFor="sim-agent">Agent</Label>
+            <Controller
+              control={control}
+              name="agent_id"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger data-testid="simulate-agent-select" id="sim-agent">
+                    <SelectValue placeholder="Select an agent..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {agents.map((agent) => (
+                      <SelectItem key={agent.id} value={agent.id}>
+                        {agent.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
             <FieldError message={errors.agent_id?.message} />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="sim-action" className="text-xs font-semibold tracking-wide">
-              Action
-            </Label>
+            <Label htmlFor="sim-action">Action</Label>
             <Input
               id="sim-action"
               type="text"
@@ -103,46 +112,31 @@ export function SimulateDialog({ open, onClose, onSubmit, isLoading, error }: Si
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="sim-context" className="text-xs font-semibold tracking-wide">
-              Context{' '}
-              <span className="text-dash-muted font-normal tracking-normal normal-case">
-                (optional JSON)
-              </span>
+            <Label htmlFor="sim-context">
+              Context <span className="text-muted-foreground font-normal">(optional JSON)</span>
             </Label>
-            <textarea
+            <Textarea
               id="sim-context"
               data-testid="simulate-context-input"
               placeholder='e.g. { "amount": 500, "currency": "USD" }'
-              className="border-input placeholder:text-dash-muted text-dash-ink min-h-[72px] w-full resize-y rounded-md border bg-white px-3 py-2 font-mono text-[13px] outline-none focus:border-[var(--dash-ink)] focus:shadow-[0_0_0_4px_rgba(11,27,51,0.08)]"
+              className="font-mono text-[13px]"
               {...register('context')}
             />
             <FieldError message={errors.context?.message} />
           </div>
 
-          {error && <p className="text-destructive text-[13px]">{error}</p>}
+          {error && <p className="text-destructive text-sm">{error}</p>}
 
-          <div className="mt-2 flex gap-3">
-            <Button
-              type="submit"
-              data-testid="simulate-submit-btn"
-              disabled={isLoading}
-              className="w-auto px-5"
-              size="sm"
-            >
-              Submit
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              className="w-auto px-5"
-              size="sm"
-            >
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose} size="sm">
               Cancel
             </Button>
-          </div>
+            <Button type="submit" data-testid="simulate-submit-btn" disabled={isLoading} size="sm">
+              Submit
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

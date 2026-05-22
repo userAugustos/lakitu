@@ -7,8 +7,9 @@ import {
 } from '@tanstack/react-table';
 import type { ColumnDef } from '@tanstack/react-table';
 
-import type { PendingAction, PendingActionStatusValue } from '@lakitu/api/pending-actions';
+import type { PendingAction } from '@lakitu/api/pending-actions';
 
+import { Button } from '@repo/ui/shadcn/button';
 import {
   Table,
   TableBody,
@@ -22,7 +23,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from '@/modules/dashboard/lib/dashb
 interface ApprovalsDataTableProps {
   columns: ColumnDef<PendingAction, unknown>[];
   data: PendingAction[];
-  statusFilter?: PendingActionStatusValue;
+  statusFilter?: string;
   onRowClick: (action: PendingAction) => void;
 }
 
@@ -39,11 +40,12 @@ export function ApprovalsDataTable({
   statusFilter,
   onRowClick,
 }: ApprovalsDataTableProps) {
-  const filteredData = statusFilter ? data.filter((d) => d.status === statusFilter) : data;
-
   const table = useReactTable({
-    data: filteredData,
+    data,
     columns,
+    state: {
+      columnFilters: statusFilter ? [{ id: 'status', value: statusFilter }] : [],
+    },
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -52,7 +54,7 @@ export function ApprovalsDataTable({
     },
   });
 
-  if (filteredData.length === 0) {
+  if (data.length === 0) {
     return (
       <div
         data-testid="approvals-table-empty"
@@ -122,36 +124,40 @@ export function ApprovalsDataTable({
             of {totalRows} actions
           </span>
           <div className="inline-flex items-center gap-1">
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="icon"
               aria-label="Previous page"
               disabled={!table.getCanPreviousPage()}
               onClick={() => table.previousPage()}
-              className="border-dash-line text-dash-ink-2 hover:bg-dash-gray-bg inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-[7px] border bg-white disabled:cursor-not-allowed disabled:opacity-50"
+              className="h-7 w-7 rounded-[7px]"
             >
               <ChevronLeftIcon />
-            </button>
+            </Button>
             {Array.from({ length: pageCount }, (_, i) => i).map((page) => (
-              <button
+              <Button
                 key={page}
                 type="button"
+                variant={page === pageIndex ? 'default' : 'ghost'}
+                size="sm"
                 onClick={() => table.setPageIndex(page)}
-                className={`inline-flex h-7 cursor-pointer items-center rounded-[7px] border border-transparent px-2.5 text-[12.5px] font-semibold ${
-                  page === pageIndex ? 'bg-dash-ink text-white' : 'text-dash-ink-2'
-                }`}
+                className="h-7 min-w-[28px] rounded-[7px] px-2.5 text-[12.5px] font-semibold"
               >
                 {page + 1}
-              </button>
+              </Button>
             ))}
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="icon"
               aria-label="Next page"
               disabled={!table.getCanNextPage()}
               onClick={() => table.nextPage()}
-              className="border-dash-line text-dash-ink-2 hover:bg-dash-gray-bg inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-[7px] border bg-white disabled:cursor-not-allowed disabled:opacity-50"
+              className="h-7 w-7 rounded-[7px]"
             >
               <ChevronRightIcon />
-            </button>
+            </Button>
           </div>
         </div>
       )}

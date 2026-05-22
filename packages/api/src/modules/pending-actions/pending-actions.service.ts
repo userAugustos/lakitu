@@ -224,10 +224,18 @@ async function simulate(
   });
 }
 
+async function countPendingForOwner(userId: string): Promise<{ count: number }> {
+  const user = await authRepository.findUserById(userId);
+  if (!user) throw unauthorized('auth.user_not_found', 'User not found');
+
+  return { count: pendingActionsRepository.countPendingByOwnerId(userId) };
+}
+
 export const pendingActionsService = {
   create,
   simulate,
   listForOwner,
+  countPendingForOwner,
   getById,
   approve,
   deny,

@@ -75,6 +75,14 @@ export const ResolvePendingActionBodySchema = z.object({
   note: z.string().max(1000).optional(),
 });
 
+export interface PendingActionsCountResponse {
+  count: number;
+}
+
+export const PendingActionsCountResponseSchema = z.object({
+  count: z.number().int().min(0),
+});
+
 export interface SimulatePendingActionRequest {
   agent_id: string;
   action: string;

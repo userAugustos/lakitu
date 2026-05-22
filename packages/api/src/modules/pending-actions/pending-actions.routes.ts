@@ -9,6 +9,7 @@ import {
   ListPendingActionsResponseSchema,
   PendingActionIdParamSchema,
   PendingActionSchema,
+  PendingActionsCountResponseSchema,
   ResolvePendingActionBodySchema,
   SimulatePendingActionBodySchema,
 } from './types';
@@ -32,6 +33,10 @@ export const pendingActionsRoutes = new Elysia({
     query: ListPendingActionsQuerySchema,
     response: ListPendingActionsResponseSchema,
     detail: { summary: 'List pending actions for owner', tags: ['pending-actions'] },
+  })
+  .get('/count', async ({ auth }) => pendingActionsService.countPendingForOwner(auth.sub), {
+    response: PendingActionsCountResponseSchema,
+    detail: { summary: 'Count pending actions for owner', tags: ['pending-actions'] },
   })
   .use(simulateRoute)
   .get('/:id', async ({ auth, params }) => pendingActionsService.getById(auth.sub, params.id), {

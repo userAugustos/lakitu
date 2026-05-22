@@ -4,6 +4,7 @@ import type { PendingAction } from '@lakitu/api/pending-actions';
 
 import { Button } from '@repo/ui/shadcn/button';
 import { Label } from '@repo/ui/shadcn/label';
+import { Textarea } from '@repo/ui/shadcn/textarea';
 
 import { ApprovalStatusBadge } from './approval-status-badge';
 
@@ -44,14 +45,15 @@ export function ApprovalDetailCard({
       className="border-dash-line rounded-[14px] border bg-white p-6"
     >
       <div className="mb-6 flex items-center justify-between">
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="sm"
           data-testid="detail-back-btn"
           onClick={onBack}
-          className="text-dash-ink-2 hover:text-dash-ink cursor-pointer text-[13px] font-medium"
         >
           &larr; Back to list
-        </button>
+        </Button>
         <ApprovalStatusBadge status={action.status} />
       </div>
 
@@ -72,9 +74,7 @@ export function ApprovalDetailCard({
 
       {Object.keys(action.context).length > 0 && (
         <div className="mt-4">
-          <span className="text-dash-muted text-[11.5px] font-semibold tracking-[0.04em] uppercase">
-            Context
-          </span>
+          <Label className="text-[11.5px] tracking-[0.04em] uppercase">Context</Label>
           <pre className="border-dash-line text-dash-ink-2 mt-1.5 overflow-auto rounded-lg border bg-[#FAFBFD] p-3 font-mono text-[12px]">
             {JSON.stringify(action.context, null, 2)}
           </pre>
@@ -84,23 +84,20 @@ export function ApprovalDetailCard({
       {isPending && (
         <div className="mt-6 border-t border-[#EAEDF2] pt-5">
           <div className="mb-4 flex flex-col gap-1.5">
-            <Label htmlFor="resolution-note" className="text-xs font-semibold tracking-wide">
-              Note{' '}
-              <span className="text-dash-muted font-normal tracking-normal normal-case">
-                (optional)
-              </span>
+            <Label htmlFor="resolution-note">
+              Note <span className="text-muted-foreground font-normal">(optional)</span>
             </Label>
-            <textarea
+            <Textarea
               id="resolution-note"
               data-testid="resolution-note"
               placeholder="Add a reason for this decision..."
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              className="border-input placeholder:text-dash-muted text-dash-ink min-h-[60px] w-full resize-y rounded-md border bg-white px-3 py-2 text-[13px] outline-none focus:border-[var(--dash-ink)] focus:shadow-[0_0_0_4px_rgba(11,27,51,0.08)]"
+              className="min-h-[60px]"
             />
           </div>
 
-          {error && <p className="text-destructive mb-3 text-[13px]">{error}</p>}
+          {error && <p className="text-destructive mb-3 text-sm">{error}</p>}
 
           <div className="flex gap-3">
             <Button
@@ -134,9 +131,7 @@ export function ApprovalDetailCard({
 function DetailField({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
-      <span className="text-dash-muted text-[11.5px] font-semibold tracking-[0.04em] uppercase">
-        {label}
-      </span>
+      <Label className="text-[11.5px] tracking-[0.04em] uppercase">{label}</Label>
       <p className={`text-dash-ink mt-0.5 text-[13.5px] ${mono ? 'font-mono' : ''}`}>{value}</p>
     </div>
   );
