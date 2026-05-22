@@ -6,7 +6,6 @@ import type { Agent, RotateKeyResponse } from '@lakitu/api/agents';
 
 import { Popover, PopoverContent, PopoverTrigger } from '@repo/ui/shadcn/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@repo/ui/shadcn/tooltip';
-
 import { apiCall, lakituAuthApi } from '@/api';
 import { queryClient, router } from '@/main';
 
