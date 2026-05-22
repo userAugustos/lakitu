@@ -1,4 +1,4 @@
-import { renderPendingActionEmail } from '@api/emails/render';
+import { buildEmail } from '@api/emails';
 import { agentsRepository } from '@api/modules/agents/agents.repository';
 import { authRepository } from '@api/modules/auth/auth.repository';
 import type { PendingActionRow, PendingActionStatus } from '@api/db/schema';
@@ -80,14 +80,13 @@ async function sendNotificationEmail(
   }
 
   const approvalUrl = `${config.web.publicUrl}/pending-actions/${pendingActionId}`;
-  const html = await renderPendingActionEmail({ agentName, action, policyHit, approvalUrl });
-
-  await sendEmail({
-    from: config.auth.emailFrom,
-    to: owner.email,
-    subject: `Approval required: ${agentName} wants to ${action}`,
-    html,
+  const { subject, html } = await buildEmail('PendingActionNotification', {
+    agentName,
+    action,
+    policyHit,
+    approvalUrl,
   });
+  await sendEmail({ from: config.auth.emailFrom, to: owner.email, subject, html });
 
   paLogger.info('Pending action notification sent', { ownerId, pendingActionId });
 }

@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 
-import { renderAuthOtpEmail } from '@api/emails/render';
+import { buildEmail } from '@api/emails';
 import { config } from '@core/env';
 import { unauthorized } from '@core/errors';
 import { LOG_DOMAINS, logger } from '@core/logger';
@@ -63,16 +63,11 @@ async function requestChallenge(input: ChallengeRequest): Promise<ChallengeRespo
 
   if (!config.isProduction) authLogger.debug('OTP issued', { email, code });
 
-  const html = await renderAuthOtpEmail({
+  const { subject, html } = await buildEmail('AuthOtp', {
     code,
     ttlMinutes: Math.round(config.auth.challengeTtlSeconds / 60),
   });
-  await sendEmail({
-    from: config.auth.emailFrom,
-    to: email,
-    subject: 'Your sign-in code',
-    html,
-  });
+  await sendEmail({ from: config.auth.emailFrom, to: email, subject, html });
 
   return { ok: true, challenge_id: challenge.id };
 }

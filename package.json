@@ -29,6 +29,7 @@
     "docker:rm": "docker compose --env-file .docker/.env -f .docker/docker-compose.yml down --volumes",
     "docker:rm-all": "docker ps -aq --filter name=lakitu- | xargs -r docker rm -f && docker volume ls -q --filter name=lakitu- | xargs -r docker volume rm",
     "docker:logs": "docker compose --env-file .docker/.env -f .docker/docker-compose.yml logs -f",
+    "dev:emails": "bun run --filter @lakitu/api dev:emails",
     "prepare": "husky"
   },
   "devDependencies": {
