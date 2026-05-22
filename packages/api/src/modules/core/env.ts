@@ -23,11 +23,11 @@ export const config = {
   email: parseBoolean(env.EMAIL_ENABLED, true)
     ? ({
         enabled: true as const,
-        smtpHost: requireEnv('SMTP_HOST'),
-        smtpPort: parseInteger(env.SMTP_PORT, 1025),
-        smtpUsername: env.SMTP_USERNAME ?? '',
-        smtpPassword: env.SMTP_PASSWORD ?? '',
-        secure: parseBoolean(env.SMTP_SECURE, false),
+        smtpHost: env.RESEND_API_KEY ? 'smtp.resend.com' : requireEnv('SMTP_HOST'),
+        smtpPort: env.RESEND_API_KEY ? 465 : parseInteger(env.SMTP_PORT, 1025),
+        smtpUsername: env.RESEND_API_KEY ? 'resend' : (env.SMTP_USERNAME ?? ''),
+        smtpPassword: env.RESEND_API_KEY ?? (env.SMTP_PASSWORD ?? ''),
+        secure: env.RESEND_API_KEY ? true : parseBoolean(env.SMTP_SECURE, false),
       } as const)
     : ({ enabled: false as const } as const),
   auth: {
