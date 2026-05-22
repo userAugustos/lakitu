@@ -39,35 +39,35 @@ export function RowActions({ agentId, agentName, isRevoked }: RowActionsProps) {
         <button
           type="button"
           data-testid="restore-agent-btn"
-          className="text-dash-ink-2 hover:text-dash-green relative inline-flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-[7px] border border-transparent bg-transparent hover:border-[#B8E6C8] hover:bg-[#F0FFF4] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:border-transparent disabled:hover:bg-transparent"
+          className="text-dash-ink-2 hover:text-dash-green h7.5 w7.5 relative inline-flex cursor-pointer items-center justify-center rounded-[7px] border border-transparent bg-transparent hover:border-[#B8E6C8] hover:bg-[#F0FFF4] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:border-transparent disabled:hover:bg-transparent"
           disabled={!isIdle}
           aria-label="Restore agent"
           onClick={() => send({ type: 'START', kind: 'restore', agentId, agentName })}
         >
-          <RestoreIcon className="h-[15px] w-[15px]" />
+          <RestoreIcon className="h-3.75 w-3.75" />
         </button>
       ) : (
         <button
           type="button"
           data-testid="revoke-agent-btn"
-          className="text-dash-ink-2 hover:text-dash-red relative inline-flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-[7px] border border-transparent bg-transparent hover:border-[#F3C9C2] hover:bg-[#FFF6F4] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:border-transparent disabled:hover:bg-transparent"
+          className="text-dash-ink-2 hover:text-dash-red h7.5 w7.5 relative inline-flex cursor-pointer items-center justify-center rounded-[7px] border border-transparent bg-transparent hover:border-[#F3C9C2] hover:bg-[#FFF6F4] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:border-transparent disabled:hover:bg-transparent"
           disabled={!isIdle}
           aria-label="Revoke agent"
           onClick={() => send({ type: 'START', kind: 'revoke', agentId, agentName })}
         >
-          <RevokeIcon className="h-[15px] w-[15px]" />
+          <RevokeIcon className="h-3.75 w-3.75" />
         </button>
       )}
 
       <button
         type="button"
         data-testid="rotate-key-btn"
-        className="text-dash-ink-2 hover:text-dash-sky-4 relative inline-flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-[7px] border border-transparent bg-transparent hover:border-[#BFDDFC] hover:bg-[#F1F8FF] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:border-transparent disabled:hover:bg-transparent"
+        className="text-dash-ink-2 hover:text-dash-sky-4 h7.5 w7.5 relative inline-flex cursor-pointer items-center justify-center rounded-[7px] border border-transparent bg-transparent hover:border-[#BFDDFC] hover:bg-[#F1F8FF] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:border-transparent disabled:hover:bg-transparent"
         disabled={isRevoked || !isIdle}
         aria-label="Rotate key"
         onClick={() => send({ type: 'START', kind: 'rotate-key', agentId, agentName })}
       >
-        <RotateIcon className="h-[15px] w-[15px]" />
+        <RotateIcon className="h-3.75 w-3.75" />
       </button>
 
       {showCard && state.context.input && (
