@@ -1,0 +1,23 @@
+FROM oven/bun:1.3.8-alpine AS deps
+WORKDIR /app
+
+COPY package.json bun.lock ./
+COPY packages/api/package.json ./packages/api/
+COPY packages/ui/package.json ./packages/ui/
+COPY packages/tsconfig/package.json ./packages/tsconfig/
+COPY apps/web/package.json ./apps/web/
+RUN bun install --frozen-lockfile --ignore-scripts
+
+FROM oven/bun:1.3.8-alpine AS runner
+WORKDIR /app
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY packages/tsconfig/ ./packages/tsconfig/
+COPY packages/api/ ./packages/api/
+
+WORKDIR /app/packages/api
+
+ENV NODE_ENV=production
+EXPOSE 3000
+
+CMD ["bun", "run", "src/server.ts"]
