@@ -152,9 +152,9 @@ Lakitu uses [React Email](https://react.email) templates rendered server-side.
 
 | Template              | Purpose                    | Preview        |
 | --------------------- | -------------------------- | -------------- |
-| **OTP Code**          | Sign-in verification code  | [screenshot]() |
-| **Welcome**           | Post-signup greeting       | [screenshot]() |
-| **Approval Required** | Agent needs owner approval | [screenshot]() |
+| **OTP Code**          | Sign-in verification code  | <img width="1041" height="615" alt="image" src="https://github.com/user-attachments/assets/ebc746a6-4230-4eca-b9af-2629dc2c4b25" /> |
+| **Welcome**           | Post-signup greeting       | <img width="1041" height="615" alt="image" src="https://github.com/user-attachments/assets/6be1a494-9450-4787-bf3c-6df611f92a97" /> |
+| **Approval Required** | Agent needs owner approval | <img width="1041" height="615" alt="image" src="https://github.com/user-attachments/assets/dab7231e-8480-4213-84ec-a556ec856b41" /> |
 
 ## Security Highlights
 
