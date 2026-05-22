@@ -22,6 +22,11 @@ const ACTION_COPY: Record<AgentActionKind, { title: string; description: string 
     title: 'Restore Agent',
     description: 'This will re-enable the agent with its existing configuration.',
   },
+  'rotate-key': {
+    title: 'Rotate Key',
+    description:
+      'A new keypair will be generated. The current key will be invalidated immediately.',
+  },
 };
 
 export function ConfirmActionContent({
@@ -33,7 +38,7 @@ export function ConfirmActionContent({
   onCancel,
 }: ConfirmActionContentProps) {
   const copy = ACTION_COPY[kind];
-  const isDestructive = kind === 'revoke';
+  const isDestructive = kind === 'revoke' || kind === 'rotate-key';
 
   return (
     <div data-testid={`confirm-${kind}-card`}>

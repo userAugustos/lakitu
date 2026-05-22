@@ -8,7 +8,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@repo/ui/shadcn/tooltip
 
 import { agentActionMachine } from '../agent-action.machine';
 import { ConfirmActionContent } from './confirm-action-card';
-import { RotateKeyDialog } from './rotate-key-result';
+import { RotateKeyResultDialog } from './rotate-key-result';
 import type { AgentActionKind } from '../agent-action.types';
 
 interface RowActionsProps {
@@ -31,6 +31,7 @@ export function RowActions({ agentId, agentName, isRevoked }: RowActionsProps) {
 
   const isIdle = state.matches('idle');
   const isExecuting = state.matches('executing');
+  const isShowingResult = state.matches('showingResult');
   const activeKind = state.context.input?.kind ?? null;
   const showConfirm = state.matches('confirming') || isExecuting || state.matches('error');
 
@@ -103,22 +104,39 @@ export function RowActions({ agentId, agentName, isRevoked }: RowActionsProps) {
         </Popover>
       )}
 
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <RotateKeyDialog agentId={agentId} agentName={agentName}>
-            <button
-              type="button"
-              data-testid="rotate-key-btn"
-              className="text-dash-ink-2 hover:text-dash-sky-4 relative inline-flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-[7px] border border-transparent bg-transparent hover:border-[#BFDDFC] hover:bg-[#F1F8FF] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:border-transparent disabled:hover:bg-transparent"
-              disabled={isRevoked}
-              aria-label="Rotate key"
-            >
-              <RefreshCw className="h-[15px] w-[15px]" />
-            </button>
-          </RotateKeyDialog>
-        </TooltipTrigger>
-        <TooltipContent>Rotate key</TooltipContent>
-      </Tooltip>
+      <Popover open={isPopoverOpen('rotate-key')} onOpenChange={handleOpenChange}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                data-testid="rotate-key-btn"
+                className="text-dash-ink-2 hover:text-dash-sky-4 relative inline-flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-[7px] border border-transparent bg-transparent hover:border-[#BFDDFC] hover:bg-[#F1F8FF] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:border-transparent disabled:hover:bg-transparent"
+                disabled={isRevoked || !isIdle}
+                aria-label="Rotate key"
+                onClick={() => send({ type: 'START', kind: 'rotate-key', agentId, agentName })}
+              >
+                <RefreshCw className="h-[15px] w-[15px]" />
+              </button>
+            </PopoverTrigger>
+          </TooltipTrigger>
+          <TooltipContent>Rotate key</TooltipContent>
+        </Tooltip>
+        <PopoverContent align="end" className="w-[260px]">
+          {confirmContent}
+        </PopoverContent>
+      </Popover>
+
+      {isShowingResult && state.context.rotateResult && (
+        <RotateKeyResultDialog
+          result={state.context.rotateResult}
+          open={isShowingResult}
+          onDone={() => {
+            toast.success('Key rotated successfully');
+            send({ type: 'DISMISS' });
+          }}
+        />
+      )}
     </div>
   );
 }
