@@ -14,12 +14,10 @@ export function BrandPanel() {
 
       <header className="relative z-10 flex items-center justify-between gap-5">
         <div className="font-display inline-flex items-center gap-3 text-[22px] font-extrabold -tracking-wide text-white">
-          <span
+          <img
+            src="/flag.svg"
+            alt=""
             className="size-7 rounded-lg shadow-[0_4px_14px_rgba(11,27,51,0.25),inset_0_0_0_1px_rgba(255,255,255,0.4)]"
-            style={{
-              background:
-                'repeating-conic-gradient(#0b1b33 0% 25%, #ffffff 0% 50%) 50% / 12px 12px',
-            }}
             aria-hidden="true"
           />
           <span>Lakitu</span>

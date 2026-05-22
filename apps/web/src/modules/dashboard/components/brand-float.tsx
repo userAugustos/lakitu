@@ -5,8 +5,10 @@ export function BrandFloat() {
       aria-label="Lakitu"
       data-testid="brand-float"
     >
-      <span
-        className="brand-dot h-[26px] w-[26px] rounded-lg"
+      <img
+        src="/flag.svg"
+        alt=""
+        className="h-[26px] w-[26px] rounded-lg"
         aria-hidden="true"
         style={{
           boxShadow: '0 2px 8px rgba(11,27,51,0.18), inset 0 0 0 1px rgba(11,27,51,0.06)',

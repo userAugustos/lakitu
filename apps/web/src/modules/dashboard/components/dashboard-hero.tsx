@@ -2,7 +2,6 @@ import { Link, useRouterState } from '@tanstack/react-router';
 import { ArrowLeft } from 'lucide-react';
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@repo/ui/shadcn/tooltip';
-
 import { authSelectors, useAuthStore } from '@/modules/auth/auth.store';
 
 import { PlusIcon } from '../lib/dashboard-icons';
@@ -50,9 +49,10 @@ export function DashboardHero({ agentCount }: DashboardHeroProps) {
           <h1 className="font-display text-dash-ink mt-1.5 text-[30px] leading-tight font-bold tracking-tight">
             Hey {firstName}
           </h1>
-        <p className="text-dash-muted mt-1.5 text-[14px]">
-          You have <b className="text-dash-ink-2 font-semibold">{agentCount} agents</b> on the grid.
-        </p>
+          <p className="text-dash-muted mt-1.5 text-[14px]">
+            You have <b className="text-dash-ink-2 font-semibold">{agentCount} agents</b> on the
+            grid.
+          </p>
         </div>
       </div>
       <Link

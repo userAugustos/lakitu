@@ -1,3 +1,15 @@
+import { LogOut } from 'lucide-react';
+import { useNavigate } from '@tanstack/react-router';
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@repo/ui/shadcn/dropdown-menu';
+
 import { authSelectors, useAuthStore } from '@/modules/auth/auth.store';
 
 function getInitials(user: { name?: string | null; email: string }): string {
@@ -11,23 +23,45 @@ function getInitials(user: { name?: string | null; email: string }): string {
 
 export function AvatarFloat() {
   const user = useAuthStore(authSelectors.user);
+  const logout = useAuthStore((s) => s.logout);
+  const navigate = useNavigate();
 
   if (!user) return null;
 
   const initials = getInitials(user);
 
+  function handleLogout() {
+    logout();
+    void navigate({ to: '/' });
+  }
+
   return (
-    <button
-      type="button"
-      title={user.name ?? user.email}
-      data-testid="avatar-float"
-      className="fixed top-[18px] right-6 z-20 inline-flex h-[38px] w-[38px] cursor-pointer items-center justify-center rounded-full border-2 border-white text-[13px] font-bold text-white transition-[transform,box-shadow] duration-[120ms] ease-[ease] hover:-translate-y-px"
-      style={{
-        background: 'linear-gradient(135deg, var(--dash-sky-2), var(--dash-sky-4))',
-        boxShadow: '0 6px 16px rgba(11,27,51,0.16), 0 2px 4px rgba(11,27,51,0.08)',
-      }}
-    >
-      {initials}
-    </button>
+    <div className="fixed top-[18px] right-6 z-20">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            data-testid="avatar-float"
+            className="inline-flex h-[38px] w-[38px] cursor-pointer items-center justify-center rounded-full border-2 border-white text-[13px] font-bold text-white transition-[transform,box-shadow] duration-[120ms] ease-[ease] hover:-translate-y-px"
+            style={{
+              background: 'linear-gradient(135deg, var(--dash-sky-2), var(--dash-sky-4))',
+              boxShadow: '0 6px 16px rgba(11,27,51,0.16), 0 2px 4px rgba(11,27,51,0.08)',
+            }}
+          >
+            {initials}
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuLabel className="font-normal">
+            <span className="block truncate text-xs text-muted-foreground">{user.email}</span>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem className="cursor-pointer" onClick={handleLogout}>
+            <LogOut className="size-4" />
+            Log out
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 }

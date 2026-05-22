@@ -5,12 +5,13 @@ import {
   Font,
   Head,
   Html,
+  Img,
   Preview,
   Row,
   Section,
   Text,
 } from '@react-email/components';
-import type { CSSProperties, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 const FONT_SANS = "'Geist', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif";
 const FONT_DISPLAY =
@@ -30,11 +31,7 @@ const COLORS = {
 const STRIPE_CELL_SIZE = 14;
 const STRIPE_COLS = 40;
 
-const cloudPart: CSSProperties = {
-  position: 'absolute',
-  background: '#ffffff',
-  borderRadius: '999px',
-};
+const FLAG_DATA_URI = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5 4" width="40" height="32"><rect fill="#0b1b33" x="0" y="0" width="1" height="1"/><rect fill="#fff" x="1" y="0" width="1" height="1"/><rect fill="#0b1b33" x="2" y="0" width="1" height="1"/><rect fill="#fff" x="3" y="0" width="1" height="1"/><rect fill="#0b1b33" x="4" y="0" width="1" height="1"/><rect fill="#fff" x="0" y="1" width="1" height="1"/><rect fill="#0b1b33" x="1" y="1" width="1" height="1"/><rect fill="#fff" x="2" y="1" width="1" height="1"/><rect fill="#0b1b33" x="3" y="1" width="1" height="1"/><rect fill="#fff" x="4" y="1" width="1" height="1"/><rect fill="#0b1b33" x="0" y="2" width="1" height="1"/><rect fill="#fff" x="1" y="2" width="1" height="1"/><rect fill="#0b1b33" x="2" y="2" width="1" height="1"/><rect fill="#fff" x="3" y="2" width="1" height="1"/><rect fill="#0b1b33" x="4" y="2" width="1" height="1"/><rect fill="#fff" x="0" y="3" width="1" height="1"/><rect fill="#0b1b33" x="1" y="3" width="1" height="1"/><rect fill="#fff" x="2" y="3" width="1" height="1"/><rect fill="#0b1b33" x="3" y="3" width="1" height="1"/><rect fill="#fff" x="4" y="3" width="1" height="1"/></svg>')}`;
 
 interface EmailLayoutProps {
   preview: string;
@@ -77,7 +74,6 @@ export default function EmailLayout({ preview, children }: EmailLayoutProps) {
         }}
       >
         <Container style={{ maxWidth: '520px', margin: '0 auto' }}>
-          {/* Sky banner with clouds */}
           <div
             style={{
               position: 'relative',
@@ -88,50 +84,6 @@ export default function EmailLayout({ preview, children }: EmailLayoutProps) {
               textAlign: 'center',
             }}
           >
-            {/* Cloud */}
-            <div
-              style={{
-                position: 'absolute',
-                left: '-16px',
-                bottom: '0px',
-                width: '150px',
-                height: '70px',
-                opacity: 0.92,
-              }}
-            >
-              <div
-                style={{ ...cloudPart, width: '150px', height: '32px', bottom: '0', left: '0' }}
-              />
-              <div
-                style={{
-                  ...cloudPart,
-                  width: '44px',
-                  height: '44px',
-                  bottom: '14px',
-                  left: '12px',
-                }}
-              />
-              <div
-                style={{
-                  ...cloudPart,
-                  width: '56px',
-                  height: '56px',
-                  bottom: '10px',
-                  left: '40px',
-                }}
-              />
-              <div
-                style={{
-                  ...cloudPart,
-                  width: '38px',
-                  height: '38px',
-                  bottom: '12px',
-                  left: '88px',
-                }}
-              />
-            </div>
-
-            {/* Logo + brand */}
             <table
               cellPadding={0}
               cellSpacing={0}
@@ -139,13 +91,13 @@ export default function EmailLayout({ preview, children }: EmailLayoutProps) {
             >
               <tr>
                 <td style={{ verticalAlign: 'middle', paddingRight: '10px' }}>
-                  <div
+                  <Img
+                    src={FLAG_DATA_URI}
+                    alt=""
+                    width="28"
+                    height="22"
                     style={{
-                      width: '28px',
-                      height: '28px',
-                      borderRadius: '7px',
-                      background:
-                        'repeating-conic-gradient(#0b1b33 0% 25%, #ffffff 0% 50%) 50% / 12px 12px',
+                      borderRadius: '5px',
                       boxShadow:
                         '0 4px 14px rgba(11,27,51,0.25), inset 0 0 0 1px rgba(255,255,255,0.4)',
                     }}
@@ -169,10 +121,8 @@ export default function EmailLayout({ preview, children }: EmailLayoutProps) {
             </table>
           </div>
 
-          {/* Content */}
           <Section style={{ textAlign: 'center', padding: '32px 24px 0' }}>{children}</Section>
 
-          {/* Checkered stripe */}
           <Section style={{ paddingTop: '32px' }}>
             <Row>
               {Array.from({ length: STRIPE_COLS }, (_, i) => (
