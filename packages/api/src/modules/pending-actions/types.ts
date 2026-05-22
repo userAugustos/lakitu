@@ -74,3 +74,15 @@ export const ListPendingActionsQuerySchema = z.object({
 export const ResolvePendingActionBodySchema = z.object({
   note: z.string().max(1000).optional(),
 });
+
+export interface SimulatePendingActionRequest {
+  agent_id: string;
+  action: string;
+  context: Record<string, unknown>;
+}
+
+export const SimulatePendingActionBodySchema = z.object({
+  agent_id: z.string().min(1),
+  action: z.string().min(1).max(200),
+  context: z.record(z.string(), z.unknown()).optional().default({}),
+});

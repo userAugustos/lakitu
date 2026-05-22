@@ -3,5 +3,6 @@ export type {
   CreatePendingActionInput,
   ListPendingActionsResponse,
   ResolvePendingActionRequest,
+  SimulatePendingActionRequest,
   PendingActionStatusValue,
 } from '../modules/pending-actions/types';
