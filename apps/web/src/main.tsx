@@ -7,7 +7,7 @@ import '@repo/ui/styles';
 
 import { routeTree } from './routeTree.gen';
 
-const queryClient = new QueryClient();
+export const queryClient = new QueryClient();
 export const router = createRouter({ routeTree, context: { queryClient } });
 
 declare module '@tanstack/react-router' {

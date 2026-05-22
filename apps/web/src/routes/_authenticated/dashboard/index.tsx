@@ -1,11 +1,11 @@
-import { createFileRoute, useLoaderData } from '@tanstack/react-router';
-
-import type { Agent } from '@lakitu/api/agents';
+import { useQuery } from '@tanstack/react-query';
+import { createFileRoute } from '@tanstack/react-router';
 
 import { AgentSectionHeader } from '@/modules/dashboard/components/agent-section-header';
 import { AgentTable } from '@/modules/dashboard/components/agent-table';
 import { TableFooter } from '@/modules/dashboard/components/table-footer';
 import { toAgentDisplayRow } from '@/modules/dashboard/lib/agent-display';
+import { agentsQueryOptions } from '@/modules/dashboard/lib/agents-query';
 import type { AgentDisplayRow } from '@/modules/dashboard/lib/agent-display';
 
 const MOCK_AGENTS: AgentDisplayRow[] = [
@@ -128,9 +128,9 @@ export const Route = createFileRoute('/_authenticated/dashboard/')({
 });
 
 function DashboardIndex() {
-  const { agents } = useLoaderData({ from: '/_authenticated/dashboard' });
-  const displayAgents =
-    agents.length > 0 ? agents.map((a: Agent) => toAgentDisplayRow(a)) : MOCK_AGENTS;
+  const { data } = useQuery(agentsQueryOptions);
+  const agents = data?.agents ?? [];
+  const displayAgents = agents.length > 0 ? agents.map(toAgentDisplayRow) : MOCK_AGENTS;
 
   return (
     <div>

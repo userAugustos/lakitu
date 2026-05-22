@@ -4,7 +4,7 @@ import type { Agent, CreateAgentResponse } from '@lakitu/api/agents';
 import type { AgentPermission, GrantPermissionResponse } from '@lakitu/api/permissions';
 
 import { apiCall, lakituAuthApi } from '@/api';
-import { router } from '@/main';
+import { queryClient, router } from '@/main';
 
 import type { CreateAgentContext, CreateAgentEvent } from './create-agent.types';
 
@@ -43,6 +43,7 @@ export const createAgentMachine = setup({
   },
   actions: {
     navigateToDashboard: () => {
+      void queryClient.invalidateQueries({ queryKey: ['agents'] });
       void router.navigate({ to: '/dashboard' });
     },
   },
