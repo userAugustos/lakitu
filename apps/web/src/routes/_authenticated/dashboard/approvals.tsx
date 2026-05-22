@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { useMachine } from '@xstate/react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import type { ColumnFiltersState } from '@tanstack/react-table';
 
 import type { PendingActionStatusValue } from '@lakitu/api/pending-actions';
 
@@ -20,8 +21,14 @@ export const Route = createFileRoute('/_authenticated/dashboard/approvals')({
 function ApprovalsPage() {
   const { data } = useQuery(pendingActionsQueryOptions);
   const [state, send] = useMachine(approvalsMachine);
-  const [statusFilter, setStatusFilter] = useState<PendingActionStatusValue | undefined>();
-  const pendingActions = data?.pending_actions ?? [];
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const pendingActions = useMemo(() => data?.pending_actions ?? [], [data?.pending_actions]);
+
+  const statusFilter = columnFilters.find((f) => f.id === 'status')?.value as
+    | PendingActionStatusValue
+    | undefined;
+  const onFilterChange = (next: PendingActionStatusValue | undefined) =>
+    setColumnFilters(next ? [{ id: 'status', value: next }] : []);
 
   const isResolving = state.matches('approving') || state.matches('denying');
   const isSimulating = state.matches('simulating');
@@ -45,13 +52,14 @@ function ApprovalsPage() {
     <div data-testid="approvals-page">
       <ApprovalsHeader
         statusFilter={statusFilter}
-        onFilterChange={setStatusFilter}
+        onFilterChange={onFilterChange}
         onTriggerAction={() => send({ type: 'OPEN_SIMULATE' })}
       />
       <ApprovalsDataTable
         columns={approvalsColumns}
         data={pendingActions}
-        statusFilter={statusFilter}
+        columnFilters={columnFilters}
+        onColumnFiltersChange={setColumnFilters}
         onRowClick={(pendingAction) => send({ type: 'SELECT', pendingAction })}
       />
       <SimulateDialog

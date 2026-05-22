@@ -5,7 +5,7 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import type { ColumnDef } from '@tanstack/react-table';
+import type { ColumnDef, ColumnFiltersState, OnChangeFn } from '@tanstack/react-table';
 
 import type { PendingAction } from '@lakitu/api/pending-actions';
 
@@ -23,7 +23,8 @@ import { ChevronLeftIcon, ChevronRightIcon } from '@/modules/dashboard/lib/dashb
 interface ApprovalsDataTableProps {
   columns: ColumnDef<PendingAction, unknown>[];
   data: PendingAction[];
-  statusFilter?: string;
+  columnFilters: ColumnFiltersState;
+  onColumnFiltersChange: OnChangeFn<ColumnFiltersState>;
   onRowClick: (action: PendingAction) => void;
 }
 
@@ -37,15 +38,15 @@ const CELL_CLASS = 'border-dash-line-3 border-b px-4 py-3.5 align-middle';
 export function ApprovalsDataTable({
   columns,
   data,
-  statusFilter,
+  columnFilters,
+  onColumnFiltersChange,
   onRowClick,
 }: ApprovalsDataTableProps) {
   const table = useReactTable({
     data,
     columns,
-    state: {
-      columnFilters: statusFilter ? [{ id: 'status', value: statusFilter }] : [],
-    },
+    state: { columnFilters },
+    onColumnFiltersChange,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
