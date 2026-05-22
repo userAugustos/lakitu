@@ -24,10 +24,10 @@ export const config = {
     ? ({
         enabled: true as const,
         smtpHost: env.RESEND_API_KEY ? 'smtp.resend.com' : requireEnv('SMTP_HOST'),
-        smtpPort: env.RESEND_API_KEY ? 465 : parseInteger(env.SMTP_PORT, 1025),
+        smtpPort: env.RESEND_API_KEY ? 587 : parseInteger(env.SMTP_PORT, 1025),
         smtpUsername: env.RESEND_API_KEY ? 'resend' : (env.SMTP_USERNAME ?? ''),
-        smtpPassword: env.RESEND_API_KEY ?? (env.SMTP_PASSWORD ?? ''),
-        secure: env.RESEND_API_KEY ? true : parseBoolean(env.SMTP_SECURE, false),
+        smtpPassword: env.RESEND_API_KEY ?? env.SMTP_PASSWORD ?? '',
+        secure: env.RESEND_API_KEY ? false : parseBoolean(env.SMTP_SECURE, false),
       } as const)
     : ({ enabled: false as const } as const),
   auth: {
