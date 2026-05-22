@@ -10,9 +10,13 @@ import { CompanyFloat } from '@/modules/dashboard/components/company-float';
 import { DashboardHero } from '@/modules/dashboard/components/dashboard-hero';
 import { QuickActionsGrid } from '@/modules/dashboard/components/quick-actions-grid';
 import { agentsQueryOptions } from '@/modules/dashboard/lib/agents-query';
+import { myCompanyQueryOptions } from '@/modules/dashboard/lib/my-company-query';
 
 export const Route = createFileRoute('/_authenticated/dashboard')({
-  loader: ({ context }) => context.queryClient.ensureQueryData(agentsQueryOptions),
+  loader: ({ context }) => {
+    void context.queryClient.ensureQueryData(myCompanyQueryOptions);
+    return context.queryClient.ensureQueryData(agentsQueryOptions);
+  },
   component: DashboardLayout,
 });
 
