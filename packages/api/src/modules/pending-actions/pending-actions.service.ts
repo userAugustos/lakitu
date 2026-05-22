@@ -8,7 +8,11 @@ import { LOG_DOMAINS, logger } from '@core/logger';
 import { sendEmail } from '@core/mailer';
 
 import { pendingActionsRepository } from './pending-actions.repository';
-import type { CreatePendingActionInput, PendingAction } from './types';
+import type {
+  CreatePendingActionInput,
+  PendingAction,
+  SimulatePendingActionRequest,
+} from './types';
 
 const paLogger = logger.child({ domain: LOG_DOMAINS.PENDING_ACTIONS });
 
@@ -197,9 +201,41 @@ function expireStale(): number {
   return expired.length;
 }
 
+async function simulate(
+  userId: string,
+  body: SimulatePendingActionRequest
+): Promise<PendingAction> {
+  const user = await authRepository.findUserById(userId);
+  if (!user) throw unauthorized('auth.user_not_found', 'User not found');
+
+  const agent = await agentsRepository.findById(body.agent_id);
+  if (!agent) throw notFound('pending_actions.agent_not_found', 'Agent not found');
+
+  if (agent.companyId !== user.companyId) {
+    throw forbidden('pending_actions.company_mismatch', 'Agent does not belong to your company');
+  }
+
+  return create({
+    agent_id: body.agent_id,
+    action: body.action,
+    context: body.context ?? {},
+    policy_hit: 'manual_simulation',
+    expires_at: Date.now() + 24 * 60 * 60 * 1000,
+  });
+}
+
+async function countPendingForOwner(userId: string): Promise<{ count: number }> {
+  const user = await authRepository.findUserById(userId);
+  if (!user) throw unauthorized('auth.user_not_found', 'User not found');
+
+  return { count: pendingActionsRepository.countPendingByOwnerId(userId) };
+}
+
 export const pendingActionsService = {
   create,
+  simulate,
   listForOwner,
+  countPendingForOwner,
   getById,
   approve,
   deny,
