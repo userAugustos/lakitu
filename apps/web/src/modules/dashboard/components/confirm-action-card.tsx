@@ -2,10 +2,10 @@ import { Loader2 } from 'lucide-react';
 
 import { cn } from '@repo/ui/utils';
 
-import type { AgentActionKind } from '../agent-action.types';
+type ActionKind = 'revoke' | 'restore' | 'rotate-key';
 
 interface ConfirmActionContentProps {
-  kind: AgentActionKind;
+  kind: ActionKind;
   agentName: string;
   isExecuting: boolean;
   error: string | null;
@@ -13,7 +13,7 @@ interface ConfirmActionContentProps {
   onCancel: () => void;
 }
 
-const ACTION_COPY: Record<AgentActionKind, { title: string; description: string }> = {
+const ACTION_COPY: Record<ActionKind, { title: string; description: string }> = {
   revoke: {
     title: 'Revoke Agent',
     description: 'This will immediately disable the agent and invalidate its keys.',
