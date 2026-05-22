@@ -1,5 +1,7 @@
 import { Loader2 } from 'lucide-react';
 
+import { cn } from '@repo/ui/utils';
+
 import type { AgentActionKind } from '../agent-action.types';
 
 interface ConfirmActionContentProps {
@@ -44,7 +46,7 @@ export function ConfirmActionContent({
         {copy.description} ({agentName})
       </p>
 
-      {error && <p className="text-dash-red mt-2 text-[12px]">{error}</p>}
+      <p className={cn('text-dash-red mt-2 text-[12px]', !error && 'hidden')}>{error}</p>
 
       <div className="mt-3 flex items-center gap-2">
         <button

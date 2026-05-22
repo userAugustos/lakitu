@@ -1,4 +1,5 @@
 import { useMachine } from '@xstate/react';
+import { Ban, RefreshCw, RotateCcw } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 
@@ -6,7 +7,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@repo/ui/shadcn/popover
 import { Tooltip, TooltipContent, TooltipTrigger } from '@repo/ui/shadcn/tooltip';
 
 import { agentActionMachine } from '../agent-action.machine';
-import { RestoreIcon, RevokeIcon, RotateIcon } from '../lib/dashboard-icons';
 import { ConfirmActionContent } from './confirm-action-card';
 import { RotateKeyResult } from './rotate-key-result';
 import type { AgentActionKind } from '../agent-action.types';
@@ -69,7 +69,7 @@ export function RowActions({ agentId, agentName, isRevoked }: RowActionsProps) {
                   aria-label="Restore agent"
                   onClick={() => send({ type: 'START', kind: 'restore', agentId, agentName })}
                 >
-                  <RestoreIcon className="h-[15px] w-[15px]" />
+                  <RotateCcw className="h-[15px] w-[15px]" />
                 </button>
               </PopoverTrigger>
             </TooltipTrigger>
@@ -92,7 +92,7 @@ export function RowActions({ agentId, agentName, isRevoked }: RowActionsProps) {
                   aria-label="Revoke agent"
                   onClick={() => send({ type: 'START', kind: 'revoke', agentId, agentName })}
                 >
-                  <RevokeIcon className="h-[15px] w-[15px]" />
+                  <Ban className="h-[15px] w-[15px]" />
                 </button>
               </PopoverTrigger>
             </TooltipTrigger>
@@ -116,7 +116,7 @@ export function RowActions({ agentId, agentName, isRevoked }: RowActionsProps) {
                 aria-label="Rotate key"
                 onClick={() => send({ type: 'START', kind: 'rotate-key', agentId, agentName })}
               >
-                <RotateIcon className="h-[15px] w-[15px]" />
+                <RefreshCw className="h-[15px] w-[15px]" />
               </button>
             </PopoverTrigger>
           </TooltipTrigger>
