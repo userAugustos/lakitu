@@ -4,9 +4,9 @@ import type { AgentDisplayRow } from '../lib/agent-display';
 
 interface AgentTableProps {
   agents: AgentDisplayRow[];
-  globalFilter?: string;
+  nameFilter?: string;
 }
 
-export function AgentTable({ agents, globalFilter }: AgentTableProps) {
-  return <AgentsDataTable columns={agentsColumns} data={agents} globalFilter={globalFilter} />;
+export function AgentTable({ agents, nameFilter }: AgentTableProps) {
+  return <AgentsDataTable columns={agentsColumns} data={agents} nameFilter={nameFilter} />;
 }

@@ -20,7 +20,7 @@ function DashboardIndex() {
   return (
     <div>
       <AgentSectionHeader searchValue={search} onSearchChange={setSearch} />
-      <AgentTable agents={displayAgents} globalFilter={search} />
+      <AgentTable agents={displayAgents} nameFilter={search} />
     </div>
   );
 }

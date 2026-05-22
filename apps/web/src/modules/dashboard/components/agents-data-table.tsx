@@ -21,7 +21,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from '../lib/dashboard-icons';
 interface AgentsDataTableProps<TData> {
   columns: ColumnDef<TData, unknown>[];
   data: TData[];
-  globalFilter?: string;
+  nameFilter?: string;
 }
 
 const PAGE_SIZE = 8;
@@ -31,15 +31,13 @@ const HEAD_CLASS =
 
 const CELL_CLASS = 'border-dash-line-3 border-b px-4 py-3.5 align-middle';
 
-export function AgentsDataTable<TData>({
-  columns,
-  data,
-  globalFilter,
-}: AgentsDataTableProps<TData>) {
+export function AgentsDataTable<TData>({ columns, data, nameFilter }: AgentsDataTableProps<TData>) {
   const table = useReactTable({
     data,
     columns,
-    state: { globalFilter },
+    state: {
+      columnFilters: nameFilter ? [{ id: 'name', value: nameFilter }] : [],
+    },
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
