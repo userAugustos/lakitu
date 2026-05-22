@@ -5,7 +5,7 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import type { ColumnDef } from '@tanstack/react-table';
+import type { ColumnDef, ColumnFiltersState, OnChangeFn } from '@tanstack/react-table';
 
 import {
   Table,
@@ -21,7 +21,8 @@ import { ChevronLeftIcon, ChevronRightIcon } from '../lib/dashboard-icons';
 interface AgentsDataTableProps<TData> {
   columns: ColumnDef<TData, unknown>[];
   data: TData[];
-  nameFilter?: string;
+  columnFilters: ColumnFiltersState;
+  onColumnFiltersChange: OnChangeFn<ColumnFiltersState>;
 }
 
 const PAGE_SIZE = 8;
@@ -31,13 +32,17 @@ const HEAD_CLASS =
 
 const CELL_CLASS = 'border-dash-line-3 border-b px-4 py-3.5 align-middle';
 
-export function AgentsDataTable<TData>({ columns, data, nameFilter }: AgentsDataTableProps<TData>) {
+export function AgentsDataTable<TData>({
+  columns,
+  data,
+  columnFilters,
+  onColumnFiltersChange,
+}: AgentsDataTableProps<TData>) {
   const table = useReactTable({
     data,
     columns,
-    state: {
-      columnFilters: nameFilter ? [{ id: 'name', value: nameFilter }] : [],
-    },
+    state: { columnFilters },
+    onColumnFiltersChange,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),

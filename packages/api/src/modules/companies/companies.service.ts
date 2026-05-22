@@ -6,6 +6,7 @@ import type {
   Company,
   CreateCompanyRequest,
   ListMembersResponse,
+  MyCompanyResponse,
   SearchCompaniesResponse,
 } from './types';
 
@@ -65,4 +66,16 @@ async function listMembers(userId: string, companyId: string): Promise<ListMembe
   return { members: rows };
 }
 
-export const companiesService = { create, join, search, listMembers };
+async function getMyCompany(userId: string): Promise<MyCompanyResponse> {
+  const user = await authRepository.findUserById(userId);
+  if (!user) throw unauthorized('auth.user_not_found', 'User not found');
+  if (!user.companyId) return { company: null, member_count: 0 };
+
+  const company = await companiesRepository.findById(user.companyId);
+  if (!company) throw notFound('companies.not_found', 'Company not found');
+
+  const memberCount = await companiesRepository.countMembers(company.id);
+  return { company: toCompanyDto(company), member_count: memberCount };
+}
+
+export const companiesService = { create, join, search, listMembers, getMyCompany };

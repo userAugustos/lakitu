@@ -1,0 +1,167 @@
+import {
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  useReactTable,
+} from '@tanstack/react-table';
+import type { ColumnDef, ColumnFiltersState, OnChangeFn } from '@tanstack/react-table';
+
+import type { PendingAction } from '@lakitu/api/pending-actions';
+
+import { Button } from '@repo/ui/shadcn/button';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@repo/ui/shadcn/table';
+import { ChevronLeftIcon, ChevronRightIcon } from '@/modules/dashboard/lib/dashboard-icons';
+
+interface ApprovalsDataTableProps {
+  columns: ColumnDef<PendingAction, unknown>[];
+  data: PendingAction[];
+  columnFilters: ColumnFiltersState;
+  onColumnFiltersChange: OnChangeFn<ColumnFiltersState>;
+  onRowClick: (action: PendingAction) => void;
+}
+
+const PAGE_SIZE = 8;
+
+const HEAD_CLASS =
+  'text-dash-muted bg-[#FAFBFD] px-4 py-3 text-left text-[11.5px] font-semibold tracking-[0.04em] whitespace-nowrap uppercase border-dash-line border-b';
+
+const CELL_CLASS = 'border-dash-line-3 border-b px-4 py-3.5 align-middle';
+
+export function ApprovalsDataTable({
+  columns,
+  data,
+  columnFilters,
+  onColumnFiltersChange,
+  onRowClick,
+}: ApprovalsDataTableProps) {
+  const table = useReactTable({
+    data,
+    columns,
+    state: { columnFilters },
+    onColumnFiltersChange,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    initialState: {
+      pagination: { pageSize: PAGE_SIZE },
+    },
+  });
+
+  if (data.length === 0) {
+    return (
+      <div
+        data-testid="approvals-table-empty"
+        className="border-dash-line rounded-[14px] border bg-white"
+      >
+        <div className="text-dash-muted flex items-center justify-center py-16 text-[14px]">
+          No pending actions
+        </div>
+      </div>
+    );
+  }
+
+  const { pageIndex, pageSize } = table.getState().pagination;
+  const totalRows = table.getFilteredRowModel().rows.length;
+  const start = pageIndex * pageSize + 1;
+  const end = Math.min((pageIndex + 1) * pageSize, totalRows);
+  const pageCount = table.getPageCount();
+
+  return (
+    <div
+      data-testid="approvals-table"
+      className="border-dash-line overflow-hidden rounded-[14px] border bg-white"
+    >
+      <Table className="w-full border-collapse text-[13.5px]">
+        <TableHeader>
+          <TableRow className="border-0 hover:bg-transparent">
+            {table.getHeaderGroups().map((headerGroup) =>
+              headerGroup.headers.map((header) => (
+                <TableHead
+                  key={header.id}
+                  className={HEAD_CLASS}
+                  style={{ width: header.getSize() }}
+                >
+                  {header.isPlaceholder
+                    ? null
+                    : flexRender(header.column.columnDef.header, header.getContext())}
+                </TableHead>
+              ))
+            )}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {table.getRowModel().rows.map((row) => (
+            <TableRow
+              key={row.id}
+              data-testid="approvals-row"
+              className="cursor-pointer border-0 hover:bg-[#FAFBFD]"
+              onClick={() => onRowClick(row.original)}
+            >
+              {row.getVisibleCells().map((cell) => (
+                <TableCell key={cell.id} className={CELL_CLASS}>
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+
+      {pageCount > 1 && (
+        <div className="text-dash-muted border-dash-line flex items-center justify-between border-t bg-[#FAFBFD] px-4 py-3 text-[12.5px]">
+          <span>
+            Showing{' '}
+            <b className="text-dash-ink">
+              {start}&ndash;{end}
+            </b>{' '}
+            of {totalRows} actions
+          </span>
+          <div className="inline-flex items-center gap-1">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              aria-label="Previous page"
+              disabled={!table.getCanPreviousPage()}
+              onClick={() => table.previousPage()}
+              className="h-7 w-7 rounded-[7px]"
+            >
+              <ChevronLeftIcon />
+            </Button>
+            {Array.from({ length: pageCount }, (_, i) => i).map((page) => (
+              <Button
+                key={page}
+                type="button"
+                variant={page === pageIndex ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => table.setPageIndex(page)}
+                className="h-7 min-w-[28px] rounded-[7px] px-2.5 text-[12.5px] font-semibold"
+              >
+                {page + 1}
+              </Button>
+            ))}
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              aria-label="Next page"
+              disabled={!table.getCanNextPage()}
+              onClick={() => table.nextPage()}
+              className="h-7 w-7 rounded-[7px]"
+            >
+              <ChevronRightIcon />
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

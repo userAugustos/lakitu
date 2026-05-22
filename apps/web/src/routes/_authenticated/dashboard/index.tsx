@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import type { ColumnFiltersState } from '@tanstack/react-table';
 
 import { AgentSectionHeader } from '@/modules/dashboard/components/agent-section-header';
 import { AgentTable } from '@/modules/dashboard/components/agent-table';
@@ -13,14 +14,21 @@ export const Route = createFileRoute('/_authenticated/dashboard/')({
 
 function DashboardIndex() {
   const { data } = useQuery(agentsQueryOptions);
-  const [search, setSearch] = useState('');
-  const agents = data?.agents ?? [];
-  const displayAgents = agents.map(toAgentDisplayRow);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const displayAgents = useMemo(() => (data?.agents ?? []).map(toAgentDisplayRow), [data?.agents]);
+
+  const nameFilter =
+    (columnFilters.find((f) => f.id === 'name')?.value as string | undefined) ?? '';
+  const onSearchChange = (value: string) => setColumnFilters(value ? [{ id: 'name', value }] : []);
 
   return (
     <div>
-      <AgentSectionHeader searchValue={search} onSearchChange={setSearch} />
-      <AgentTable agents={displayAgents} nameFilter={search} />
+      <AgentSectionHeader searchValue={nameFilter} onSearchChange={onSearchChange} />
+      <AgentTable
+        agents={displayAgents}
+        columnFilters={columnFilters}
+        onColumnFiltersChange={setColumnFilters}
+      />
     </div>
   );
 }

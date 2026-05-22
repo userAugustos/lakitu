@@ -45,25 +45,7 @@ export function ClawkeyRevokedIcon({ className }: { className?: string }) {
   );
 }
 
-export function RevokeIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} {...STROKE_PROPS} strokeWidth={1.75}>
-      <circle cx="12" cy="12" r="9" />
-      <path d="m5.6 5.6 12.8 12.8" />
-    </svg>
-  );
-}
-
-export function RotateIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} {...STROKE_PROPS} strokeWidth={1.75}>
-      <path d="M21 12a9 9 0 0 1-15.5 6.3" />
-      <path d="M3 12a9 9 0 0 1 15.5-6.3" />
-      <path d="M3 5v4h4" />
-      <path d="M21 19v-4h-4" />
-    </svg>
-  );
-}
+export { Ban as RevokeIcon, RotateCcw as RestoreIcon, RefreshCw as RotateIcon } from 'lucide-react';
 
 export function EditIcon({ className }: { className?: string }) {
   return (

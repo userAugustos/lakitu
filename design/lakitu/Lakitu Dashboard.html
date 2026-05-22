@@ -1,0 +1,1183 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dashboard · Lakitu</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@500;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      :root {
+        --sky-1: #bee3ff;
+        --sky-2: #7fc2ff;
+        --sky-3: #4fa3f2;
+        --sky-4: #1e73cc;
+        --ink: #0b1b33;
+        --ink-2: #324a6e;
+        --muted: #6e809b;
+        --line: #e5eaf2;
+        --line-2: #d7deea;
+        --line-3: #eceff5;
+        --paper: #f7f9fc;
+        --white: #ffffff;
+        --green: #1f8a5b;
+        --green-bg: #e6f4ec;
+        --amber: #b7791f;
+        --amber-bg: #fff4db;
+        --red: #c0362c;
+        --red-bg: #fce7e4;
+        --gray: #6e809b;
+        --gray-bg: #eef2f8;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family:
+          'Geist',
+          'Inter',
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Helvetica,
+          Arial,
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+        font-size: 14px;
+      }
+
+      button,
+      input {
+        font: inherit;
+        color: inherit;
+      }
+
+      /* ---------- LAYOUT ---------- */
+      .app {
+        min-height: 100vh;
+      }
+
+      /* ---------- FLOATING BRAND (top-left) ---------- */
+      .brand-float {
+        position: fixed;
+        top: 20px;
+        left: 24px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-family: 'Bricolage Grotesque', 'Geist', sans-serif;
+        font-weight: 800;
+        font-size: 20px;
+        letter-spacing: -0.02em;
+        color: var(--ink);
+        z-index: 20;
+      }
+      .brand-float .dot {
+        width: 26px;
+        height: 26px;
+        border-radius: 8px;
+        background: repeating-conic-gradient(#0b1b33 0% 25%, #ffffff 0% 50%) 50% / 11px 11px;
+        box-shadow:
+          0 2px 8px rgba(11, 27, 51, 0.18),
+          inset 0 0 0 1px rgba(11, 27, 51, 0.06);
+      }
+
+      /* ---------- FLOATING AVATAR (top-right) ---------- */
+      .avatar-float {
+        position: fixed;
+        top: 18px;
+        right: 24px;
+        width: 38px;
+        height: 38px;
+        border-radius: 999px;
+        background: linear-gradient(135deg, var(--sky-2), var(--sky-4));
+        color: white;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        border: 2px solid white;
+        box-shadow:
+          0 6px 16px rgba(11, 27, 51, 0.16),
+          0 2px 4px rgba(11, 27, 51, 0.08);
+        z-index: 20;
+        transition:
+          transform 120ms ease,
+          box-shadow 120ms ease;
+      }
+      .avatar-float:hover {
+        transform: translateY(-1px);
+        box-shadow:
+          0 10px 22px rgba(11, 27, 51, 0.22),
+          0 3px 6px rgba(11, 27, 51, 0.1);
+      }
+
+      /* ---------- FLOATING COMPANY CARD ---------- */
+      .company-float {
+        position: fixed;
+        left: 20px;
+        bottom: 20px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px 10px 10px;
+        border-radius: 12px;
+        border: 1px solid var(--line);
+        background: white;
+        box-shadow:
+          0 10px 24px rgba(11, 27, 51, 0.1),
+          0 2px 6px rgba(11, 27, 51, 0.06);
+        cursor: pointer;
+        z-index: 20;
+        transition:
+          transform 120ms ease,
+          box-shadow 120ms ease;
+      }
+      .company-float:hover {
+        transform: translateY(-1px);
+        box-shadow:
+          0 14px 30px rgba(11, 27, 51, 0.14),
+          0 3px 8px rgba(11, 27, 51, 0.08);
+      }
+      .company-logo {
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
+        background: linear-gradient(135deg, #1e73cc, #0b1b33);
+        color: white;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Bricolage Grotesque', sans-serif;
+        font-weight: 700;
+        font-size: 13px;
+        flex-shrink: 0;
+      }
+      .company-float .meta {
+        min-width: 0;
+      }
+      .company-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ink);
+        line-height: 1.2;
+      }
+      .company-plan {
+        font-size: 11.5px;
+        color: var(--muted);
+        line-height: 1.2;
+      }
+      .company-float .chev {
+        color: var(--muted);
+        margin-left: 4px;
+        flex-shrink: 0;
+      }
+
+      /* ---------- MAIN ---------- */
+      .main {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .content {
+        padding: 80px 32px 120px;
+        max-width: 1400px;
+        width: 100%;
+        margin: 0 auto;
+      }
+
+      /* ---------- HERO ---------- */
+      .hero {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 24px;
+      }
+      .hello {
+        font-family: 'Geist Mono', monospace;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+      .h1 {
+        font-family: 'Bricolage Grotesque', 'Geist', sans-serif;
+        font-weight: 700;
+        font-size: 30px;
+        letter-spacing: -0.025em;
+        line-height: 1.1;
+        color: var(--ink);
+        margin: 0;
+      }
+      .h1 .wave {
+        display: inline-block;
+        transform-origin: 70% 70%;
+        animation: wave 2.6s ease-in-out 1;
+      }
+      @keyframes wave {
+        0%,
+        100% {
+          transform: rotate(0);
+        }
+        20% {
+          transform: rotate(14deg);
+        }
+        40% {
+          transform: rotate(-8deg);
+        }
+        60% {
+          transform: rotate(14deg);
+        }
+        80% {
+          transform: rotate(-4deg);
+        }
+      }
+      .subhead {
+        color: var(--muted);
+        font-size: 14px;
+        margin-top: 6px;
+      }
+      .subhead b {
+        color: var(--ink-2);
+        font-weight: 600;
+      }
+
+      .cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        background: var(--ink);
+        color: white;
+        border: 1px solid var(--ink);
+        border-radius: 10px;
+        font-size: 13.5px;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 4px 10px rgba(11, 27, 51, 0.18);
+      }
+      .cta:hover {
+        background: #142b4d;
+      }
+      .cta svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      /* ---------- QUICK ACTIONS ---------- */
+      .quick-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-bottom: 32px;
+      }
+      .quick {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 14px 16px;
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        text-decoration: none;
+        color: inherit;
+        cursor: pointer;
+        transition:
+          border-color 120ms ease,
+          box-shadow 120ms ease,
+          transform 120ms ease;
+      }
+      .quick:hover {
+        border-color: var(--line-2);
+        box-shadow: 0 4px 12px rgba(11, 27, 51, 0.06);
+        transform: translateY(-1px);
+      }
+      .quick:hover .arrow {
+        transform: translateX(3px);
+        color: var(--ink);
+      }
+      .quick .pill {
+        width: 36px;
+        height: 36px;
+        border-radius: 9px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .quick .pill svg {
+        width: 17px;
+        height: 17px;
+        stroke-width: 2;
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .quick .pill.amber {
+        background: var(--amber-bg);
+        color: var(--amber);
+      }
+      .quick .pill.sky {
+        background: #e3f0ff;
+        color: var(--sky-4);
+      }
+      .quick .body {
+        flex: 1;
+        min-width: 0;
+        line-height: 1.3;
+      }
+      .quick .title {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--ink);
+      }
+      .quick .count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 22px;
+        height: 20px;
+        padding: 0 6px;
+        border-radius: 999px;
+        font-size: 11.5px;
+        font-weight: 700;
+        background: var(--gray-bg);
+        color: var(--ink-2);
+      }
+      .quick .count.amber {
+        background: var(--amber-bg);
+        color: var(--amber);
+      }
+      .quick .count.red {
+        background: var(--red-bg);
+        color: var(--red);
+      }
+      .quick .sub {
+        font-size: 12.5px;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+      .quick .arrow {
+        width: 16px;
+        height: 16px;
+        color: var(--muted);
+        stroke-width: 2;
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        flex-shrink: 0;
+        transition:
+          transform 160ms ease,
+          color 120ms ease;
+      }
+
+      /* ---------- AGENTS SECTION ---------- */
+      .section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 14px;
+      }
+      .section-head h2 {
+        font-family: 'Bricolage Grotesque', sans-serif;
+        font-weight: 700;
+        font-size: 18px;
+        letter-spacing: -0.015em;
+        color: var(--ink);
+        margin: 0;
+      }
+      .section-head .right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .filter-tabs {
+        display: inline-flex;
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 3px;
+        gap: 2px;
+      }
+      .filter-tabs button {
+        padding: 6px 12px;
+        background: none;
+        border: 0;
+        border-radius: 7px;
+        font-size: 12.5px;
+        font-weight: 500;
+        color: var(--muted);
+        cursor: pointer;
+      }
+      .filter-tabs button:hover {
+        color: var(--ink);
+      }
+      .filter-tabs button.active {
+        background: var(--gray-bg);
+        color: var(--ink);
+        font-weight: 600;
+      }
+      .search {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 10px;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        background: white;
+        color: var(--muted);
+        width: 240px;
+      }
+      .search svg {
+        width: 14px;
+        height: 14px;
+      }
+      .search input {
+        border: 0;
+        outline: 0;
+        background: none;
+        flex: 1;
+        font-size: 13px;
+        color: var(--ink);
+        min-width: 0;
+      }
+      .search input::placeholder {
+        color: var(--muted);
+      }
+      .kbd {
+        font-family: 'Geist Mono', monospace;
+        font-size: 10.5px;
+        color: var(--muted);
+        background: var(--gray-bg);
+        padding: 2px 6px;
+        border-radius: 5px;
+        border: 1px solid var(--line);
+      }
+
+      /* ---------- TABLE ---------- */
+      .table-wrap {
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+      table.agents {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13.5px;
+      }
+      .agents thead th {
+        text-align: left;
+        font-size: 11.5px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--muted);
+        padding: 12px 16px;
+        background: #fafbfd;
+        border-bottom: 1px solid var(--line);
+        white-space: nowrap;
+      }
+      .agents tbody td {
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--line-3);
+        vertical-align: middle;
+      }
+      .agents tbody tr:last-child td {
+        border-bottom: 0;
+      }
+      .agents tbody tr:hover {
+        background: #fafbfd;
+      }
+      .agents tbody tr.is-revoked td .agent-name b,
+      .agents tbody tr.is-revoked td .agent-id {
+        color: var(--muted);
+      }
+
+      .agent {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .agent .ico {
+        width: 36px;
+        height: 36px;
+        border-radius: 9px;
+        background: #eef4ff;
+        color: var(--sky-4);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Bricolage Grotesque', sans-serif;
+        font-weight: 700;
+        font-size: 14px;
+        flex-shrink: 0;
+        position: relative;
+      }
+      .agent .ico.v1 {
+        background: #e3f0ff;
+        color: #1e73cc;
+      }
+      .agent .ico.v2 {
+        background: #ffe9d9;
+        color: #c2410c;
+      }
+      .agent .ico.v3 {
+        background: #e6f4ec;
+        color: var(--green);
+      }
+      .agent .ico.v4 {
+        background: #ede3ff;
+        color: #6b21a8;
+      }
+      .agent .ico.v5 {
+        background: #fce7e4;
+        color: var(--red);
+      }
+      .agent .ico.v6 {
+        background: #fff4db;
+        color: var(--amber);
+      }
+      .agent .ico.v7 {
+        background: #dceefd;
+        color: #075985;
+      }
+
+      .agent-name {
+        line-height: 1.25;
+        min-width: 0;
+      }
+      .agent-name b {
+        display: block;
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--ink);
+      }
+      .agent-id {
+        display: block;
+        font-family: 'Geist Mono', monospace;
+        font-size: 11.5px;
+        color: var(--muted);
+      }
+
+      /* status pill */
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 9px 3px 7px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 1;
+        height: 22px;
+      }
+      .status .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        flex-shrink: 0;
+        position: relative;
+      }
+      .status.active {
+        background: var(--green-bg);
+        color: var(--green);
+      }
+      .status.active .dot {
+        background: var(--green);
+      }
+      .status.idle {
+        background: var(--gray-bg);
+        color: var(--ink-2);
+      }
+      .status.idle .dot {
+        background: var(--ink-2);
+      }
+      .status.error {
+        background: var(--red-bg);
+        color: var(--red);
+      }
+      .status.error .dot {
+        background: var(--red);
+      }
+      .status.warn {
+        background: var(--amber-bg);
+        color: var(--amber);
+      }
+      .status.warn .dot {
+        background: var(--amber);
+      }
+      .status.revoked {
+        background: #f4f4f6;
+        color: var(--muted);
+        text-decoration: line-through;
+      }
+      .status.revoked .dot {
+        background: var(--muted);
+      }
+
+      /* clawkey pill */
+      .clawkey {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-family: 'Geist Mono', monospace;
+        font-size: 12px;
+        color: var(--ink-2);
+        background: var(--gray-bg);
+        border: 1px solid var(--line);
+        padding: 4px 8px 4px 6px;
+        border-radius: 8px;
+      }
+      .clawkey .icn {
+        width: 14px;
+        height: 14px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--ink-2);
+      }
+      .clawkey.valid .icn {
+        color: var(--green);
+      }
+      .clawkey.expiring {
+        background: var(--amber-bg);
+        border-color: #f2dda6;
+        color: var(--amber);
+      }
+      .clawkey.expiring .icn {
+        color: var(--amber);
+      }
+      .clawkey.rotating {
+        background: #e3f0ff;
+        border-color: #bfddfc;
+        color: var(--sky-4);
+      }
+      .clawkey.rotating .icn {
+        color: var(--sky-4);
+      }
+      .clawkey.revoked {
+        background: var(--red-bg);
+        border-color: #f3c9c2;
+        color: var(--red);
+        text-decoration: line-through;
+      }
+      .clawkey.revoked .icn {
+        color: var(--red);
+      }
+
+      .timecell {
+        color: var(--ink-2);
+      }
+      .timecell .ago {
+        display: block;
+        font-size: 11.5px;
+        color: var(--muted);
+      }
+
+      /* row actions */
+      .row-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        justify-content: flex-end;
+        width: 100%;
+      }
+      .row-btn {
+        width: 30px;
+        height: 30px;
+        border-radius: 7px;
+        border: 1px solid transparent;
+        background: transparent;
+        color: var(--ink-2);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        position: relative;
+      }
+      .row-btn svg {
+        width: 15px;
+        height: 15px;
+        stroke-width: 1.75;
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .row-btn:hover {
+        background: white;
+        border-color: var(--line);
+        color: var(--ink);
+      }
+      .row-btn.danger:hover {
+        color: var(--red);
+        border-color: #f3c9c2;
+        background: #fff6f4;
+      }
+      .row-btn.rotate:hover {
+        color: var(--sky-4);
+        border-color: #bfddfc;
+        background: #f1f8ff;
+      }
+      .row-btn.edit:hover {
+        color: var(--ink);
+      }
+      .row-btn[disabled] {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+      .row-btn[disabled]:hover {
+        background: transparent;
+        border-color: transparent;
+      }
+
+      /* tooltip */
+      .row-btn[data-tip]::after {
+        content: attr(data-tip);
+        position: absolute;
+        bottom: calc(100% + 6px);
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--ink);
+        color: white;
+        font-size: 11px;
+        font-weight: 500;
+        padding: 4px 8px;
+        border-radius: 6px;
+        white-space: nowrap;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 120ms ease;
+        z-index: 5;
+      }
+      .row-btn[data-tip]:hover::after {
+        opacity: 1;
+      }
+
+      .table-foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        border-top: 1px solid var(--line);
+        background: #fafbfd;
+        font-size: 12.5px;
+        color: var(--muted);
+      }
+      .pager {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .pager button {
+        width: 28px;
+        height: 28px;
+        border-radius: 7px;
+        border: 1px solid var(--line);
+        background: white;
+        color: var(--ink-2);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .pager button:hover {
+        background: var(--gray-bg);
+      }
+      .pager .num {
+        padding: 0 10px;
+        height: 28px;
+        border-radius: 7px;
+        display: inline-flex;
+        align-items: center;
+        color: var(--ink);
+        font-weight: 600;
+      }
+      .pager .num.active {
+        background: var(--ink);
+        color: white;
+      }
+
+      @media (max-width: 1180px) {
+        .quick-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (max-width: 880px) {
+        .quick-grid {
+          grid-template-columns: 1fr;
+        }
+        .company-float {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app" data-screen-label="Dashboard">
+      <!-- ============ MAIN ============ -->
+      <main class="main">
+        <div class="content">
+          <!-- HERO -->
+          <section class="hero">
+            <div>
+              <div class="hello">Wednesday · May 21</div>
+              <h1 class="h1">Hey Alex</h1>
+              <p class="subhead">You have <b>24 agents</b> on the grid.</p>
+            </div>
+            <button class="cta">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              New agent
+            </button>
+          </section>
+
+          <!-- QUICK ACTIONS -->
+          <section class="quick-grid">
+            <a class="quick" href="#">
+              <span class="pill amber">
+                <svg viewBox="0 0 24 24" stroke="currentColor">
+                  <path d="M22 12h-6l-2 3h-4l-2-3H2" />
+                  <path
+                    d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"
+                  />
+                </svg>
+              </span>
+              <div class="body">
+                <div class="title">Approval Inbox <span class="count amber">3</span></div>
+                <div class="sub">3 pending requests waiting on your review</div>
+              </div>
+              <svg class="arrow" viewBox="0 0 24 24" stroke="currentColor">
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            </a>
+
+            <a class="quick" href="#">
+              <span class="pill sky">
+                <svg viewBox="0 0 24 24" stroke="currentColor">
+                  <path d="M4 6h16M4 12h16M4 18h10" />
+                </svg>
+              </span>
+              <div class="body">
+                <div class="title">Audit Logs</div>
+                <div class="sub">View activity, key rotations &amp; revocations</div>
+              </div>
+              <svg class="arrow" viewBox="0 0 24 24" stroke="currentColor">
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            </a>
+          </section>
+
+          <!-- AGENTS TABLE -->
+          <div class="section-head">
+            <h2>Agents</h2>
+            <div class="right">
+              <div class="search">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="m21 21-4.3-4.3" />
+                </svg>
+                <input placeholder="Search agents…" />
+                <span class="kbd">⌘K</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table class="agents">
+              <thead>
+                <tr>
+                  <th style="width: 32%">Agent</th>
+                  <th style="width: 14%">Status</th>
+                  <th style="width: 18%">Last edited</th>
+                  <th style="width: 22%">Clawkey</th>
+                  <th style="width: 14%; text-align: right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="agents-tbody">
+                <!-- rows injected -->
+              </tbody>
+            </table>
+
+            <div class="table-foot">
+              <span>Showing <b style="color: var(--ink)">1–8</b> of 24 agents</span>
+              <div class="pager">
+                <button aria-label="Previous">
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="m15 18-6-6 6-6" />
+                  </svg>
+                </button>
+                <span class="num active">1</span>
+                <span class="num">2</span>
+                <span class="num">3</span>
+                <button aria-label="Next">
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="m9 6 6 6-6 6" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Floating brand (top-left) -->
+    <div class="brand-float" aria-label="Lakitu">
+      <span class="dot" aria-hidden="true"></span>
+      <span>Lakitu</span>
+    </div>
+
+    <!-- Floating avatar (top-right) -->
+    <button class="avatar-float" type="button" title="Alex Reyes">AR</button>
+
+    <!-- Floating company card -->
+    <button class="company-float" type="button" aria-label="Switch workspace">
+      <div class="company-logo">PT</div>
+      <div class="meta">
+        <div class="company-name">Pipeshift Tech</div>
+        <div class="company-plan">Team · 12 members</div>
+      </div>
+      <svg
+        class="chev"
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="m6 9 6 6 6-6" />
+      </svg>
+    </button>
+
+    <!-- ===================== DATA + RENDER ===================== -->
+    <script>
+      const agents = [
+        {
+          name: 'Race Officiator',
+          id: 'agt_8f3b21',
+          initial: 'RO',
+          color: 'v1',
+          status: 'active',
+          statusLabel: 'Active',
+          edited: '2 min ago',
+          editedAbs: 'May 21, 10:14',
+          clawkey: { state: 'valid', label: 'ck_live_••a7f4', note: 'Valid · rotates in 28d' },
+        },
+        {
+          name: 'Lap Counter',
+          id: 'agt_2c91ee',
+          initial: 'LC',
+          color: 'v3',
+          status: 'active',
+          statusLabel: 'Active',
+          edited: '1 h ago',
+          editedAbs: 'May 21, 09:02',
+          clawkey: { state: 'valid', label: 'ck_live_••3c91', note: 'Valid · rotates in 12d' },
+        },
+        {
+          name: 'Finish-line Reviewer',
+          id: 'agt_0d44a1',
+          initial: 'FR',
+          color: 'v2',
+          status: 'warn',
+          statusLabel: 'Degraded',
+          edited: 'Yesterday',
+          editedAbs: 'May 20, 17:48',
+          clawkey: { state: 'expiring', label: 'ck_live_••b220', note: 'Expires in 3 days' },
+        },
+        {
+          name: 'Penalty Adjudicator',
+          id: 'agt_7c19fe',
+          initial: 'PA',
+          color: 'v5',
+          status: 'error',
+          statusLabel: 'Errored',
+          edited: '3 h ago',
+          editedAbs: 'May 21, 07:38',
+          clawkey: { state: 'rotating', label: 'ck_live_••——', note: 'Rotation in progress' },
+        },
+        {
+          name: 'Pre-race Inspector',
+          id: 'agt_44ba01',
+          initial: 'PI',
+          color: 'v7',
+          status: 'idle',
+          statusLabel: 'Idle',
+          edited: '2 d ago',
+          editedAbs: 'May 19, 12:01',
+          clawkey: { state: 'valid', label: 'ck_live_••7d18', note: 'Valid · rotates in 41d' },
+        },
+        {
+          name: 'Course Caster',
+          id: 'agt_b91230',
+          initial: 'CC',
+          color: 'v4',
+          status: 'active',
+          statusLabel: 'Active',
+          edited: '4 d ago',
+          editedAbs: 'May 17, 15:23',
+          clawkey: { state: 'valid', label: 'ck_live_••e102', note: 'Valid · rotates in 58d' },
+        },
+        {
+          name: 'Item Box Validator',
+          id: 'agt_5a7711',
+          initial: 'IB',
+          color: 'v6',
+          status: 'active',
+          statusLabel: 'Active',
+          edited: 'May 18',
+          editedAbs: 'May 18, 09:11',
+          clawkey: { state: 'valid', label: 'ck_live_••0044', note: 'Valid · rotates in 19d' },
+        },
+        {
+          name: 'Boost Pad Auditor',
+          id: 'agt_e0b22f',
+          initial: 'BP',
+          color: 'v1',
+          status: 'revoked',
+          statusLabel: 'Revoked',
+          edited: 'May 14',
+          editedAbs: 'May 14, 11:50',
+          clawkey: { state: 'revoked', label: 'ck_live_••XXXX', note: 'Key revoked' },
+          revoked: true,
+        },
+      ];
+
+      function ckIcon(state) {
+        const stroke =
+          'stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"';
+        switch (state) {
+          case 'valid':
+            return `<svg viewBox="0 0 24 24" ${stroke}><path d="M21 12a9 9 0 1 1-9-9"/><path d="m9 12 2 2 4-4"/><path d="M21 5v4h-4"/></svg>`;
+          case 'expiring':
+            return `<svg viewBox="0 0 24 24" ${stroke}><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`;
+          case 'rotating':
+            return `<svg viewBox="0 0 24 24" ${stroke}><path d="M21 12a9 9 0 0 1-15.5 6.3"/><path d="M3 12a9 9 0 0 1 15.5-6.3"/><path d="M3 5v4h4"/><path d="M21 19v-4h-4"/></svg>`;
+          case 'revoked':
+            return `<svg viewBox="0 0 24 24" ${stroke}><circle cx="12" cy="12" r="9"/><path d="m5.6 5.6 12.8 12.8"/></svg>`;
+          default:
+            return '';
+        }
+      }
+
+      function row(a) {
+        return `
+        <tr class="${a.revoked ? 'is-revoked' : ''}">
+          <td>
+            <div class="agent">
+              <div class="ico ${a.color}">${a.initial}</div>
+              <div class="agent-name">
+                <b>${a.name}</b>
+                <span class="agent-id">${a.id}</span>
+              </div>
+            </div>
+          </td>
+          <td>
+            <span class="status ${a.status}">
+              <span class="dot"></span>${a.statusLabel}
+            </span>
+          </td>
+          <td>
+            <div class="timecell">
+              ${a.edited}
+              <span class="ago">${a.editedAbs}</span>
+            </div>
+          </td>
+          <td>
+            <span class="clawkey ${a.clawkey.state}" title="${a.clawkey.note}">
+              <span class="icn">${ckIcon(a.clawkey.state)}</span>
+              <span>${a.clawkey.label}</span>
+            </span>
+          </td>
+          <td style="text-align:right">
+            <div class="row-actions">
+              <button class="row-btn danger" data-tip="Revoke agent" ${a.revoked ? 'disabled' : ''} aria-label="Revoke agent">
+                <svg viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="m5.6 5.6 12.8 12.8"/></svg>
+              </button>
+              <button class="row-btn rotate" data-tip="Rotate key (new key, new validation)" ${a.revoked ? 'disabled' : ''} aria-label="Rotate key">
+                <svg viewBox="0 0 24 24" stroke="currentColor"><path d="M21 12a9 9 0 0 1-15.5 6.3"/><path d="M3 12a9 9 0 0 1 15.5-6.3"/><path d="M3 5v4h4"/><path d="M21 19v-4h-4"/></svg>
+              </button>
+              <button class="row-btn edit" data-tip="More actions" aria-label="More actions">
+                <svg viewBox="0 0 24 24" stroke="currentColor"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+              </button>
+            </div>
+          </td>
+        </tr>`;
+      }
+
+      document.getElementById('agents-tbody').innerHTML = agents.map(row).join('');
+
+      // light click feedback
+      document.querySelectorAll('.row-btn:not([disabled])').forEach((b) => {
+        b.addEventListener('click', (e) => {
+          e.stopPropagation();
+          b.animate(
+            [{ transform: 'scale(1)' }, { transform: 'scale(0.92)' }, { transform: 'scale(1)' }],
+            { duration: 180, easing: 'ease-out' }
+          );
+        });
+      });
+    </script>
+  </body>
+</html>

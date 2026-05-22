@@ -1,4 +1,4 @@
-import { eq, like } from 'drizzle-orm';
+import { count, eq, like } from 'drizzle-orm';
 
 import { db } from '@api/db/client';
 import { companies, users } from '@api/db/schema';
@@ -36,6 +36,14 @@ async function findMembers(
     .where(eq(users.companyId, companyId));
 }
 
+async function countMembers(companyId: string): Promise<number> {
+  const rows = await db
+    .select({ count: count() })
+    .from(users)
+    .where(eq(users.companyId, companyId));
+  return rows[0]?.count ?? 0;
+}
+
 function setUserCompany(userId: string, companyId: string): void {
   db.update(users).set({ companyId }).where(eq(users.id, userId)).run();
 }
@@ -46,5 +54,6 @@ export const companiesRepository = {
   findByName,
   searchByName,
   findMembers,
+  countMembers,
   setUserCompany,
 };
