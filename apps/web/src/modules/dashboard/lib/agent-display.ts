@@ -1,6 +1,7 @@
 import type { Agent } from '@lakitu/api/agents';
 
 export interface AgentDisplayRow {
+  agentId: string;
   name: string;
   id: string;
   initials: string;
@@ -13,6 +14,7 @@ export interface AgentDisplayRow {
   clawkeyLabel: string;
   clawkeyNote: string;
   isRevoked: boolean;
+  permissionCount: number;
 }
 
 export function getAgentInitials(name: string): string {
@@ -95,6 +97,7 @@ export function toAgentDisplayRow(agent: Agent): AgentDisplayRow {
   const clawkey = mapClawkeyStatus(agent);
 
   return {
+    agentId: agent.id,
     name: agent.name,
     id: agent.id.length > 10 ? `agt_${agent.id.slice(-6)}` : agent.id,
     initials: getAgentInitials(agent.name),
@@ -107,5 +110,6 @@ export function toAgentDisplayRow(agent: Agent): AgentDisplayRow {
     clawkeyLabel: clawkey.label,
     clawkeyNote: clawkey.note,
     isRevoked: agent.status === 'revoked',
+    permissionCount: agent.permissions.length,
   };
 }

@@ -54,6 +54,16 @@ export function RevokeIcon({ className }: { className?: string }) {
   );
 }
 
+export function RestoreIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...STROKE_PROPS} strokeWidth={1.75}>
+      <path d="M3 12a9 9 0 1 0 9-9" />
+      <path d="M3 3v4h4" />
+      <path d="m9 12 2 2 4-4" />
+    </svg>
+  );
+}
+
 export function RotateIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} {...STROKE_PROPS} strokeWidth={1.75}>
