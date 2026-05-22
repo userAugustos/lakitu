@@ -59,3 +59,13 @@ export const SearchCompaniesResponseSchema = z.object({
 export const ListMembersResponseSchema = z.object({
   members: z.array(CompanyMemberSchema),
 });
+
+export interface MyCompanyResponse {
+  company: Company | null;
+  member_count: number;
+}
+
+export const MyCompanyResponseSchema = z.object({
+  company: CompanySchema.nullable(),
+  member_count: z.number(),
+});
