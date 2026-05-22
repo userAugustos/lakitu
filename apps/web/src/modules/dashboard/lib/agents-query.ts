@@ -7,5 +7,6 @@ import { apiCall, lakituAuthApi } from '@/api';
 export const agentsQueryOptions = queryOptions({
   queryKey: ['agents'],
   queryFn: () => apiCall<ListAgentsResponse>(() => lakituAuthApi.agents.get()),
+  staleTime: 10_000,
   refetchInterval: 10_000,
 });
