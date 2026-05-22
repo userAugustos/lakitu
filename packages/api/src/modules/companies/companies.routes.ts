@@ -8,6 +8,7 @@ import {
   CompanySchema,
   CreateCompanyBodySchema,
   ListMembersResponseSchema,
+  MyCompanyResponseSchema,
   SearchCompaniesQuerySchema,
   SearchCompaniesResponseSchema,
 } from './types';
@@ -17,6 +18,10 @@ export const companiesRoutes = new Elysia({
   prefix: '/companies',
 })
   .use(authMiddleware)
+  .get('/mine', async ({ auth }) => companiesService.getMyCompany(auth.sub), {
+    response: MyCompanyResponseSchema,
+    detail: { summary: 'Get my company', tags: ['companies'] },
+  })
   .post('/', async ({ auth, body }) => companiesService.create(auth.sub, body), {
     body: CreateCompanyBodySchema,
     response: CompanySchema,
