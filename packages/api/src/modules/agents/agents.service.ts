@@ -1,3 +1,4 @@
+import { auditLogService } from '@api/modules/audit-log/audit-log.service';
 import { authRepository } from '@api/modules/auth/auth.repository';
 import { permissionsRepository } from '@api/modules/permissions/permissions.repository';
 import type { AgentRow } from '@api/db/schema';
@@ -47,6 +48,23 @@ function toAgentDto(row: AgentRow, permissions: AgentPermissionSummary[]): Agent
   };
 }
 
+async function appendAgentAudit(
+  agent: AgentRow,
+  action: string,
+  reasons: string[],
+  context?: Record<string, unknown>
+): Promise<void> {
+  await auditLogService.append({
+    agent_id: agent.id,
+    owner_id: agent.ownerId,
+    company_id: agent.companyId,
+    action,
+    decision: 'allow',
+    reasons,
+    context,
+  });
+}
+
 async function initiateClawKeyRegistration(
   deviceId: string,
   publicKeyBase64: string,
@@ -93,6 +111,11 @@ async function create(userId: string, input: CreateAgentRequest): Promise<Create
     clawkeySessionId: clawkeyResult.sessionId,
     clawkeyStatus: 'pending',
     status: 'active',
+  });
+
+  await appendAgentAudit(row, 'agent.create', ['agent created'], {
+    name: row.name,
+    clawkey_status: row.clawkeyStatus,
   });
 
   return {
@@ -146,6 +169,13 @@ async function pollClawKeyStatus(
     : null;
 
   agentsRepository.updateClawKeyStatus(agentId, remote.status, registeredAt);
+  const updated = await agentsRepository.findById(agentId);
+  if (updated) {
+    await appendAgentAudit(updated, 'agent.clawkey_status', [`clawkey status ${remote.status}`], {
+      clawkey_status: remote.status,
+      clawkey_registered_at: registeredAt?.getTime() ?? null,
+    });
+  }
 
   return {
     clawkey_status: remote.status,
@@ -168,6 +198,7 @@ async function revoke(userId: string, agentId: string): Promise<Agent> {
 
   agentsRepository.updateStatus(agentId, 'revoked');
   const updated = await agentsRepository.findById(agentId);
+  await appendAgentAudit(updated!, 'agent.revoke', ['agent revoked']);
   return toAgentDto(updated!, await getPermissionsForAgent(agentId));
 }
 
@@ -186,6 +217,7 @@ async function restore(userId: string, agentId: string): Promise<Agent> {
 
   agentsRepository.updateStatus(agentId, 'active');
   const updated = await agentsRepository.findById(agentId);
+  await appendAgentAudit(updated!, 'agent.restore', ['agent restored']);
   return toAgentDto(updated!, await getPermissionsForAgent(agentId));
 }
 
@@ -218,6 +250,9 @@ async function rotateKey(userId: string, agentId: string): Promise<RotateKeyResp
   });
 
   const updated = await agentsRepository.findById(agentId);
+  await appendAgentAudit(updated!, 'agent.rotate_key', ['agent key rotated'], {
+    clawkey_status: updated!.clawkeyStatus,
+  });
   return {
     agent: toAgentDto(updated!, await getPermissionsForAgent(agentId)),
     ed25519_private_key: keyPair.privateKeyBase64,
@@ -236,6 +271,7 @@ async function bypassClawKey(userId: string, agentId: string): Promise<Agent> {
 
   agentsRepository.updateClawKeyStatus(agentId, 'completed', new Date());
   const updated = await agentsRepository.findById(agentId);
+  await appendAgentAudit(updated!, 'agent.clawkey_bypass', ['clawkey bypass completed']);
   return toAgentDto(updated!, await getPermissionsForAgent(agentId));
 }
 

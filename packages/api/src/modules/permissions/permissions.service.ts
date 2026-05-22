@@ -1,4 +1,5 @@
 import { agentsRepository } from '@api/modules/agents/agents.repository';
+import { auditLogService } from '@api/modules/audit-log/audit-log.service';
 import type { AgentPermissionRow, PermissionAuditLogRow } from '@api/db/schema';
 import { badRequest, forbidden, notFound } from '@core/errors';
 
@@ -62,6 +63,23 @@ async function ensureOwnership(userId: string, agentId: string) {
   return agent;
 }
 
+async function appendPermissionAuditLog(
+  agent: Awaited<ReturnType<typeof ensureOwnership>>,
+  action: string,
+  reasons: string[],
+  context?: Record<string, unknown>
+): Promise<void> {
+  await auditLogService.append({
+    agent_id: agent.id,
+    owner_id: agent.ownerId,
+    company_id: agent.companyId,
+    action,
+    decision: 'allow',
+    reasons,
+    context,
+  });
+}
+
 async function list(userId: string, agentId: string): Promise<ListPermissionsResponse> {
   await ensureOwnership(userId, agentId);
   const rows = await permissionsRepository.findByAgentId(agentId);
@@ -73,7 +91,7 @@ async function grant(
   agentId: string,
   input: GrantPermissionRequest
 ): Promise<GrantPermissionResponse> {
-  await ensureOwnership(userId, agentId);
+  const agent = await ensureOwnership(userId, agentId);
 
   const action = input.action.trim();
   if (!action) throw badRequest('permissions.action_empty', 'Action cannot be blank');
@@ -103,6 +121,11 @@ async function grant(
     newPolicyLimits: policyLimitsJson,
   });
 
+  await appendPermissionAuditLog(agent, 'permission.grant', ['permission granted'], {
+    permission_action: action,
+    policy_limits: input.policy_limits ?? null,
+  });
+
   return { permission: toPermissionDto(row) };
 }
 
@@ -112,7 +135,7 @@ async function updatePolicy(
   action: string,
   input: UpdatePolicyRequest
 ): Promise<UpdatePolicyResponse> {
-  await ensureOwnership(userId, agentId);
+  const agent = await ensureOwnership(userId, agentId);
 
   const existing = await permissionsRepository.findByAgentAndAction(agentId, action);
   if (!existing) {
@@ -133,6 +156,12 @@ async function updatePolicy(
     newPolicyLimits: newPolicyLimitsJson,
   });
 
+  await appendPermissionAuditLog(agent, 'permission.update_policy', ['permission policy updated'], {
+    permission_action: action,
+    old_policy_limits: parsePolicyLimits(oldPolicyLimitsJson),
+    new_policy_limits: input.policy_limits,
+  });
+
   const updated = await permissionsRepository.findByAgentAndAction(agentId, action);
   return { permission: toPermissionDto(updated!) };
 }
@@ -142,7 +171,7 @@ async function revoke(
   agentId: string,
   action: string
 ): Promise<RevokePermissionResponse> {
-  await ensureOwnership(userId, agentId);
+  const agent = await ensureOwnership(userId, agentId);
 
   const existing = await permissionsRepository.findByAgentAndAction(agentId, action);
   if (!existing) {
@@ -158,6 +187,11 @@ async function revoke(
     auditAction: 'revoke',
     oldPolicyLimits: existing.policyLimits,
     newPolicyLimits: null,
+  });
+
+  await appendPermissionAuditLog(agent, 'permission.revoke', ['permission revoked'], {
+    permission_action: action,
+    old_policy_limits: parsePolicyLimits(existing.policyLimits),
   });
 
   return { revoked: true };
