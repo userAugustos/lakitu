@@ -1,24 +1,20 @@
 import { assign, fromPromise, setup } from 'xstate';
 
-import type { Agent, RotateKeyResponse } from '@lakitu/api/agents';
+import type { Agent } from '@lakitu/api/agents';
 
 import { apiCall, lakituAuthApi } from '@/api';
 import { queryClient } from '@/main';
 
-import type { AgentActionContext, AgentActionEvent, AgentActionKind } from './agent-action.types';
+import type { AgentActionContext, AgentActionEvent } from './agent-action.types';
 
 const executeAction = fromPromise(
-  async ({ input }: { input: { kind: AgentActionKind; agentId: string } }) => {
+  async ({ input }: { input: { kind: 'revoke' | 'restore'; agentId: string } }) => {
     const { kind, agentId } = input;
     switch (kind) {
       case 'revoke':
         return apiCall<Agent>(() => lakituAuthApi.agents[agentId]!.revoke.patch());
       case 'restore':
         return apiCall<Agent>(() => lakituAuthApi.agents[agentId]!.restore.patch());
-      case 'rotate-key':
-        return apiCall<RotateKeyResponse>(() =>
-          lakituAuthApi.agents[agentId]!['rotate-key'].post()
-        );
     }
   }
 );
@@ -34,7 +30,6 @@ export const agentActionMachine = setup({
   initial: 'idle',
   context: {
     input: null,
-    result: null,
     error: null,
   },
 
@@ -45,7 +40,6 @@ export const agentActionMachine = setup({
           target: 'confirming',
           actions: assign(({ event }) => ({
             input: { kind: event.kind, agentId: event.agentId, agentName: event.agentName },
-            result: null,
             error: null,
           })),
         },
@@ -66,23 +60,13 @@ export const agentActionMachine = setup({
       invoke: {
         src: 'executeAction',
         input: ({ context }) => ({
-          kind: context.input!.kind,
+          kind: context.input!.kind as 'revoke' | 'restore',
           agentId: context.input!.agentId,
         }),
-        onDone: [
-          {
-            guard: ({ context }) => context.input!.kind === 'rotate-key',
-            target: 'result',
-            actions: [
-              assign(({ event }) => ({ result: event.output as RotateKeyResponse })),
-              () => void queryClient.invalidateQueries({ queryKey: ['agents'] }),
-            ],
-          },
-          {
-            target: 'success',
-            actions: () => void queryClient.invalidateQueries({ queryKey: ['agents'] }),
-          },
-        ],
+        onDone: {
+          target: 'success',
+          actions: () => void queryClient.invalidateQueries({ queryKey: ['agents'] }),
+        },
         onError: {
           target: 'error',
           actions: assign(({ event }) => ({
@@ -94,15 +78,6 @@ export const agentActionMachine = setup({
 
     success: {
       after: { 0: 'idle' },
-    },
-
-    result: {
-      on: {
-        DISMISS: {
-          target: 'idle',
-          actions: assign({ input: null, result: null }),
-        },
-      },
     },
 
     error: {
