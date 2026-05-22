@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { Loader2 } from 'lucide-react';
 import { useMachine } from '@xstate/react';
+import { Loader2 } from 'lucide-react';
 
 import { authSetupMachine } from '@/modules/auth/auth-setup.machine';
 import { AuthLayout } from '@/modules/auth/components/auth-layout';

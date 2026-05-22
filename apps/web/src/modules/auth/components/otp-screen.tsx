@@ -7,12 +7,11 @@ import { toast } from 'sonner';
 import { Button } from '@repo/ui/shadcn/button';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@repo/ui/shadcn/input-otp';
 import { Label } from '@repo/ui/shadcn/label';
-
 import { apiCall, lakituPublicApi } from '@/api';
 import { webEnv } from '@/modules/core/lib/env';
 
-import { FieldError } from './field-error';
 import { otpSchema } from '../auth-setup.schemas';
+import { FieldError } from './field-error';
 import type { OtpFormValues } from '../auth-setup.schemas';
 
 interface OtpScreenProps {

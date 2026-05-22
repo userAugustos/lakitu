@@ -5,14 +5,14 @@ import { useForm } from 'react-hook-form';
 import type { ChangeEvent } from 'react';
 
 import type { Company, SearchCompaniesResponse } from '@lakitu/api/companies';
+
 import { Button } from '@repo/ui/shadcn/button';
 import { Input } from '@repo/ui/shadcn/input';
 import { Label } from '@repo/ui/shadcn/label';
-
 import { apiCall, lakituAuthApi } from '@/api';
 
-import { FieldError } from './field-error';
 import { createCompanySchema } from '../auth-setup.schemas';
+import { FieldError } from './field-error';
 import type { CreateCompanyFormValues } from '../auth-setup.schemas';
 
 interface CompanyScreenProps {

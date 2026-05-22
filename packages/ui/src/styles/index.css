@@ -29,6 +29,26 @@
     --input: oklch(0.922 0 0);
     --ring: oklch(0.708 0 0);
     --radius: 0.625rem;
+
+    --dash-sky-1: #bee3ff;
+    --dash-sky-2: #7fc2ff;
+    --dash-sky-3: #4fa3f2;
+    --dash-sky-4: #1e73cc;
+    --dash-ink: #0b1b33;
+    --dash-ink-2: #324a6e;
+    --dash-muted: #6e809b;
+    --dash-line: #e5eaf2;
+    --dash-line-2: #d7deea;
+    --dash-line-3: #eceff5;
+    --dash-paper: #f7f9fc;
+    --dash-green: #1f8a5b;
+    --dash-green-bg: #e6f4ec;
+    --dash-amber: #b7791f;
+    --dash-amber-bg: #fff4db;
+    --dash-red: #c0362c;
+    --dash-red-bg: #fce7e4;
+    --dash-gray: #6e809b;
+    --dash-gray-bg: #eef2f8;
   }
   .dark {
     --background: oklch(0.145 0 0);
@@ -82,6 +102,26 @@
   --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, monospace;
   --font-display: 'Bricolage Grotesque', 'Geist', sans-serif;
+
+  --color-dash-sky-1: var(--dash-sky-1);
+  --color-dash-sky-2: var(--dash-sky-2);
+  --color-dash-sky-3: var(--dash-sky-3);
+  --color-dash-sky-4: var(--dash-sky-4);
+  --color-dash-ink: var(--dash-ink);
+  --color-dash-ink-2: var(--dash-ink-2);
+  --color-dash-muted: var(--dash-muted);
+  --color-dash-line: var(--dash-line);
+  --color-dash-line-2: var(--dash-line-2);
+  --color-dash-line-3: var(--dash-line-3);
+  --color-dash-paper: var(--dash-paper);
+  --color-dash-green: var(--dash-green);
+  --color-dash-green-bg: var(--dash-green-bg);
+  --color-dash-amber: var(--dash-amber);
+  --color-dash-amber-bg: var(--dash-amber-bg);
+  --color-dash-red: var(--dash-red);
+  --color-dash-red-bg: var(--dash-red-bg);
+  --color-dash-gray: var(--dash-gray);
+  --color-dash-gray-bg: var(--dash-gray-bg);
 }
 
 @layer base {
