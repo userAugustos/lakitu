@@ -1,3 +1,4 @@
+import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
 
 import { Button } from '@repo/ui/shadcn/button';
@@ -6,9 +7,19 @@ interface ClawkeyStepProps {
   registrationUrl: string;
   privateKey: string;
   onConfirm: () => void;
+  onBypass: () => void;
+  isBypassing: boolean;
+  error: string | null;
 }
 
-export function ClawkeyStep({ registrationUrl, privateKey, onConfirm }: ClawkeyStepProps) {
+export function ClawkeyStep({
+  registrationUrl,
+  privateKey,
+  onConfirm,
+  onBypass,
+  isBypassing,
+  error,
+}: ClawkeyStepProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -17,7 +28,7 @@ export function ClawkeyStep({ registrationUrl, privateKey, onConfirm }: ClawkeyS
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      /* clipboard unavailable — degrade silently */
+      /* clipboard unavailable */
     }
   };
 
@@ -69,9 +80,33 @@ export function ClawkeyStep({ registrationUrl, privateKey, onConfirm }: ClawkeyS
         </p>
       </div>
 
-      <Button type="button" onClick={onConfirm} data-testid="clawkey-continue">
-        Continue
-      </Button>
+      {error && <p className="text-dash-red text-[13px]">{error}</p>}
+
+      <div className="flex flex-col gap-2">
+        <Button type="button" onClick={onConfirm} data-testid="clawkey-continue">
+          Continue
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onBypass}
+          disabled={isBypassing}
+          data-testid="clawkey-bypass"
+        >
+          {isBypassing ? (
+            <>
+              <Loader2 className="animate-spin" />
+              <span>Bypassing...</span>
+            </>
+          ) : (
+            'Bypass ClawKey'
+          )}
+        </Button>
+      </div>
+
+      <p className="text-dash-muted text-center text-[11px]">
+        At this moment, ClawKey may be experiencing an API error.
+      </p>
     </div>
   );
 }

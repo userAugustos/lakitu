@@ -1,6 +1,6 @@
 import { assign, fromPromise, setup } from 'xstate';
 
-import type { CreateAgentResponse } from '@lakitu/api/agents';
+import type { Agent, CreateAgentResponse } from '@lakitu/api/agents';
 import type { AgentPermission, GrantPermissionResponse } from '@lakitu/api/permissions';
 
 import { apiCall, lakituAuthApi } from '@/api';
@@ -36,6 +36,10 @@ export const createAgentMachine = setup({
         );
       }
     ),
+
+    bypassClawKeyActor: fromPromise(async ({ input }: { input: { agentId: string } }) => {
+      return apiCall<Agent>(() => lakituAuthApi.agents[input.agentId]!.clawkey.bypass.patch());
+    }),
   },
   actions: {
     navigateToDashboard: () => {
@@ -138,8 +142,34 @@ export const createAgentMachine = setup({
 
     clawkey: {
       entry: assign({ screen: 'clawkey' as const, error: null }),
-      on: {
-        CONFIRM: 'done',
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            CONFIRM: '#createAgent.done',
+            BYPASS_CLAWKEY: 'bypassing',
+          },
+        },
+        bypassing: {
+          invoke: {
+            src: 'bypassClawKeyActor',
+            input: ({ context }) => ({ agentId: context.agent!.id }),
+            onDone: {
+              target: '#createAgent.done',
+              actions: assign(({ event }) => ({
+                agent: event.output as Agent,
+              })),
+            },
+            onError: {
+              target: 'idle',
+              actions: assign(({ event }) => ({
+                error: {
+                  message: (event.error as Error).message ?? 'Failed to bypass ClawKey',
+                },
+              })),
+            },
+          },
+        },
       },
     },
 

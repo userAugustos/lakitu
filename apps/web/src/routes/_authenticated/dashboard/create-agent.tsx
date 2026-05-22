@@ -29,6 +29,7 @@ function CreateAgentPage() {
     state.context;
   const isSubmitting = state.matches('creating');
   const isGranting = state.matches({ permissions: 'granting' });
+  const isBypassing = state.matches({ clawkey: 'bypassing' });
   const currentStep = SCREEN_TO_STEP[screen] ?? 1;
 
   const content = (() => {
@@ -47,7 +48,9 @@ function CreateAgentPage() {
           <PermissionsStep
             agentName={agent?.name ?? name}
             grantedPermissions={grantedPermissions}
-            onAddPermission={(action) => send({ type: 'ADD_PERMISSION', action })}
+            onAddPermission={(action, policyLimits) =>
+              send({ type: 'ADD_PERMISSION', action, policyLimits })
+            }
             onContinue={() => send({ type: 'CONTINUE' })}
             isGranting={isGranting}
             error={error?.message ?? null}
@@ -59,6 +62,9 @@ function CreateAgentPage() {
             registrationUrl={registrationUrl!}
             privateKey={privateKey!}
             onConfirm={() => send({ type: 'CONFIRM' })}
+            onBypass={() => send({ type: 'BYPASS_CLAWKEY' })}
+            isBypassing={isBypassing}
+            error={error?.message ?? null}
           />
         );
       case 'done':

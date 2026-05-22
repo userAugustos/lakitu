@@ -17,4 +17,5 @@ export type CreateAgentEvent =
   | { type: 'SUBMIT_NAME'; name: string }
   | { type: 'ADD_PERMISSION'; action: string; policyLimits?: Record<string, unknown> | null }
   | { type: 'CONTINUE' }
-  | { type: 'CONFIRM' };
+  | { type: 'CONFIRM' }
+  | { type: 'BYPASS_CLAWKEY' };

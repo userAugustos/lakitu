@@ -5,7 +5,12 @@ export const agentNameSchema = z.object({
 });
 export type AgentNameFormValues = z.infer<typeof agentNameSchema>;
 
-export const permissionActionSchema = z.object({
-  action: z.string().min(1, 'Permission action is required').max(200, 'Action name is too long'),
+export const permissionFormSchema = z.object({
+  action: z
+    .string()
+    .min(1, 'Action is required')
+    .max(200, 'Action is too long')
+    .regex(/^[a-z0-9_:]+$/, 'Only lowercase letters, numbers, underscores, and colons'),
+  policyLimits: z.string().optional(),
 });
-export type PermissionActionFormValues = z.infer<typeof permissionActionSchema>;
+export type PermissionFormValues = z.infer<typeof permissionFormSchema>;
