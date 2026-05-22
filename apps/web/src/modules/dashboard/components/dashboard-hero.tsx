@@ -1,4 +1,7 @@
-import { Link } from '@tanstack/react-router';
+import { Link, useRouterState } from '@tanstack/react-router';
+import { ArrowLeft } from 'lucide-react';
+
+import { Tooltip, TooltipContent, TooltipTrigger } from '@repo/ui/shadcn/tooltip';
 
 import { authSelectors, useAuthStore } from '@/modules/auth/auth.store';
 
@@ -19,19 +22,38 @@ interface DashboardHeroProps {
 export function DashboardHero({ agentCount }: DashboardHeroProps) {
   const user = useAuthStore(authSelectors.user);
   const firstName = user?.name?.split(/\s+/)[0] ?? 'there';
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isOnDashboardIndex = pathname === '/dashboard' || pathname === '/dashboard/';
 
   return (
     <section className="mb-6 flex items-end justify-between gap-6">
-      <div>
-        <div className="text-dash-muted font-mono text-[11px] font-semibold tracking-[0.14em] uppercase">
-          {formatDayDate()}
-        </div>
-        <h1 className="font-display text-dash-ink mt-1.5 text-[30px] leading-tight font-bold tracking-tight">
-          Hey {firstName}
-        </h1>
+      <div className="flex items-start gap-3">
+        {!isOnDashboardIndex && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link
+                to="/dashboard"
+                data-testid="back-to-dashboard"
+                className="text-dash-muted hover:text-dash-ink mt-6 inline-flex h-[30px] w-[30px] shrink-0 cursor-pointer items-center justify-center rounded-[8px] border border-transparent transition-colors hover:border-[#d1d5db] hover:bg-[#f3f4f6]"
+                aria-label="Back to dashboard"
+              >
+                <ArrowLeft className="h-[17px] w-[17px]" />
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent>Back to dashboard</TooltipContent>
+          </Tooltip>
+        )}
+        <div>
+          <div className="text-dash-muted font-mono text-[11px] font-semibold tracking-[0.14em] uppercase">
+            {formatDayDate()}
+          </div>
+          <h1 className="font-display text-dash-ink mt-1.5 text-[30px] leading-tight font-bold tracking-tight">
+            Hey {firstName}
+          </h1>
         <p className="text-dash-muted mt-1.5 text-[14px]">
           You have <b className="text-dash-ink-2 font-semibold">{agentCount} agents</b> on the grid.
         </p>
+        </div>
       </div>
       <Link
         to="/dashboard/create-agent"
