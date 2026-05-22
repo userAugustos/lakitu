@@ -9,6 +9,7 @@ import { NamingStep } from '@/modules/dashboard/components/naming-step';
 import { PermissionsStep } from '@/modules/dashboard/components/permissions-step';
 import { StepIndicator } from '@/modules/dashboard/components/step-indicator';
 import { createAgentMachine } from '@/modules/dashboard/create-agent.machine';
+import { slideVariants } from '@/modules/dashboard/lib/motion.config';
 
 const STEPS = ['Name', 'Permissions', 'ClawKey', 'Done'];
 
@@ -86,10 +87,10 @@ function CreateAgentPage() {
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={screen}
-            initial={{ opacity: 0, x: 24 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -24 }}
-            transition={{ duration: 0.22, ease: 'easeOut' }}
+            variants={slideVariants}
+            initial="hiddenRight"
+            animate="visible"
+            exit="exitLeft"
           >
             {content}
           </motion.div>

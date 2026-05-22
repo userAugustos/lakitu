@@ -2,6 +2,8 @@ import { Outlet, useRouterState } from '@tanstack/react-router';
 import { AnimatePresence, motion } from 'motion/react';
 import { useRef } from 'react';
 
+import { slideVariants } from '../lib/motion.config';
+
 function getDepth(path: string): number {
   return path.replace(/\/$/, '').split('/').length;
 }
@@ -22,10 +24,10 @@ export function AnimatedOutlet() {
     <AnimatePresence mode="wait" initial={false}>
       <motion.div
         key={pathname}
-        initial={{ opacity: 0, x: goingDeeper ? 24 : -24 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: goingDeeper ? -24 : 24 }}
-        transition={{ duration: 0.22, ease: 'easeOut' }}
+        variants={slideVariants}
+        initial={goingDeeper ? 'hiddenRight' : 'hiddenLeft'}
+        animate="visible"
+        exit={goingDeeper ? 'exitLeft' : 'exitRight'}
       >
         <Outlet />
       </motion.div>
