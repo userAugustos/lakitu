@@ -16,6 +16,7 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard/index'
 import { Route as AuthenticatedDashboardRotateKeyResultRouteImport } from './routes/_authenticated/dashboard/rotate-key-result'
 import { Route as AuthenticatedDashboardCreateAgentRouteImport } from './routes/_authenticated/dashboard/create-agent'
+import { Route as AuthenticatedDashboardApprovalsRouteImport } from './routes/_authenticated/dashboard/approvals'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -54,11 +55,18 @@ const AuthenticatedDashboardCreateAgentRoute =
     path: '/create-agent',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AuthenticatedDashboardApprovalsRoute =
+  AuthenticatedDashboardApprovalsRouteImport.update({
+    id: '/approvals',
+    path: '/approvals',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
+  '/dashboard/approvals': typeof AuthenticatedDashboardApprovalsRoute
   '/dashboard/create-agent': typeof AuthenticatedDashboardCreateAgentRoute
   '/dashboard/rotate-key-result': typeof AuthenticatedDashboardRotateKeyResultRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
@@ -66,6 +74,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/dashboard/approvals': typeof AuthenticatedDashboardApprovalsRoute
   '/dashboard/create-agent': typeof AuthenticatedDashboardCreateAgentRoute
   '/dashboard/rotate-key-result': typeof AuthenticatedDashboardRotateKeyResultRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
@@ -76,6 +85,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
+  '/_authenticated/dashboard/approvals': typeof AuthenticatedDashboardApprovalsRoute
   '/_authenticated/dashboard/create-agent': typeof AuthenticatedDashboardCreateAgentRoute
   '/_authenticated/dashboard/rotate-key-result': typeof AuthenticatedDashboardRotateKeyResultRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
@@ -86,6 +96,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/dashboard'
+    | '/dashboard/approvals'
     | '/dashboard/create-agent'
     | '/dashboard/rotate-key-result'
     | '/dashboard/'
@@ -93,6 +104,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/dashboard/approvals'
     | '/dashboard/create-agent'
     | '/dashboard/rotate-key-result'
     | '/dashboard'
@@ -102,6 +114,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/login'
     | '/_authenticated/dashboard'
+    | '/_authenticated/dashboard/approvals'
     | '/_authenticated/dashboard/create-agent'
     | '/_authenticated/dashboard/rotate-key-result'
     | '/_authenticated/dashboard/'
@@ -164,10 +177,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardCreateAgentRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/dashboard/approvals': {
+      id: '/_authenticated/dashboard/approvals'
+      path: '/approvals'
+      fullPath: '/dashboard/approvals'
+      preLoaderRoute: typeof AuthenticatedDashboardApprovalsRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
   }
 }
 
 interface AuthenticatedDashboardRouteChildren {
+  AuthenticatedDashboardApprovalsRoute: typeof AuthenticatedDashboardApprovalsRoute
   AuthenticatedDashboardCreateAgentRoute: typeof AuthenticatedDashboardCreateAgentRoute
   AuthenticatedDashboardRotateKeyResultRoute: typeof AuthenticatedDashboardRotateKeyResultRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
@@ -175,6 +196,7 @@ interface AuthenticatedDashboardRouteChildren {
 
 const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
   {
+    AuthenticatedDashboardApprovalsRoute: AuthenticatedDashboardApprovalsRoute,
     AuthenticatedDashboardCreateAgentRoute:
       AuthenticatedDashboardCreateAgentRoute,
     AuthenticatedDashboardRotateKeyResultRoute:
