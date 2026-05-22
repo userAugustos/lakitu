@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useMachine } from '@xstate/react';
 import { Loader2 } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 
 import { ClawkeyStep } from '@/modules/dashboard/components/clawkey-step';
 import { DoneStep } from '@/modules/dashboard/components/done-step';
@@ -81,7 +82,19 @@ function CreateAgentPage() {
   return (
     <div className="mx-auto max-w-lg py-8">
       <StepIndicator currentStep={currentStep} steps={STEPS} />
-      <div className="border-dash-line rounded-2xl border bg-white p-8">{content}</div>
+      <div className="border-dash-line overflow-hidden rounded-2xl border bg-white p-8">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={screen}
+            initial={{ opacity: 0, x: 24 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -24 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+          >
+            {content}
+          </motion.div>
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
