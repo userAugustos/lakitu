@@ -28,6 +28,7 @@
     "@tanstack/react-query": "^5.81.2",
     "@tanstack/react-query-devtools": "^5.81.2",
     "@tanstack/react-router": "^1.121.34",
+    "@tanstack/react-table": "^8.21.3",
     "@xstate/react": "^6.1.0",
     "elysia": "1.4.22",
     "motion": "^12.40.0",

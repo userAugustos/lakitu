@@ -27,13 +27,7 @@ export function DashboardHero({ agentCount }: DashboardHeroProps) {
           {formatDayDate()}
         </div>
         <h1 className="font-display text-dash-ink mt-1.5 text-[30px] leading-tight font-bold tracking-tight">
-          Hey {firstName}{' '}
-          <span
-            className="inline-block origin-[70%_70%]"
-            style={{ animation: 'wave 2.6s ease-in-out 1' }}
-          >
-            👋
-          </span>
+          Hey {firstName}
         </h1>
         <p className="text-dash-muted mt-1.5 text-[14px]">
           You have <b className="text-dash-ink-2 font-semibold">{agentCount} agents</b> on the grid.

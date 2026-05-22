@@ -1,3 +1,5 @@
+import { Badge } from '@repo/ui/shadcn/badge';
+
 import {
   ClawkeyExpiringIcon,
   ClawkeyRevokedIcon,
@@ -34,25 +36,25 @@ function ClawkeyIcon({ state, className }: { state: string; className?: string }
   }
 }
 
-interface ClawkeyPillProps {
+interface ClawkeyBadgeProps {
   state: string;
   label: string;
   note?: string;
 }
 
-export function ClawkeyPill({ state, label, note }: ClawkeyPillProps) {
-  const pillStyle = STATE_STYLES[state] ?? STATE_STYLES.valid;
+export function ClawkeyBadge({ state, label, note }: ClawkeyBadgeProps) {
+  const badgeStyle = STATE_STYLES[state] ?? STATE_STYLES.valid;
   const iconStyle = STATE_ICON_STYLES[state] ?? STATE_ICON_STYLES.valid;
 
   return (
-    <span
-      className={`inline-flex items-center gap-2 rounded-lg border px-2 py-1 font-mono text-[12px] ${pillStyle}`}
+    <Badge
+      className={`gap-2 rounded-lg px-2 py-1 font-mono text-[12px] ${badgeStyle}`}
       title={note}
     >
       <span className={`inline-flex h-3.5 w-3.5 items-center justify-center ${iconStyle}`}>
         <ClawkeyIcon state={state} className="h-3.5 w-3.5" />
       </span>
       <span>{label}</span>
-    </span>
+    </Badge>
   );
 }
