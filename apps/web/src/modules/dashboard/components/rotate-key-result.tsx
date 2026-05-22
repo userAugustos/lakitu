@@ -3,6 +3,14 @@ import { useState } from 'react';
 import type { RotateKeyResponse } from '@lakitu/api/agents';
 
 import { Button } from '@repo/ui/shadcn/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@repo/ui/shadcn/dialog';
 
 interface RotateKeyResultProps {
   result: RotateKeyResponse;
@@ -24,17 +32,23 @@ export function RotateKeyResult({ result, onDismiss }: RotateKeyResultProps) {
   };
 
   return (
-    <div
-      data-testid="rotate-key-result-overlay"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-    >
-      <div className="border-dash-line w-full max-w-[480px] rounded-xl border bg-white p-6 shadow-xl">
-        <h2 className="text-dash-ink text-[16px] font-semibold">Key Rotated Successfully</h2>
-        <p className="text-dash-amber mt-1 text-[13px] font-medium">
-          Save these credentials — they will not be shown again.
-        </p>
+    <Dialog open onOpenChange={() => {}}>
+      <DialogContent
+        data-testid="rotate-key-result-overlay"
+        className="max-w-[540px] overflow-hidden"
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+        onCloseAutoFocus={(e) => e.preventDefault()}
+        hideClose
+      >
+        <DialogHeader>
+          <DialogTitle>Key Rotated Successfully</DialogTitle>
+          <DialogDescription className="text-dash-amber font-medium">
+            Save these credentials — they will not be shown again.
+          </DialogDescription>
+        </DialogHeader>
 
-        <div className="mt-5 flex flex-col gap-4">
+        <div className="flex min-w-0 flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <span className="text-dash-muted text-[11.5px] font-semibold tracking-[0.04em] uppercase">
               Registration URL
@@ -81,12 +95,17 @@ export function RotateKeyResult({ result, onDismiss }: RotateKeyResultProps) {
           </div>
         </div>
 
-        <div className="mt-6">
-          <Button type="button" onClick={onDismiss} data-testid="rotate-key-dismiss">
+        <DialogFooter>
+          <Button
+            type="button"
+            onClick={onDismiss}
+            data-testid="rotate-key-dismiss"
+            className="w-full"
+          >
             Done
           </Button>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
