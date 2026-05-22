@@ -2,6 +2,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 
 import { AgentCell } from './agent-cell';
 import { ClawkeyBadge } from './clawkey-pill';
+import { PermissionsBadge } from './permissions-badge';
 import { RowActions } from './row-actions';
 import { StatusBadge } from './status-pill';
 import { TimeCell } from './time-cell';
@@ -11,7 +12,7 @@ export const agentsColumns: ColumnDef<AgentDisplayRow>[] = [
   {
     accessorKey: 'name',
     header: 'Agent',
-    size: 320,
+    size: 280,
     cell: ({ row }) => (
       <AgentCell
         name={row.original.name}
@@ -24,15 +25,21 @@ export const agentsColumns: ColumnDef<AgentDisplayRow>[] = [
   {
     accessorKey: 'status',
     header: 'Status',
-    size: 140,
+    size: 120,
     cell: ({ row }) => (
       <StatusBadge status={row.original.status} label={row.original.statusLabel} />
     ),
   },
   {
+    accessorKey: 'permissionCount',
+    header: 'Permissions',
+    size: 120,
+    cell: ({ row }) => <PermissionsBadge count={row.original.permissionCount} />,
+  },
+  {
     accessorKey: 'editedRelative',
     header: 'Last edited',
-    size: 180,
+    size: 160,
     cell: ({ row }) => (
       <TimeCell relative={row.original.editedRelative} absolute={row.original.editedAbsolute} />
     ),
@@ -40,7 +47,7 @@ export const agentsColumns: ColumnDef<AgentDisplayRow>[] = [
   {
     accessorKey: 'clawkeyState',
     header: 'Clawkey',
-    size: 220,
+    size: 200,
     cell: ({ row }) => (
       <ClawkeyBadge
         state={row.original.clawkeyState}
@@ -52,7 +59,13 @@ export const agentsColumns: ColumnDef<AgentDisplayRow>[] = [
   {
     id: 'actions',
     header: 'Actions',
-    size: 140,
-    cell: ({ row }) => <RowActions isRevoked={row.original.isRevoked} />,
+    size: 120,
+    cell: ({ row }) => (
+      <RowActions
+        agentId={row.original.agentId}
+        agentName={row.original.name}
+        isRevoked={row.original.isRevoked}
+      />
+    ),
   },
 ];
