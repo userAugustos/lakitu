@@ -1,5 +1,6 @@
 import { buildEmail } from '@api/emails';
 import { agentsRepository } from '@api/modules/agents/agents.repository';
+import { auditLogService } from '@api/modules/audit-log/audit-log.service';
 import { authRepository } from '@api/modules/auth/auth.repository';
 import type { PendingActionRow, PendingActionStatus } from '@api/db/schema';
 import { config } from '@core/env';
@@ -31,7 +32,7 @@ function toPendingActionDto(row: PendingActionRow, agentName: string): PendingAc
     agent_name: agentName,
     owner_id: row.ownerId,
     company_id: row.companyId,
-    action: row.action,
+    tool_key: row.toolKey,
     context: parseContext(row.context),
     policy_hit: row.policyHit,
     audit_id: row.auditId,
@@ -53,7 +54,7 @@ async function create(input: CreatePendingActionInput): Promise<PendingAction> {
     agentId: agent.id,
     ownerId: agent.ownerId,
     companyId: agent.companyId,
-    action: input.action,
+    toolKey: input.tool_key,
     context: JSON.stringify(input.context),
     policyHit: input.policy_hit,
     auditId: input.audit_id ?? null,
@@ -61,7 +62,7 @@ async function create(input: CreatePendingActionInput): Promise<PendingAction> {
     expiresAt: new Date(input.expires_at),
   });
 
-  await sendNotificationEmail(agent.ownerId, agent.name, input.action, input.policy_hit, row.id);
+  await sendNotificationEmail(agent.ownerId, agent.name, input.tool_key, input.policy_hit, row.id);
 
   return toPendingActionDto(row, agent.name);
 }
@@ -158,6 +159,22 @@ async function approve(
 
   const updated = await pendingActionsRepository.findById(pendingActionId);
   const agent = await agentsRepository.findById(row.agentId);
+
+  auditLogService.append({
+    audit_id: row.auditId ?? undefined,
+    agent_id: row.agentId,
+    owner_id: row.ownerId,
+    company_id: row.companyId,
+    action: 'pending_action.approved',
+    decision: 'approved',
+    reasons: ['owner approved'],
+    context: {
+      pending_action_id: row.id,
+      tool_key: row.toolKey,
+      resolution_note: note ?? null,
+    },
+  });
+
   return toPendingActionDto(updated!, agent?.name ?? 'Unknown Agent');
 }
 
@@ -183,6 +200,22 @@ async function deny(
 
   const updated = await pendingActionsRepository.findById(pendingActionId);
   const agent = await agentsRepository.findById(row.agentId);
+
+  auditLogService.append({
+    audit_id: row.auditId ?? undefined,
+    agent_id: row.agentId,
+    owner_id: row.ownerId,
+    company_id: row.companyId,
+    action: 'pending_action.denied',
+    decision: 'denied',
+    reasons: ['owner denied'],
+    context: {
+      pending_action_id: row.id,
+      tool_key: row.toolKey,
+      resolution_note: note ?? null,
+    },
+  });
+
   return toPendingActionDto(updated!, agent?.name ?? 'Unknown Agent');
 }
 
@@ -216,7 +249,7 @@ async function simulate(
 
   return create({
     agent_id: body.agent_id,
-    action: body.action,
+    tool_key: body.tool_key,
     context: body.context ?? {},
     policy_hit: 'manual_simulation',
     expires_at: Date.now() + 24 * 60 * 60 * 1000,

@@ -77,7 +77,7 @@ async function seedPendingAction(
     agentId,
     ownerId,
     companyId,
-    action: 'create_payment',
+    toolKey: 'stripe.charges.create',
     context: JSON.stringify({ amount: 500, currency: 'USD' }),
     policyHit: 'max_amount_exceeded',
     status: overrides.status ?? 'pending',
@@ -154,7 +154,7 @@ describe('pending-actions', () => {
       expect(res.data!.agent_id).toBe(agentId);
       expect(res.data!.owner_id).toBe(userId);
       expect(res.data!.company_id).toBe(companyId);
-      expect(res.data!.action).toBe('create_payment');
+      expect(res.data!.tool_key).toBe('stripe.charges.create');
       expect(res.data!.context).toEqual({ amount: 500, currency: 'USD' });
       expect(res.data!.policy_hit).toBe('max_amount_exceeded');
       expect(res.data!.status).toBe('pending');
@@ -332,6 +332,62 @@ describe('pending-actions', () => {
         authHeaders(otherToken)
       );
       expect((res.error as { status: number }).status).toBe(403);
+    });
+  });
+
+  describe('audit events', () => {
+    test('approve emits pending_action.approved audit event', async () => {
+      const { token, userId } = await createCompanyAndGetToken('pa-audit-approve');
+      const { agentId, companyId } = await createAgentForUser(token, 'Audit Approve Agent');
+      const seeded = await seedPendingAction(agentId, userId, companyId);
+
+      await testClient.post(`/pending-actions/${seeded.id}/approve`, {}, authHeaders(token));
+
+      const { auditLogService } = await import('@api/modules/audit-log/audit-log.service');
+      const logs = await auditLogService.search({ agent_id: agentId });
+      const actions = logs.map((e) => e.action);
+      expect(actions).toContain('pending_action.approved');
+    });
+
+    test('deny emits pending_action.denied audit event', async () => {
+      const { token, userId } = await createCompanyAndGetToken('pa-audit-deny');
+      const { agentId, companyId } = await createAgentForUser(token, 'Audit Deny Agent');
+      const seeded = await seedPendingAction(agentId, userId, companyId);
+
+      await testClient.post(`/pending-actions/${seeded.id}/deny`, {}, authHeaders(token));
+
+      const { auditLogService } = await import('@api/modules/audit-log/audit-log.service');
+      const logs = await auditLogService.search({ agent_id: agentId });
+      const actions = logs.map((e) => e.action);
+      expect(actions).toContain('pending_action.denied');
+    });
+  });
+
+  describe('simulate', () => {
+    test('simulate creates a pending action using tool_key field', async () => {
+      const { token } = await createCompanyAndGetToken('pa-simulate');
+      const { agentId } = await createAgentForUser(token, 'Simulate Agent');
+
+      const res = await testClient.post<PendingAction>(
+        '/pending-actions/simulate',
+        { agent_id: agentId, tool_key: 'stripe.charges.create', context: { amount: 100 } },
+        authHeaders(token)
+      );
+      expect(res.error).toBeNull();
+      expect(res.data!.tool_key).toBe('stripe.charges.create');
+      expect(res.data!.status).toBe('pending');
+    });
+
+    test('simulate rejects body without tool_key (uses action) with validation error', async () => {
+      const { token } = await createCompanyAndGetToken('pa-simulate-bad');
+      const { agentId } = await createAgentForUser(token, 'Simulate Bad Agent');
+
+      const res = await testClient.post(
+        '/pending-actions/simulate',
+        { agent_id: agentId, action: 'stripe.charges.create' },
+        authHeaders(token)
+      );
+      expect((res.error as { status: number }).status).toBe(422);
     });
   });
 

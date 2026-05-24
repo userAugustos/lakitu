@@ -2,11 +2,8 @@ export type {
   AgentPermission,
   GrantPermissionRequest,
   GrantPermissionResponse,
-  UpdatePolicyRequest,
-  UpdatePolicyResponse,
+  UpdatePermissionRequest,
+  UpdatePermissionResponse,
   RevokePermissionResponse,
   ListPermissionsResponse,
-  PermissionAuditEntry,
-  ListPermissionAuditResponse,
-  PermissionAuditActionValue,
 } from '../modules/permissions/types';

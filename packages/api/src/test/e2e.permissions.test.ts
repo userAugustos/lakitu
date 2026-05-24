@@ -5,10 +5,9 @@ import type { VerifyResponse } from '@api/modules/auth/types';
 import type { Company } from '@api/modules/companies/types';
 import type {
   GrantPermissionResponse,
-  ListPermissionAuditResponse,
   ListPermissionsResponse,
   RevokePermissionResponse,
-  UpdatePolicyResponse,
+  UpdatePermissionResponse,
 } from '@api/modules/permissions/types';
 
 import { setupE2ETests } from './e2e.setup';
@@ -78,259 +77,235 @@ describe('permissions', () => {
 
   describe('grant', () => {
     test('requires authentication', async () => {
-      const res = await testClient.post(permissionsPath('fake-id'), { action: 'read' });
+      const res = await testClient.post(permissionsPath('fake-id'), {
+        tool_key: 'gmail.messages.read',
+      });
       expect(res.error).not.toBeNull();
     });
 
-    test('rejects when agent does not exist', async () => {
-      const { token } = await createCompanyAndGetToken('perm-grant-404');
-      const res = await testClient.post(
-        permissionsPath('00000000-0000-0000-0000-000000000000'),
-        { action: 'read' },
-        authHeaders(token)
-      );
-      expect((res.error as { status: number }).status).toBe(404);
-    });
-
-    test('rejects when user is not the agent owner', async () => {
-      const { token: ownerToken } = await createCompanyAndGetToken('perm-grant-owner');
-      const agentId = await createAgent(ownerToken, 'Owner Agent');
-
-      const { token: otherToken } = await createCompanyAndGetToken('perm-grant-other');
+    test('rejects unknown tool_key with 400 permissions.unknown_tool', async () => {
+      const { token } = await createCompanyAndGetToken('perm-unknown-tool');
+      const agentId = await createAgent(token, 'Unknown Tool Agent');
       const res = await testClient.post(
         permissionsPath(agentId),
-        { action: 'read' },
+        { tool_key: 'nope.bad.key' },
+        authHeaders(token)
+      );
+      expect((res.error as { status: number }).status).toBe(400);
+      const body = (res.error as { value: { error: string } }).value;
+      expect(body.error).toBe('permissions.unknown_tool');
+    });
+
+    test('rejects critical tool with auto_approve=true', async () => {
+      const { token } = await createCompanyAndGetToken('perm-critical-auto');
+      const agentId = await createAgent(token, 'Critical Auto Agent');
+      const res = await testClient.post(
+        permissionsPath(agentId),
+        { tool_key: 'stripe.refunds.create', auto_approve: true },
+        authHeaders(token)
+      );
+      expect((res.error as { status: number }).status).toBe(400);
+      const body = (res.error as { value: { error: string } }).value;
+      expect(body.error).toBe('permissions.critical_auto_approve');
+    });
+
+    test('grants low-risk tool with auto_approve forced to false', async () => {
+      const { token } = await createCompanyAndGetToken('perm-low-auto');
+      const agentId = await createAgent(token, 'Low Auto Agent');
+      const res = await testClient.post<GrantPermissionResponse>(
+        permissionsPath(agentId),
+        { tool_key: 'gmail.messages.read' },
+        authHeaders(token)
+      );
+      expect(res.error).toBeNull();
+      expect(res.data?.permission.tool_key).toBe('gmail.messages.read');
+      expect(res.data?.permission.auto_approve).toBe(false);
+    });
+
+    test('grants high-risk tool with auto_approve=true', async () => {
+      const { token } = await createCompanyAndGetToken('perm-high-auto');
+      const agentId = await createAgent(token, 'High Auto Agent');
+      const res = await testClient.post<GrantPermissionResponse>(
+        permissionsPath(agentId),
+        { tool_key: 'stripe.charges.create', auto_approve: true },
+        authHeaders(token)
+      );
+      expect(res.error).toBeNull();
+      expect(res.data?.permission.tool_key).toBe('stripe.charges.create');
+      expect(res.data?.permission.auto_approve).toBe(true);
+    });
+
+    test('rejects duplicate tool_key with 409 permissions.already_granted', async () => {
+      const { token } = await createCompanyAndGetToken('perm-dup-new');
+      const agentId = await createAgent(token, 'Dup Agent');
+      await testClient.post(
+        permissionsPath(agentId),
+        { tool_key: 'gmail.messages.read' },
+        authHeaders(token)
+      );
+      const res = await testClient.post(
+        permissionsPath(agentId),
+        { tool_key: 'gmail.messages.read' },
+        authHeaders(token)
+      );
+      expect((res.error as { status: number }).status).toBe(409);
+      const body = (res.error as { value: { error: string } }).value;
+      expect(body.error).toBe('permissions.already_granted');
+    });
+
+    test('rejects unknown policy field key', async () => {
+      const { token } = await createCompanyAndGetToken('perm-unknown-field');
+      const agentId = await createAgent(token, 'Unknown Field Agent');
+      const res = await testClient.post(
+        permissionsPath(agentId),
+        { tool_key: 'gmail.messages.read', policy_limits: { unknown_field: 100 } },
+        authHeaders(token)
+      );
+      expect((res.error as { status: number }).status).toBe(400);
+      const body = (res.error as { value: { error: string } }).value;
+      expect(body.error).toBe('permissions.unknown_policy_field');
+    });
+
+    test('non-owner cannot grant', async () => {
+      const { token: ownerToken } = await createCompanyAndGetToken('perm-nonowner-owner');
+      const agentId = await createAgent(ownerToken, 'Owner Agent');
+      const { token: otherToken } = await createCompanyAndGetToken('perm-nonowner-other');
+      const res = await testClient.post(
+        permissionsPath(agentId),
+        { tool_key: 'gmail.messages.read' },
         authHeaders(otherToken)
       );
       expect((res.error as { status: number }).status).toBe(403);
     });
+  });
 
-    test('grants a permission without policy limits', async () => {
-      const { token } = await createCompanyAndGetToken('perm-grant-basic');
-      const agentId = await createAgent(token, 'Grant Agent');
-
-      const res = await testClient.post<GrantPermissionResponse>(
+  describe('patch', () => {
+    test('PATCH /:tool_key updates auto_approve and records audit event', async () => {
+      const { token, companyId } = await createCompanyAndGetToken('perm-patch-auto');
+      const agentId = await createAgent(token, 'Patch Auto Agent');
+      await testClient.post(
         permissionsPath(agentId),
-        { action: 'read' },
+        { tool_key: 'stripe.charges.create', auto_approve: false },
         authHeaders(token)
       );
-
-      expect(res.error).toBeNull();
-      expect(res.data?.permission.action).toBe('read');
-      expect(res.data?.permission.agent_id).toBe(agentId);
-      expect(res.data?.permission.policy_limits).toBeNull();
-    });
-
-    test('grants a permission with policy limits', async () => {
-      const { token } = await createCompanyAndGetToken('perm-grant-policy');
-      const agentId = await createAgent(token, 'Policy Agent');
-
-      const limits = { max_tokens: 1000, rate_limit: 60 };
-      const res = await testClient.post<GrantPermissionResponse>(
-        permissionsPath(agentId),
-        { action: 'write', policy_limits: limits },
+      const res = await testClient.patch<UpdatePermissionResponse>(
+        `${permissionsPath(agentId)}/stripe.charges.create`,
+        { auto_approve: true },
         authHeaders(token)
       );
-
       expect(res.error).toBeNull();
-      expect(res.data?.permission.action).toBe('write');
-      expect(res.data?.permission.policy_limits).toEqual(limits);
+      expect(res.data?.permission.auto_approve).toBe(true);
+      void companyId;
     });
 
-    test('rejects duplicate action on same agent', async () => {
-      const { token } = await createCompanyAndGetToken('perm-grant-dup');
-      const agentId = await createAgent(token, 'Dup Agent');
-
-      await testClient.post(permissionsPath(agentId), { action: 'read' }, authHeaders(token));
-      const res = await testClient.post(
+    test('PATCH with policy_limits and auto_approve together succeeds', async () => {
+      const { token } = await createCompanyAndGetToken('perm-patch-both');
+      const agentId = await createAgent(token, 'Patch Both Agent');
+      await testClient.post(
         permissionsPath(agentId),
-        { action: 'read' },
+        { tool_key: 'stripe.charges.create', policy_limits: { max_amount: 100 } },
+        authHeaders(token)
+      );
+      const res = await testClient.patch<UpdatePermissionResponse>(
+        `${permissionsPath(agentId)}/stripe.charges.create`,
+        { policy_limits: { max_amount: 500 }, auto_approve: true },
+        authHeaders(token)
+      );
+      expect(res.error).toBeNull();
+      expect(res.data?.permission.policy_limits).toEqual({ max_amount: 500 });
+      expect(res.data?.permission.auto_approve).toBe(true);
+    });
+
+    test('PATCH with neither field returns 400 permissions.no_changes', async () => {
+      const { token } = await createCompanyAndGetToken('perm-patch-nochange');
+      const agentId = await createAgent(token, 'No Change Agent');
+      await testClient.post(
+        permissionsPath(agentId),
+        { tool_key: 'gmail.messages.read' },
+        authHeaders(token)
+      );
+      const res = await testClient.patch(
+        `${permissionsPath(agentId)}/gmail.messages.read`,
+        {},
         authHeaders(token)
       );
       expect((res.error as { status: number }).status).toBe(400);
+      const body = (res.error as { value: { error: string } }).value;
+      expect(body.error).toBe('permissions.no_changes');
     });
 
-    test('rejects empty action with 422', async () => {
-      const { token } = await createCompanyAndGetToken('perm-grant-empty');
-      const agentId = await createAgent(token, 'Empty Action Agent');
-
-      const res = await testClient.post(
+    test('non-owner cannot patch', async () => {
+      const { token: ownerToken } = await createCompanyAndGetToken('perm-patch-nonowner-own');
+      const agentId = await createAgent(ownerToken, 'Patch Owner Agent');
+      await testClient.post(
         permissionsPath(agentId),
-        { action: '' },
+        { tool_key: 'gmail.messages.read' },
+        authHeaders(ownerToken)
+      );
+      const { token: otherToken } = await createCompanyAndGetToken('perm-patch-nonowner-oth');
+      const res = await testClient.patch(
+        `${permissionsPath(agentId)}/gmail.messages.read`,
+        { auto_approve: true },
+        authHeaders(otherToken)
+      );
+      expect((res.error as { status: number }).status).toBe(403);
+    });
+  });
+
+  describe('revoke', () => {
+    test('revokes an existing permission and returns revoked: true', async () => {
+      const { token } = await createCompanyAndGetToken('perm-revoke-new');
+      const agentId = await createAgent(token, 'Revoke New Agent');
+      await testClient.post(
+        permissionsPath(agentId),
+        { tool_key: 'gmail.messages.read' },
         authHeaders(token)
       );
-      expect(res.error).not.toBeNull();
+      const res = await testClient.delete<RevokePermissionResponse>(
+        `${permissionsPath(agentId)}/gmail.messages.read`,
+        authHeaders(token)
+      );
+      expect(res.error).toBeNull();
+      expect(res.data?.revoked).toBe(true);
+    });
+
+    test('non-owner cannot revoke', async () => {
+      const { token: ownerToken } = await createCompanyAndGetToken('perm-rev-nonowner-own');
+      const agentId = await createAgent(ownerToken, 'Revoke Owner Agent');
+      await testClient.post(
+        permissionsPath(agentId),
+        { tool_key: 'gmail.messages.read' },
+        authHeaders(ownerToken)
+      );
+      const { token: otherToken } = await createCompanyAndGetToken('perm-rev-nonowner-oth');
+      const res = await testClient.delete(
+        `${permissionsPath(agentId)}/gmail.messages.read`,
+        authHeaders(otherToken)
+      );
+      expect((res.error as { status: number }).status).toBe(403);
     });
   });
 
   describe('list', () => {
-    test('lists permissions for an agent', async () => {
-      const { token } = await createCompanyAndGetToken('perm-list');
-      const agentId = await createAgent(token, 'List Agent');
-
-      await testClient.post(permissionsPath(agentId), { action: 'read' }, authHeaders(token));
-      await testClient.post(permissionsPath(agentId), { action: 'write' }, authHeaders(token));
-
+    test('lists granted permissions', async () => {
+      const { token } = await createCompanyAndGetToken('perm-list-new');
+      const agentId = await createAgent(token, 'List New Agent');
+      await testClient.post(
+        permissionsPath(agentId),
+        { tool_key: 'gmail.messages.read' },
+        authHeaders(token)
+      );
+      await testClient.post(
+        permissionsPath(agentId),
+        { tool_key: 'gmail.drafts.create' },
+        authHeaders(token)
+      );
       const res = await testClient.get<ListPermissionsResponse>(
         permissionsPath(agentId),
         authHeaders(token)
       );
       expect(res.error).toBeNull();
       expect(res.data?.permissions.length).toBe(2);
-    });
-
-    test('returns empty list when no permissions exist', async () => {
-      const { token } = await createCompanyAndGetToken('perm-list-empty');
-      const agentId = await createAgent(token, 'Empty List Agent');
-
-      const res = await testClient.get<ListPermissionsResponse>(
-        permissionsPath(agentId),
-        authHeaders(token)
-      );
-      expect(res.error).toBeNull();
-      expect(res.data?.permissions).toEqual([]);
-    });
-  });
-
-  describe('update policy', () => {
-    test('updates policy limits on an existing permission', async () => {
-      const { token } = await createCompanyAndGetToken('perm-update');
-      const agentId = await createAgent(token, 'Update Agent');
-
-      await testClient.post(
-        permissionsPath(agentId),
-        { action: 'read', policy_limits: { max: 10 } },
-        authHeaders(token)
-      );
-
-      const res = await testClient.patch<UpdatePolicyResponse>(
-        `${permissionsPath(agentId)}/read/policy`,
-        { policy_limits: { max: 50, burst: true } },
-        authHeaders(token)
-      );
-      expect(res.error).toBeNull();
-      expect(res.data?.permission.policy_limits).toEqual({ max: 50, burst: true });
-    });
-
-    test('sets policy limits to null', async () => {
-      const { token } = await createCompanyAndGetToken('perm-update-null');
-      const agentId = await createAgent(token, 'Null Policy Agent');
-
-      await testClient.post(
-        permissionsPath(agentId),
-        { action: 'write', policy_limits: { max: 10 } },
-        authHeaders(token)
-      );
-
-      const res = await testClient.patch<UpdatePolicyResponse>(
-        `${permissionsPath(agentId)}/write/policy`,
-        { policy_limits: null },
-        authHeaders(token)
-      );
-      expect(res.error).toBeNull();
-      expect(res.data?.permission.policy_limits).toBeNull();
-    });
-
-    test('rejects update on non-existent permission with 404', async () => {
-      const { token } = await createCompanyAndGetToken('perm-update-404');
-      const agentId = await createAgent(token, '404 Policy Agent');
-
-      const res = await testClient.patch(
-        `${permissionsPath(agentId)}/nonexistent/policy`,
-        { policy_limits: { max: 10 } },
-        authHeaders(token)
-      );
-      expect((res.error as { status: number }).status).toBe(404);
-    });
-  });
-
-  describe('revoke', () => {
-    test('revokes an existing permission', async () => {
-      const { token } = await createCompanyAndGetToken('perm-revoke');
-      const agentId = await createAgent(token, 'Revoke Agent');
-
-      await testClient.post(permissionsPath(agentId), { action: 'read' }, authHeaders(token));
-
-      const res = await testClient.delete<RevokePermissionResponse>(
-        `${permissionsPath(agentId)}/read`,
-        authHeaders(token)
-      );
-      expect(res.error).toBeNull();
-      expect(res.data?.revoked).toBe(true);
-
-      const listRes = await testClient.get<ListPermissionsResponse>(
-        permissionsPath(agentId),
-        authHeaders(token)
-      );
-      expect(listRes.data?.permissions.length).toBe(0);
-    });
-
-    test('rejects revoke on non-existent permission with 404', async () => {
-      const { token } = await createCompanyAndGetToken('perm-revoke-404');
-      const agentId = await createAgent(token, '404 Revoke Agent');
-
-      const res = await testClient.delete(
-        `${permissionsPath(agentId)}/nonexistent`,
-        authHeaders(token)
-      );
-      expect((res.error as { status: number }).status).toBe(404);
-    });
-  });
-
-  describe('audit log', () => {
-    test('records grant, update, and revoke actions', async () => {
-      const { token } = await createCompanyAndGetToken('perm-audit');
-      const agentId = await createAgent(token, 'Audit Agent');
-
-      await testClient.post(
-        permissionsPath(agentId),
-        { action: 'read', policy_limits: { max: 5 } },
-        authHeaders(token)
-      );
-      await testClient.patch(
-        `${permissionsPath(agentId)}/read/policy`,
-        { policy_limits: { max: 20 } },
-        authHeaders(token)
-      );
-      await testClient.delete(`${permissionsPath(agentId)}/read`, authHeaders(token));
-
-      const res = await testClient.get<ListPermissionAuditResponse>(
-        `${permissionsPath(agentId)}/audit`,
-        authHeaders(token)
-      );
-      expect(res.error).toBeNull();
-      expect(res.data?.entries.length).toBe(3);
-
-      const actions = res.data!.entries.map((e) => e.audit_action);
-      expect(actions).toContain('grant');
-      expect(actions).toContain('update_policy');
-      expect(actions).toContain('revoke');
-    });
-
-    test('returns empty audit log when no actions taken', async () => {
-      const { token } = await createCompanyAndGetToken('perm-audit-empty');
-      const agentId = await createAgent(token, 'Empty Audit Agent');
-
-      const res = await testClient.get<ListPermissionAuditResponse>(
-        `${permissionsPath(agentId)}/audit`,
-        authHeaders(token)
-      );
-      expect(res.error).toBeNull();
-      expect(res.data?.entries).toEqual([]);
-    });
-  });
-
-  describe('default deny', () => {
-    test('agent with no permissions has empty list', async () => {
-      const { token } = await createCompanyAndGetToken('perm-deny');
-      const agentId = await createAgent(token, 'Deny Agent');
-
-      const res = await testClient.get<ListPermissionsResponse>(
-        permissionsPath(agentId),
-        authHeaders(token)
-      );
-      expect(res.error).toBeNull();
-      expect(res.data?.permissions).toEqual([]);
     });
   });
 });

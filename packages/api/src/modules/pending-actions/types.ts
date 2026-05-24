@@ -10,7 +10,7 @@ export interface PendingAction {
   agent_name: string;
   owner_id: string;
   company_id: string;
-  action: string;
+  tool_key: string;
   context: Record<string, unknown>;
   policy_hit: string;
   audit_id: string | null;
@@ -25,7 +25,7 @@ export interface PendingAction {
 
 export interface CreatePendingActionInput {
   agent_id: string;
-  action: string;
+  tool_key: string;
   context: Record<string, unknown>;
   policy_hit: string;
   audit_id?: string;
@@ -46,7 +46,7 @@ export const PendingActionSchema = z.object({
   agent_name: z.string(),
   owner_id: z.string(),
   company_id: z.string(),
-  action: z.string(),
+  tool_key: z.string(),
   context: z.record(z.string(), z.unknown()),
   policy_hit: z.string(),
   audit_id: z.string().nullable(),
@@ -85,12 +85,12 @@ export const PendingActionsCountResponseSchema = z.object({
 
 export interface SimulatePendingActionRequest {
   agent_id: string;
-  action: string;
+  tool_key: string;
   context: Record<string, unknown>;
 }
 
 export const SimulatePendingActionBodySchema = z.object({
   agent_id: z.string().min(1),
-  action: z.string().min(1).max(200),
+  tool_key: z.string().min(1).max(200),
   context: z.record(z.string(), z.unknown()).optional().default({}),
 });

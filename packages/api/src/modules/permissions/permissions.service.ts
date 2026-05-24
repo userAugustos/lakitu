@@ -1,20 +1,26 @@
 import { agentsRepository } from '@api/modules/agents/agents.repository';
 import { auditLogService } from '@api/modules/audit-log/audit-log.service';
-import type { AgentPermissionRow, PermissionAuditLogRow } from '@api/db/schema';
-import { badRequest, forbidden, notFound } from '@core/errors';
+import { getToolByKey } from '@api/modules/tools/catalog';
+import type { AgentPermissionRow } from '@api/db/schema';
+import type { Tool } from '@api/modules/tools/types';
+import { badRequest, conflict, forbidden, notFound } from '@core/errors';
 
 import { permissionsRepository } from './permissions.repository';
 import type {
   AgentPermission,
   GrantPermissionRequest,
   GrantPermissionResponse,
-  ListPermissionAuditResponse,
   ListPermissionsResponse,
-  PermissionAuditEntry,
   RevokePermissionResponse,
-  UpdatePolicyRequest,
-  UpdatePolicyResponse,
+  UpdatePermissionRequest,
+  UpdatePermissionResponse,
 } from './types';
+
+function requireTool(toolKey: string): Tool {
+  const tool = getToolByKey(toolKey);
+  if (!tool) throw badRequest('permissions.unknown_tool', `Unknown tool key: ${toolKey}`);
+  return tool;
+}
 
 function parsePolicyLimits(raw: string | null): Record<string, unknown> | null {
   if (raw === null) return null;
@@ -34,24 +40,35 @@ function toPermissionDto(row: AgentPermissionRow): AgentPermission {
   return {
     id: row.id,
     agent_id: row.agentId,
-    action: row.action,
+    tool_key: row.toolKey,
     policy_limits: parsePolicyLimits(row.policyLimits),
+    auto_approve: row.autoApprove,
     created_at: row.createdAt.getTime(),
     updated_at: row.updatedAt.getTime(),
   };
 }
 
-function toAuditDto(row: PermissionAuditLogRow): PermissionAuditEntry {
-  return {
-    id: row.id,
-    agent_id: row.agentId,
-    user_id: row.userId,
-    action: row.action,
-    audit_action: row.auditAction,
-    old_policy_limits: parsePolicyLimits(row.oldPolicyLimits),
-    new_policy_limits: parsePolicyLimits(row.newPolicyLimits),
-    created_at: row.createdAt.getTime(),
-  };
+function validatePolicyFields(
+  toolKey: string,
+  policyLimits: Record<string, unknown> | null | undefined
+): void {
+  if (!policyLimits) return;
+  const tool = requireTool(toolKey);
+  const allowedKeys = new Set(tool.policy_fields.map((f) => f.key));
+  for (const key of Object.keys(policyLimits)) {
+    if (!allowedKeys.has(key)) {
+      throw badRequest(
+        'permissions.unknown_policy_field',
+        `Unknown policy field '${key}' for tool '${toolKey}'`
+      );
+    }
+  }
+}
+
+function resolveAutoApprove(riskLevel: string, requested: boolean | undefined): boolean {
+  if (riskLevel === 'critical') return false;
+  if (riskLevel === 'low' || riskLevel === 'medium') return false;
+  return requested ?? false;
 }
 
 async function ensureOwnership(userId: string, agentId: string) {
@@ -63,26 +80,9 @@ async function ensureOwnership(userId: string, agentId: string) {
   return agent;
 }
 
-async function appendPermissionAuditLog(
-  agent: Awaited<ReturnType<typeof ensureOwnership>>,
-  action: string,
-  reasons: string[],
-  context?: Record<string, unknown>
-): Promise<void> {
-  await auditLogService.append({
-    agent_id: agent.id,
-    owner_id: agent.ownerId,
-    company_id: agent.companyId,
-    action,
-    decision: 'allow',
-    reasons,
-    context,
-  });
-}
-
 async function list(userId: string, agentId: string): Promise<ListPermissionsResponse> {
   await ensureOwnership(userId, agentId);
-  const rows = await permissionsRepository.findByAgentId(agentId);
+  const rows = permissionsRepository.findByAgentId(agentId);
   return { permissions: rows.map(toPermissionDto) };
 }
 
@@ -93,120 +93,150 @@ async function grant(
 ): Promise<GrantPermissionResponse> {
   const agent = await ensureOwnership(userId, agentId);
 
-  const action = input.action.trim();
-  if (!action) throw badRequest('permissions.action_empty', 'Action cannot be blank');
+  const tool = requireTool(input.tool_key);
 
-  const existing = await permissionsRepository.findByAgentAndAction(agentId, action);
+  if (tool.risk_level === 'critical' && input.auto_approve === true) {
+    throw badRequest('permissions.critical_auto_approve', 'Critical tools cannot be auto-approved');
+  }
+
+  validatePolicyFields(input.tool_key, input.policy_limits);
+
+  const existing = permissionsRepository.findByAgentAndToolKey(agentId, input.tool_key);
   if (existing) {
-    throw badRequest(
+    throw conflict(
       'permissions.already_granted',
-      `Permission for action '${action}' is already granted`
+      `Permission for tool '${input.tool_key}' is already granted`
     );
   }
 
+  const autoApprove = resolveAutoApprove(tool.risk_level, input.auto_approve);
   const policyLimitsJson = serializePolicyLimits(input.policy_limits ?? null);
 
-  const row = await permissionsRepository.create({
+  const row = permissionsRepository.create({
     agentId,
-    action,
+    toolKey: input.tool_key,
     policyLimits: policyLimitsJson,
+    autoApprove,
   });
 
-  await permissionsRepository.createAuditEntry({
-    agentId,
-    userId,
-    action,
-    auditAction: 'grant',
-    oldPolicyLimits: null,
-    newPolicyLimits: policyLimitsJson,
-  });
-
-  await appendPermissionAuditLog(agent, 'permission.grant', ['permission granted'], {
-    permission_action: action,
-    policy_limits: input.policy_limits ?? null,
+  auditLogService.append({
+    agent_id: agent.id,
+    owner_id: agent.ownerId,
+    company_id: agent.companyId,
+    action: 'permission.granted',
+    decision: 'allow',
+    reasons: ['permission granted'],
+    context: {
+      tool_key: input.tool_key,
+      policy_limits: input.policy_limits ?? null,
+      auto_approve: autoApprove,
+    },
   });
 
   return { permission: toPermissionDto(row) };
 }
 
-async function updatePolicy(
+async function update(
   userId: string,
   agentId: string,
-  action: string,
-  input: UpdatePolicyRequest
-): Promise<UpdatePolicyResponse> {
+  toolKey: string,
+  input: UpdatePermissionRequest
+): Promise<UpdatePermissionResponse> {
   const agent = await ensureOwnership(userId, agentId);
 
-  const existing = await permissionsRepository.findByAgentAndAction(agentId, action);
-  if (!existing) {
-    throw notFound('permissions.not_found', `No permission found for action '${action}'`);
+  if (input.policy_limits === undefined && input.auto_approve === undefined) {
+    throw badRequest('permissions.no_changes', 'At least one field must be provided');
   }
 
-  const oldPolicyLimitsJson = existing.policyLimits;
-  const newPolicyLimitsJson = serializePolicyLimits(input.policy_limits);
+  const existing = permissionsRepository.findByAgentAndToolKey(agentId, toolKey);
+  if (!existing) {
+    throw notFound('permissions.not_found', `No permission found for tool '${toolKey}'`);
+  }
 
-  permissionsRepository.updatePolicyLimits(existing.id, newPolicyLimitsJson);
+  const tool = requireTool(toolKey);
 
-  await permissionsRepository.createAuditEntry({
-    agentId,
-    userId,
-    action,
-    auditAction: 'update_policy',
-    oldPolicyLimits: oldPolicyLimitsJson,
-    newPolicyLimits: newPolicyLimitsJson,
+  if (tool.risk_level === 'critical' && input.auto_approve === true) {
+    throw badRequest('permissions.critical_auto_approve', 'Critical tools cannot be auto-approved');
+  }
+
+  if (input.policy_limits !== undefined) {
+    validatePolicyFields(toolKey, input.policy_limits);
+  }
+
+  const newPolicyLimits =
+    input.policy_limits !== undefined ? serializePolicyLimits(input.policy_limits) : undefined;
+
+  const newAutoApprove =
+    input.auto_approve !== undefined
+      ? resolveAutoApprove(tool.risk_level, input.auto_approve)
+      : undefined;
+
+  permissionsRepository.update(existing.id, {
+    policyLimits: newPolicyLimits,
+    autoApprove: newAutoApprove,
   });
 
-  await appendPermissionAuditLog(agent, 'permission.update_policy', ['permission policy updated'], {
-    permission_action: action,
-    old_policy_limits: parsePolicyLimits(oldPolicyLimitsJson),
-    new_policy_limits: input.policy_limits,
+  const autoApproveChanged =
+    newAutoApprove !== undefined && newAutoApprove !== existing.autoApprove;
+
+  const eventType = autoApproveChanged
+    ? 'permission.auto_approve_changed'
+    : 'permission.policy_updated';
+
+  auditLogService.append({
+    agent_id: agent.id,
+    owner_id: agent.ownerId,
+    company_id: agent.companyId,
+    action: eventType,
+    decision: 'allow',
+    reasons: [eventType.replace('.', ' ')],
+    context: {
+      tool_key: toolKey,
+      old_policy_limits: parsePolicyLimits(existing.policyLimits),
+      new_policy_limits: input.policy_limits ?? parsePolicyLimits(existing.policyLimits),
+      auto_approve_from: existing.autoApprove,
+      auto_approve_to: newAutoApprove ?? existing.autoApprove,
+    },
   });
 
-  const updated = await permissionsRepository.findByAgentAndAction(agentId, action);
+  const updated = permissionsRepository.findByAgentAndToolKey(agentId, toolKey);
   return { permission: toPermissionDto(updated!) };
 }
 
 async function revoke(
   userId: string,
   agentId: string,
-  action: string
+  toolKey: string
 ): Promise<RevokePermissionResponse> {
   const agent = await ensureOwnership(userId, agentId);
 
-  const existing = await permissionsRepository.findByAgentAndAction(agentId, action);
+  const existing = permissionsRepository.findByAgentAndToolKey(agentId, toolKey);
   if (!existing) {
-    throw notFound('permissions.not_found', `No permission found for action '${action}'`);
+    throw notFound('permissions.not_found', `No permission found for tool '${toolKey}'`);
   }
 
   permissionsRepository.deleteById(existing.id);
 
-  await permissionsRepository.createAuditEntry({
-    agentId,
-    userId,
-    action,
-    auditAction: 'revoke',
-    oldPolicyLimits: existing.policyLimits,
-    newPolicyLimits: null,
-  });
-
-  await appendPermissionAuditLog(agent, 'permission.revoke', ['permission revoked'], {
-    permission_action: action,
-    old_policy_limits: parsePolicyLimits(existing.policyLimits),
+  auditLogService.append({
+    agent_id: agent.id,
+    owner_id: agent.ownerId,
+    company_id: agent.companyId,
+    action: 'permission.revoked',
+    decision: 'allow',
+    reasons: ['permission revoked'],
+    context: {
+      tool_key: toolKey,
+      previous_policy_limits: parsePolicyLimits(existing.policyLimits),
+      previous_auto_approve: existing.autoApprove,
+    },
   });
 
   return { revoked: true };
 }
 
-async function listAudit(userId: string, agentId: string): Promise<ListPermissionAuditResponse> {
-  await ensureOwnership(userId, agentId);
-  const rows = await permissionsRepository.findAuditByAgentId(agentId);
-  return { entries: rows.map(toAuditDto) };
-}
-
 export const permissionsService = {
   list,
   grant,
-  updatePolicy,
+  update,
   revoke,
-  listAudit,
 };

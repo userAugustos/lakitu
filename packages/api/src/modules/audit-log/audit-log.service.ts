@@ -11,6 +11,7 @@ import type {
   AuditLogListEntry,
   AuditLogListResponse,
   SearchAuditLogParams,
+  VerifyChainResponse,
 } from './types';
 
 function toAuditLogEntry(row: AuditLogRow): AuditLogEntry {
@@ -30,7 +31,9 @@ function toAuditLogEntry(row: AuditLogRow): AuditLogEntry {
   };
 }
 
-function serializeInput(input: AppendAuditLogInput): NewAuditLogRow {
+function serializeInput(
+  input: AppendAuditLogInput
+): Omit<NewAuditLogRow, 'previousHash' | 'rowHash'> {
   return {
     auditId: input.audit_id ?? crypto.randomUUID(),
     agentId: input.agent_id,
@@ -45,13 +48,17 @@ function serializeInput(input: AppendAuditLogInput): NewAuditLogRow {
   };
 }
 
-async function append(input: AppendAuditLogInput): Promise<AuditLogEntry> {
-  const row = await auditLogRepository.insert(serializeInput(input));
+function append(input: AppendAuditLogInput): AuditLogEntry {
+  assertNoSensitiveMetadata(input.context ?? null);
+  const row = auditLogRepository.insert(serializeInput(input));
   return toAuditLogEntry(row);
 }
 
-async function appendMany(inputs: AppendAuditLogInput[]): Promise<void> {
-  await auditLogRepository.insertMany(inputs.map(serializeInput));
+function appendMany(inputs: AppendAuditLogInput[]): void {
+  for (const input of inputs) {
+    assertNoSensitiveMetadata(input.context ?? null);
+  }
+  auditLogRepository.insertMany(inputs.map(serializeInput));
 }
 
 async function findRelated(auditId: string): Promise<AuditLogEntry[]> {
@@ -105,10 +112,51 @@ async function list(
   return { entries: enriched };
 }
 
+const SENSITIVE_METADATA_KEYS = [
+  'code',
+  'password',
+  'private_key',
+  'token',
+  'otp',
+  'jwt',
+  'secret',
+  'email_body',
+] as const;
+
+export function assertNoSensitiveMetadata(
+  metadata: Record<string, unknown> | null | undefined
+): void {
+  if (!metadata) return;
+  for (const key of SENSITIVE_METADATA_KEYS) {
+    if (key in metadata) {
+      throw badRequest(
+        'audit_log.sensitive_metadata',
+        `Metadata must not contain sensitive field: ${key}`
+      );
+    }
+  }
+}
+
+function streamForCompany(
+  companyId: string,
+  cursor?: { after: Date },
+  limit?: number
+): AuditLogEntry[] {
+  const rows = auditLogRepository.streamForCompany(companyId, cursor, limit);
+  return rows.map(toAuditLogEntry);
+}
+
+function verifyChain(companyId: string): VerifyChainResponse {
+  return auditLogRepository.verifyChain(companyId);
+}
+
 export const auditLogService = {
   append,
   appendMany,
   findRelated,
   search,
   list,
+  streamForCompany,
+  verifyChain,
+  assertNoSensitiveMetadata,
 };

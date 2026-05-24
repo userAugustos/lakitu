@@ -7,12 +7,11 @@ import {
   AgentIdParamSchema,
   GrantPermissionBodySchema,
   GrantPermissionResponseSchema,
-  ListPermissionAuditResponseSchema,
   ListPermissionsResponseSchema,
-  PermissionActionParamSchema,
+  PermissionToolKeyParamSchema,
   RevokePermissionResponseSchema,
-  UpdatePolicyBodySchema,
-  UpdatePolicyResponseSchema,
+  UpdatePermissionBodySchema,
+  UpdatePermissionResponseSchema,
 } from './types';
 
 export const permissionsRoutes = new Elysia({
@@ -36,27 +35,22 @@ export const permissionsRoutes = new Elysia({
     }
   )
   .patch(
-    '/:action/policy',
+    '/:tool_key',
     async ({ auth, params, body }) =>
-      permissionsService.updatePolicy(auth.sub, params.id, params.action, body),
+      permissionsService.update(auth.sub, params.id, params.tool_key, body),
     {
-      params: PermissionActionParamSchema,
-      body: UpdatePolicyBodySchema,
-      response: UpdatePolicyResponseSchema,
-      detail: { summary: 'Update policy limits for a permission', tags: ['permissions'] },
+      params: PermissionToolKeyParamSchema,
+      body: UpdatePermissionBodySchema,
+      response: UpdatePermissionResponseSchema,
+      detail: { summary: 'Update a permission for an agent', tags: ['permissions'] },
     }
   )
   .delete(
-    '/:action',
-    async ({ auth, params }) => permissionsService.revoke(auth.sub, params.id, params.action),
+    '/:tool_key',
+    async ({ auth, params }) => permissionsService.revoke(auth.sub, params.id, params.tool_key),
     {
-      params: PermissionActionParamSchema,
+      params: PermissionToolKeyParamSchema,
       response: RevokePermissionResponseSchema,
       detail: { summary: 'Revoke a permission from an agent', tags: ['permissions'] },
     }
-  )
-  .get('/audit', async ({ auth, params }) => permissionsService.listAudit(auth.sub, params.id), {
-    params: AgentIdParamSchema,
-    response: ListPermissionAuditResponseSchema,
-    detail: { summary: 'List permission audit log for an agent', tags: ['permissions'] },
-  });
+  );

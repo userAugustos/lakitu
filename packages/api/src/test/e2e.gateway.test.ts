@@ -54,7 +54,7 @@ function makeBody(
 ): GatewayDecideRequest {
   return {
     agent_id: agentId,
-    action: 'create_payment',
+    tool_key: 'stripe.charges.create',
     context: { amount: 100, currency: 'USD' },
     nonce: crypto.randomUUID().replace(/-/g, ''),
     timestamp: Date.now(),
@@ -145,16 +145,20 @@ async function createFullAgent(
   };
 }
 
-async function grantPermission(
+function grantPermission(
   agentId: string,
-  action: string,
-  policyLimits?: Record<string, unknown>
+  toolKey: string,
+  policyLimits?: Record<string, unknown>,
+  autoApprove = true
 ) {
-  await db.insert(agentPermissions).values({
-    agentId,
-    action,
-    policyLimits: policyLimits ? JSON.stringify(policyLimits) : null,
-  });
+  db.insert(agentPermissions)
+    .values({
+      agentId,
+      toolKey,
+      policyLimits: policyLimits ? JSON.stringify(policyLimits) : null,
+      autoApprove,
+    })
+    .run();
 }
 
 describe('gateway /decide', () => {
@@ -167,7 +171,7 @@ describe('gateway /decide', () => {
 
   test('denies when signature header is missing', async () => {
     const agent = await createFullAgent('no-sig');
-    await grantPermission(agent.agentId, 'create_payment');
+    grantPermission(agent.agentId, 'stripe.charges.create');
     const body = makeBody(agent.agentId);
 
     const res = await postGateway(body);
@@ -192,7 +196,7 @@ describe('gateway /decide', () => {
 
   test('denies when signature is invalid (wrong key)', async () => {
     const agent = await createFullAgent('bad-sig');
-    await grantPermission(agent.agentId, 'create_payment');
+    grantPermission(agent.agentId, 'stripe.charges.create');
     const body = makeBody(agent.agentId);
 
     const wrongKeys = generateEd25519KeyPair();
@@ -207,7 +211,7 @@ describe('gateway /decide', () => {
 
   test('denies when timestamp is too old (6 min ago)', async () => {
     const agent = await createFullAgent('old-ts');
-    await grantPermission(agent.agentId, 'create_payment');
+    grantPermission(agent.agentId, 'stripe.charges.create');
     const body = makeBody(agent.agentId, {
       timestamp: Date.now() - 6 * 60 * 1000,
     });
@@ -222,7 +226,7 @@ describe('gateway /decide', () => {
 
   test('denies when timestamp is too far in the future (6 min ahead)', async () => {
     const agent = await createFullAgent('future-ts');
-    await grantPermission(agent.agentId, 'create_payment');
+    grantPermission(agent.agentId, 'stripe.charges.create');
     const body = makeBody(agent.agentId, {
       timestamp: Date.now() + 6 * 60 * 1000,
     });
@@ -237,7 +241,7 @@ describe('gateway /decide', () => {
 
   test('denies when agent status is revoked', async () => {
     const agent = await createFullAgent('revoked', { agentStatus: 'revoked' });
-    await grantPermission(agent.agentId, 'create_payment');
+    grantPermission(agent.agentId, 'stripe.charges.create');
     const body = makeBody(agent.agentId);
     const sig = signGatewayRequest(body, agent.privateKeyBase64);
 
@@ -252,7 +256,7 @@ describe('gateway /decide', () => {
     const agent = await createFullAgent('no-clawkey', {
       clawkeySessionId: null,
     });
-    await grantPermission(agent.agentId, 'create_payment');
+    grantPermission(agent.agentId, 'stripe.charges.create');
     const body = makeBody(agent.agentId);
     const sig = signGatewayRequest(body, agent.privateKeyBase64);
 
@@ -267,7 +271,7 @@ describe('gateway /decide', () => {
     const agent = await createFullAgent('unverified-owner', {
       veryAiStatus: 'pending',
     });
-    await grantPermission(agent.agentId, 'create_payment');
+    grantPermission(agent.agentId, 'stripe.charges.create');
     const body = makeBody(agent.agentId);
     const sig = signGatewayRequest(body, agent.privateKeyBase64);
 
@@ -284,7 +288,7 @@ describe('gateway /decide', () => {
     const agent = await createFullAgent('left-company', {
       userCompanyId: otherCompanyId,
     });
-    await grantPermission(agent.agentId, 'create_payment');
+    grantPermission(agent.agentId, 'stripe.charges.create');
     const body = makeBody(agent.agentId);
     const sig = signGatewayRequest(body, agent.privateKeyBase64);
 
@@ -309,7 +313,7 @@ describe('gateway /decide', () => {
 
   test('denies when amount exceeds policy max_amount', async () => {
     const agent = await createFullAgent('exceed-amount');
-    await grantPermission(agent.agentId, 'create_payment', { max_amount: 50 });
+    grantPermission(agent.agentId, 'stripe.charges.create', { max_amount: 50 });
     const body = makeBody(agent.agentId, {
       context: { amount: 100, currency: 'USD' },
     });
@@ -327,7 +331,7 @@ describe('gateway /decide', () => {
     const currentHour = new Date().getUTCHours();
     const outsideStart = (currentHour + 2) % 24;
     const outsideEnd = (currentHour + 4) % 24;
-    await grantPermission(agent.agentId, 'create_payment', {
+    grantPermission(agent.agentId, 'stripe.charges.create', {
       allowed_hours: { start: outsideStart, end: outsideEnd },
     });
     const body = makeBody(agent.agentId);
@@ -340,9 +344,33 @@ describe('gateway /decide', () => {
     expect(res.data!.reasons[0]).toContain('outside allowed window');
   });
 
-  test('returns approval_required when policy requires approval', async () => {
-    const agent = await createFullAgent('needs-approval');
-    await grantPermission(agent.agentId, 'create_payment', { requires_approval: true });
+  test('low-risk tool (stripe.customers.read) always allows regardless of auto_approve', async () => {
+    const agent = await createFullAgent('low-risk-allow');
+    grantPermission(agent.agentId, 'stripe.customers.read', undefined, false);
+    const body = makeBody(agent.agentId, { tool_key: 'stripe.customers.read' });
+    const sig = signGatewayRequest(body, agent.privateKeyBase64);
+
+    const res = await postGateway(body, { 'agent-signature': sig });
+
+    expect(res.status).toBe(200);
+    expect(res.data!.decision).toBe('allow');
+  });
+
+  test('medium-risk tool (gmail.messages.send) always allows', async () => {
+    const agent = await createFullAgent('medium-risk-allow');
+    grantPermission(agent.agentId, 'gmail.messages.send', undefined, false);
+    const body = makeBody(agent.agentId, { tool_key: 'gmail.messages.send' });
+    const sig = signGatewayRequest(body, agent.privateKeyBase64);
+
+    const res = await postGateway(body, { 'agent-signature': sig });
+
+    expect(res.status).toBe(200);
+    expect(res.data!.decision).toBe('allow');
+  });
+
+  test('high-risk tool with auto_approve=false returns approval_required', async () => {
+    const agent = await createFullAgent('high-needs-approval');
+    grantPermission(agent.agentId, 'stripe.charges.create', undefined, false);
     const body = makeBody(agent.agentId);
     const sig = signGatewayRequest(body, agent.privateKeyBase64);
 
@@ -350,14 +378,57 @@ describe('gateway /decide', () => {
 
     expect(res.status).toBe(200);
     expect(res.data!.decision).toBe('approval_required');
-    expect(res.data!.reasons).toContain('requires approval per policy');
+    expect(res.data!.reasons).toContain('manual approval required');
     expect(res.data!.pending_action_id).toBeString();
     expect(res.data!.pending_action_id!.length).toBeGreaterThan(0);
   });
 
-  test('allows when all checks pass and no policy limits', async () => {
+  test('high-risk tool with auto_approve=true returns allow', async () => {
+    const agent = await createFullAgent('high-auto-allow');
+    grantPermission(agent.agentId, 'stripe.charges.create', undefined, true);
+    const body = makeBody(agent.agentId);
+    const sig = signGatewayRequest(body, agent.privateKeyBase64);
+
+    const res = await postGateway(body, { 'agent-signature': sig });
+
+    expect(res.status).toBe(200);
+    expect(res.data!.decision).toBe('allow');
+  });
+
+  test('critical tool always returns approval_required even if auto_approve=true in DB (defense in depth)', async () => {
+    const agent = await createFullAgent('critical-defense');
+    rawSqlite.exec(
+      `INSERT INTO agent_permissions (id, agent_id, tool_key, auto_approve)
+       VALUES ('${crypto.randomUUID()}', '${agent.agentId}', 'stripe.refunds.create', 1)`
+    );
+    const body = makeBody(agent.agentId, { tool_key: 'stripe.refunds.create' });
+    const sig = signGatewayRequest(body, agent.privateKeyBase64);
+
+    const res = await postGateway(body, { 'agent-signature': sig });
+
+    expect(res.status).toBe(200);
+    expect(res.data!.decision).toBe('approval_required');
+  });
+
+  test('unknown tool_key returns deny with reason tool_unknown', async () => {
+    const agent = await createFullAgent('unknown-tool');
+    rawSqlite.exec(
+      `INSERT INTO agent_permissions (id, agent_id, tool_key, auto_approve)
+       VALUES ('${crypto.randomUUID()}', '${agent.agentId}', 'no.such.tool', 1)`
+    );
+    const body = makeBody(agent.agentId, { tool_key: 'no.such.tool' });
+    const sig = signGatewayRequest(body, agent.privateKeyBase64);
+
+    const res = await postGateway(body, { 'agent-signature': sig });
+
+    expect(res.status).toBe(200);
+    expect(res.data!.decision).toBe('deny');
+    expect(res.data!.reasons).toContain('tool_unknown');
+  });
+
+  test('allows when all checks pass and no policy limits (high auto_approve)', async () => {
     const agent = await createFullAgent('happy-no-limits');
-    await grantPermission(agent.agentId, 'create_payment');
+    grantPermission(agent.agentId, 'stripe.charges.create');
     const body = makeBody(agent.agentId);
     const sig = signGatewayRequest(body, agent.privateKeyBase64);
 
@@ -371,7 +442,7 @@ describe('gateway /decide', () => {
 
   test('allows when amount is within policy limit', async () => {
     const agent = await createFullAgent('within-limit');
-    await grantPermission(agent.agentId, 'create_payment', { max_amount: 500 });
+    grantPermission(agent.agentId, 'stripe.charges.create', { max_amount: 500 });
     const body = makeBody(agent.agentId, {
       context: { amount: 100, currency: 'USD' },
     });
@@ -386,7 +457,7 @@ describe('gateway /decide', () => {
 
   test('denies when clawkey live check returns non-completed status', async () => {
     const agent = await createFullAgent('clawkey-pending');
-    await grantPermission(agent.agentId, 'create_payment');
+    grantPermission(agent.agentId, 'stripe.charges.create');
     const body = makeBody(agent.agentId);
     const sig = signGatewayRequest(body, agent.privateKeyBase64);
 
@@ -406,7 +477,7 @@ describe('gateway /decide', () => {
 
   test('denies when owner not found', async () => {
     const agent = await createFullAgent('orphan');
-    await grantPermission(agent.agentId, 'create_payment');
+    grantPermission(agent.agentId, 'stripe.charges.create');
 
     const orphanOwnerId = crypto.randomUUID();
     rawSqlite.exec('PRAGMA foreign_keys = OFF');
@@ -428,11 +499,13 @@ describe('gateway /decide', () => {
 
   test('denies when policy limits contain invalid JSON', async () => {
     const agent = await createFullAgent('bad-json');
-    await db.insert(agentPermissions).values({
-      agentId: agent.agentId,
-      action: 'create_payment',
-      policyLimits: 'not valid json {{{',
-    });
+    db.insert(agentPermissions)
+      .values({
+        agentId: agent.agentId,
+        toolKey: 'stripe.charges.create',
+        policyLimits: 'not valid json {{{',
+      })
+      .run();
     const body = makeBody(agent.agentId);
     const sig = signGatewayRequest(body, agent.privateKeyBase64);
 
@@ -445,11 +518,13 @@ describe('gateway /decide', () => {
 
   test('denies when policy limits are valid JSON but invalid schema', async () => {
     const agent = await createFullAgent('bad-schema');
-    await db.insert(agentPermissions).values({
-      agentId: agent.agentId,
-      action: 'create_payment',
-      policyLimits: '{"max_amount": "not-a-number"}',
-    });
+    db.insert(agentPermissions)
+      .values({
+        agentId: agent.agentId,
+        toolKey: 'stripe.charges.create',
+        policyLimits: '{"max_amount": "not-a-number"}',
+      })
+      .run();
     const body = makeBody(agent.agentId);
     const sig = signGatewayRequest(body, agent.privateKeyBase64);
 

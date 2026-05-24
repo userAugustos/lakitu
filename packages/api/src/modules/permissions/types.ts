@@ -1,26 +1,13 @@
 import { z } from 'zod';
 
-export const PERMISSION_AUDIT_ACTION_VALUES = ['grant', 'revoke', 'update_policy'] as const;
-export type PermissionAuditActionValue = (typeof PERMISSION_AUDIT_ACTION_VALUES)[number];
-
 export interface AgentPermission {
   id: string;
   agent_id: string;
-  action: string;
+  tool_key: string;
   policy_limits: Record<string, unknown> | null;
+  auto_approve: boolean;
   created_at: number;
   updated_at: number;
-}
-
-export interface PermissionAuditEntry {
-  id: string;
-  agent_id: string;
-  user_id: string;
-  action: string;
-  audit_action: PermissionAuditActionValue;
-  old_policy_limits: Record<string, unknown> | null;
-  new_policy_limits: Record<string, unknown> | null;
-  created_at: number;
 }
 
 export interface ListPermissionsResponse {
@@ -28,19 +15,21 @@ export interface ListPermissionsResponse {
 }
 
 export interface GrantPermissionRequest {
-  action: string;
+  tool_key: string;
   policy_limits?: Record<string, unknown> | null;
+  auto_approve?: boolean;
 }
 
 export interface GrantPermissionResponse {
   permission: AgentPermission;
 }
 
-export interface UpdatePolicyRequest {
-  policy_limits: Record<string, unknown> | null;
+export interface UpdatePermissionRequest {
+  policy_limits?: Record<string, unknown> | null;
+  auto_approve?: boolean;
 }
 
-export interface UpdatePolicyResponse {
+export interface UpdatePermissionResponse {
   permission: AgentPermission;
 }
 
@@ -48,48 +37,36 @@ export interface RevokePermissionResponse {
   revoked: true;
 }
 
-export interface ListPermissionAuditResponse {
-  entries: PermissionAuditEntry[];
-}
-
 const PolicyLimitsSchema = z.record(z.string(), z.unknown()).nullable().optional();
 
 export const AgentPermissionSchema = z.object({
   id: z.string(),
   agent_id: z.string(),
-  action: z.string(),
+  tool_key: z.string(),
   policy_limits: z.record(z.string(), z.unknown()).nullable(),
+  auto_approve: z.boolean(),
   created_at: z.number(),
   updated_at: z.number(),
-});
-
-export const PermissionAuditEntrySchema = z.object({
-  id: z.string(),
-  agent_id: z.string(),
-  user_id: z.string(),
-  action: z.string(),
-  audit_action: z.enum(PERMISSION_AUDIT_ACTION_VALUES),
-  old_policy_limits: z.record(z.string(), z.unknown()).nullable(),
-  new_policy_limits: z.record(z.string(), z.unknown()).nullable(),
-  created_at: z.number(),
 });
 
 export const AgentIdParamSchema = z.object({
   id: z.string(),
 });
 
-export const PermissionActionParamSchema = z.object({
+export const PermissionToolKeyParamSchema = z.object({
   id: z.string(),
-  action: z.string(),
+  tool_key: z.string(),
 });
 
 export const GrantPermissionBodySchema = z.object({
-  action: z.string().min(1).max(200),
+  tool_key: z.string().min(1).max(200),
   policy_limits: PolicyLimitsSchema,
+  auto_approve: z.boolean().optional(),
 });
 
-export const UpdatePolicyBodySchema = z.object({
-  policy_limits: z.record(z.string(), z.unknown()).nullable(),
+export const UpdatePermissionBodySchema = z.object({
+  policy_limits: PolicyLimitsSchema,
+  auto_approve: z.boolean().optional(),
 });
 
 export const ListPermissionsResponseSchema = z.object({
@@ -100,14 +77,10 @@ export const GrantPermissionResponseSchema = z.object({
   permission: AgentPermissionSchema,
 });
 
-export const UpdatePolicyResponseSchema = z.object({
+export const UpdatePermissionResponseSchema = z.object({
   permission: AgentPermissionSchema,
 });
 
 export const RevokePermissionResponseSchema = z.object({
   revoked: z.literal(true),
-});
-
-export const ListPermissionAuditResponseSchema = z.object({
-  entries: z.array(PermissionAuditEntrySchema),
 });

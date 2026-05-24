@@ -15,6 +15,7 @@ import { gatewayRoutes } from '@api/modules/gateway/gateway.routes';
 import { onboardingRoutes } from '@api/modules/onboarding/onboarding.routes';
 import { pendingActionsRoutes } from '@api/modules/pending-actions/pending-actions.routes';
 import { permissionsRoutes } from '@api/modules/permissions/permissions.routes';
+import { toolsRoutes } from '@api/modules/tools/tools.routes';
 import { veryAiRoutes } from '@api/modules/very-ai/very-ai.routes';
 import { config } from '@core/env';
 import { errorPlugin } from '@core/errors';
@@ -79,6 +80,7 @@ export const createApp = () =>
       }),
       { detail: { summary: 'Health Check', tags: ['system'] } }
     )
+    .use(toolsRoutes)
     .use(authRoutes)
     .use(onboardingRoutes)
     .use(veryAiRoutes)
