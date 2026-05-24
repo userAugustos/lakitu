@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { useMachine } from '@xstate/react';
 import { Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import type { ActorRefFrom, SnapshotFrom } from 'xstate';
 
 import type { RevokePermissionResponse } from '@lakitu/api/permissions';
-import type { RiskLevel } from '@lakitu/api/tools';
+import type { RiskLevel, Tool } from '@lakitu/api/tools';
 
 import { RiskBadge } from '@repo/ui/components/risk-badge';
 import { Button } from '@repo/ui/shadcn/button';
@@ -17,11 +18,11 @@ import {
 import { apiCall, lakituAuthApi } from '@/api';
 import { toolsQueryOptions } from '@/modules/tools/lib/tools-query';
 
-import { createToolAccessMachine } from '../tool-access.machine';
 import { AutoApproveToggle } from './auto-approve-toggle';
 import { CriticalToolBanner } from './critical-tool-banner';
 import { ToolAccessList } from './tool-access-list';
 import { ToolPolicyFields } from './tool-policy-fields';
+import type { createAgentMachine } from '../create-agent.machine';
 
 const RISK_EXPLAINER: Record<RiskLevel, string> = {
   low: 'Low risk — requests are automatically approved.',
@@ -31,30 +32,32 @@ const RISK_EXPLAINER: Record<RiskLevel, string> = {
 };
 
 interface ToolAccessStepProps {
+  snapshot: SnapshotFrom<typeof createAgentMachine>;
+  send: ActorRefFrom<typeof createAgentMachine>['send'];
   agentId: string;
   agentName: string;
-  onContinue: () => void;
 }
 
-export function ToolAccessStep({ agentId, agentName, onContinue }: ToolAccessStepProps) {
-  const [state, send] = useMachine(createToolAccessMachine(agentId));
+export function ToolAccessStep({ snapshot, send, agentId, agentName }: ToolAccessStepProps) {
   const { data: toolsData } = useQuery(toolsQueryOptions());
 
+  const [selectedToolKey, setSelectedToolKey] = useState<string>('');
+  const [policyValues, setPolicyValues] = useState<Record<string, string>>({});
+  const [autoApprove, setAutoApprove] = useState(false);
+
   const tools = toolsData?.tools ?? [];
-  const { tool, toolKey, policyValues, autoApprove, error, grantedPermissions } = state.context;
-  const isSubmitting = state.matches('submitting');
-  const hasToolSelected =
-    state.matches('toolSelected') || state.matches('submitting') || state.matches('error');
+  const { grantedPermissions, error } = snapshot.context;
+  const isGranting = snapshot.matches({ permissions: 'granting' });
 
   const grantedKeys = new Set(grantedPermissions.map((p) => p.tool_key));
   const availableTools = tools.filter((t) => !grantedKeys.has(t.key));
 
+  const selectedTool: Tool | undefined = tools.find((t) => t.key === selectedToolKey);
+
   const canSubmit =
-    hasToolSelected &&
-    !isSubmitting &&
-    !!tool &&
-    !!toolKey &&
-    tool.policy_fields.every((f) => {
+    !!selectedTool &&
+    !isGranting &&
+    selectedTool.policy_fields.every((f) => {
       const v = policyValues[f.key];
       if (!v?.trim()) return false;
       if (f.type === 'number') return Number.isFinite(Number(v));
@@ -66,11 +69,38 @@ export function ToolAccessStep({ agentId, agentName, onContinue }: ToolAccessSte
     RiskLevel
   >;
 
+  const handleSelectTool = (key: string) => {
+    setSelectedToolKey(key);
+    setPolicyValues({});
+    setAutoApprove(false);
+  };
+
+  const handleGrantAccess = () => {
+    if (!selectedTool) return;
+
+    const policyLimits: Record<string, unknown> = {};
+    for (const [key, val] of Object.entries(policyValues)) {
+      const field = selectedTool.policy_fields.find((f) => f.key === key);
+      policyLimits[key] = field?.type === 'number' ? Number(val) : val;
+    }
+
+    send({
+      type: 'ADD_PERMISSION',
+      toolKey: selectedToolKey,
+      policyLimits: Object.keys(policyLimits).length > 0 ? policyLimits : null,
+      autoApprove: selectedTool.risk_level === 'high' ? autoApprove : false,
+    });
+
+    setSelectedToolKey('');
+    setPolicyValues({});
+    setAutoApprove(false);
+  };
+
   const handleRevoke = async (revokeKey: string) => {
     await apiCall<RevokePermissionResponse>(() =>
       lakituAuthApi.agents[agentId]!.permissions[revokeKey]!.delete()
     );
-    send({ type: 'REMOVE_GRANTED', toolKey: revokeKey });
+    send({ type: 'REMOVE_PERMISSION', toolKey: revokeKey });
   };
 
   return (
@@ -83,13 +113,7 @@ export function ToolAccessStep({ agentId, agentName, onContinue }: ToolAccessSte
       </div>
 
       <div className="flex flex-col gap-4">
-        <Select
-          value={toolKey ?? ''}
-          onValueChange={(value) => {
-            const selected = tools.find((t) => t.key === value);
-            if (selected) send({ type: 'SELECT_TOOL', toolKey: value, tool: selected });
-          }}
-        >
+        <Select value={selectedToolKey} onValueChange={handleSelectTool}>
           <SelectTrigger data-testid="tool-select-trigger">
             <SelectValue placeholder="Select a tool..." />
           </SelectTrigger>
@@ -102,30 +126,29 @@ export function ToolAccessStep({ agentId, agentName, onContinue }: ToolAccessSte
           </SelectContent>
         </Select>
 
-        {tool && (
+        {selectedTool && (
           <>
             <div className="flex items-center gap-2">
               <span data-testid="tool-risk-badge">
-                <RiskBadge level={tool.risk_level} />
+                <RiskBadge level={selectedTool.risk_level} />
               </span>
-              <span className="text-dash-muted text-[12px]">{RISK_EXPLAINER[tool.risk_level]}</span>
+              <span className="text-dash-muted text-[12px]">
+                {RISK_EXPLAINER[selectedTool.risk_level]}
+              </span>
             </div>
 
-            {tool.risk_level === 'critical' && <CriticalToolBanner />}
+            {selectedTool.risk_level === 'critical' && <CriticalToolBanner />}
 
-            {tool.policy_fields.length > 0 && (
+            {selectedTool.policy_fields.length > 0 && (
               <ToolPolicyFields
-                tool={tool}
+                tool={selectedTool}
                 values={policyValues}
-                onChange={(key, value) => send({ type: 'CHANGE_POLICY', key, value })}
+                onChange={(key, value) => setPolicyValues((prev) => ({ ...prev, [key]: value }))}
               />
             )}
 
-            {tool.risk_level === 'high' && (
-              <AutoApproveToggle
-                checked={autoApprove}
-                onToggle={() => send({ type: 'TOGGLE_AUTO_APPROVE' })}
-              />
+            {selectedTool.risk_level === 'high' && (
+              <AutoApproveToggle checked={autoApprove} onToggle={() => setAutoApprove((v) => !v)} />
             )}
 
             {error && <p className="text-destructive text-sm">{error.message}</p>}
@@ -135,10 +158,10 @@ export function ToolAccessStep({ agentId, agentName, onContinue }: ToolAccessSte
               variant="outline"
               data-testid="tool-access-submit"
               disabled={!canSubmit}
-              onClick={() => send({ type: 'SUBMIT' })}
+              onClick={handleGrantAccess}
               className="self-start"
             >
-              {isSubmitting ? <Loader2 className="animate-spin" /> : 'Grant Access'}
+              {isGranting ? <Loader2 className="animate-spin" /> : 'Grant Access'}
             </Button>
           </>
         )}
@@ -152,7 +175,11 @@ export function ToolAccessStep({ agentId, agentName, onContinue }: ToolAccessSte
         />
       )}
 
-      <Button type="button" onClick={onContinue} data-testid="tool-access-continue">
+      <Button
+        type="button"
+        onClick={() => send({ type: 'CONTINUE' })}
+        data-testid="tool-access-continue"
+      >
         {grantedPermissions.length > 0 ? 'Continue' : 'Skip & continue'}
       </Button>
     </div>

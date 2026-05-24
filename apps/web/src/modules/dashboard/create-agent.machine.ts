@@ -1,6 +1,7 @@
 import { assign, fromPromise, setup } from 'xstate';
 
 import type { Agent, CreateAgentResponse } from '@lakitu/api/agents';
+import type { AgentPermission, GrantPermissionResponse } from '@lakitu/api/permissions';
 
 import { apiCall, lakituAuthApi } from '@/api';
 import { queryClient, router } from '@/main';
@@ -16,6 +17,27 @@ export const createAgentMachine = setup({
     createAgentActor: fromPromise(async ({ input }: { input: { name: string } }) => {
       return apiCall<CreateAgentResponse>(() => lakituAuthApi.agents.post({ name: input.name }));
     }),
+
+    grantPermissionActor: fromPromise(
+      async ({
+        input,
+      }: {
+        input: {
+          agentId: string;
+          toolKey: string;
+          policyLimits?: Record<string, unknown> | null;
+          autoApprove?: boolean;
+        };
+      }) => {
+        return apiCall<GrantPermissionResponse>(() =>
+          lakituAuthApi.agents[input.agentId]!.permissions.post({
+            tool_key: input.toolKey,
+            policy_limits: input.policyLimits ?? null,
+            auto_approve: input.autoApprove ?? false,
+          })
+        );
+      }
+    ),
 
     bypassClawKeyActor: fromPromise(async ({ input }: { input: { agentId: string } }) => {
       return apiCall<Agent>(() => lakituAuthApi.agents[input.agentId]!.clawkey.bypass.patch());
@@ -36,6 +58,7 @@ export const createAgentMachine = setup({
     agent: null,
     privateKey: null,
     registrationUrl: null,
+    grantedPermissions: [],
     error: null,
   },
 
@@ -76,8 +99,55 @@ export const createAgentMachine = setup({
 
     permissions: {
       entry: assign({ screen: 'permissions' as const, error: null }),
-      on: {
-        CONTINUE: 'clawkey',
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            ADD_PERMISSION: 'granting',
+            REMOVE_PERMISSION: {
+              actions: assign(({ context, event }) => ({
+                grantedPermissions: context.grantedPermissions.filter(
+                  (p) => p.tool_key !== event.toolKey
+                ),
+              })),
+            },
+            CONTINUE: '#createAgent.clawkey',
+          },
+        },
+        granting: {
+          invoke: {
+            src: 'grantPermissionActor',
+            input: ({ context, event }) => ({
+              agentId: context.agent!.id,
+              toolKey: (event as { type: 'ADD_PERMISSION'; toolKey: string }).toolKey,
+              policyLimits: (
+                event as {
+                  type: 'ADD_PERMISSION';
+                  policyLimits?: Record<string, unknown> | null;
+                }
+              ).policyLimits,
+              autoApprove: (event as { type: 'ADD_PERMISSION'; autoApprove?: boolean }).autoApprove,
+            }),
+            onDone: {
+              target: 'idle',
+              actions: assign(({ context, event }) => ({
+                grantedPermissions: [
+                  ...context.grantedPermissions,
+                  event.output.permission,
+                ] as AgentPermission[],
+                error: null,
+              })),
+            },
+            onError: {
+              target: 'idle',
+              actions: assign(({ event }) => ({
+                error: {
+                  message: (event.error as Error).message ?? 'Failed to grant permission',
+                },
+              })),
+            },
+          },
+        },
       },
     },
 

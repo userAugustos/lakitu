@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useMachine } from '@xstate/react';
+import { useActor } from '@xstate/react';
 import { Loader2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 
@@ -26,10 +26,10 @@ export const Route = createFileRoute('/_authenticated/dashboard/create-agent')({
 });
 
 function CreateAgentPage() {
-  const [state, send] = useMachine(createAgentMachine);
-  const { screen, name, agent, privateKey, registrationUrl, error } = state.context;
-  const isSubmitting = state.matches('creating');
-  const isBypassing = state.matches({ clawkey: 'bypassing' });
+  const [snapshot, send] = useActor(createAgentMachine);
+  const { screen, name, agent, privateKey, registrationUrl, error } = snapshot.context;
+  const isSubmitting = snapshot.matches('creating');
+  const isBypassing = snapshot.matches({ clawkey: 'bypassing' });
   const currentStep = SCREEN_TO_STEP[screen] ?? 1;
 
   const content = (() => {
@@ -46,9 +46,10 @@ function CreateAgentPage() {
       case 'permissions':
         return (
           <ToolAccessStep
+            snapshot={snapshot}
+            send={send}
             agentId={agent!.id}
             agentName={agent?.name ?? name}
-            onContinue={() => send({ type: 'CONTINUE' })}
           />
         );
       case 'clawkey':
