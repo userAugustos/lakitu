@@ -38,18 +38,22 @@ function writeAudit(
   policyHit: string | null,
   context: Record<string, unknown>
 ) {
-  auditLogService.append({
-    audit_id: auditId,
-    agent_id: agentId,
-    owner_id: ownerId,
-    company_id: companyId,
-    action,
-    decision,
-    reasons,
-    policy_hit: policyHit,
-    request_id: getRequestContext()?.request_id ?? null,
-    context,
-  });
+  try {
+    auditLogService.append({
+      audit_id: auditId,
+      agent_id: agentId,
+      owner_id: ownerId,
+      company_id: companyId,
+      action,
+      decision,
+      reasons,
+      policy_hit: policyHit,
+      request_id: getRequestContext()?.request_id ?? null,
+      context,
+    });
+  } catch (err) {
+    gwLogger.error('Failed to write audit row', { audit_id: auditId, error: err });
+  }
 }
 
 async function decide(

@@ -49,16 +49,17 @@ function serializeInput(
 }
 
 function append(input: AppendAuditLogInput): AuditLogEntry {
-  assertNoSensitiveMetadata(input.context ?? null);
-  const row = auditLogRepository.insert(serializeInput(input));
+  const sanitized = { ...input, context: sanitizeMetadata(input.context ?? null) };
+  const row = auditLogRepository.insert(serializeInput(sanitized));
   return toAuditLogEntry(row);
 }
 
 function appendMany(inputs: AppendAuditLogInput[]): void {
-  for (const input of inputs) {
-    assertNoSensitiveMetadata(input.context ?? null);
-  }
-  auditLogRepository.insertMany(inputs.map(serializeInput));
+  const sanitized = inputs.map((input) => ({
+    ...input,
+    context: sanitizeMetadata(input.context ?? null),
+  }));
+  auditLogRepository.insertMany(sanitized.map(serializeInput));
 }
 
 async function findRelated(auditId: string): Promise<AuditLogEntry[]> {
@@ -122,6 +123,20 @@ const SENSITIVE_METADATA_KEYS = [
   'secret',
   'email_body',
 ] as const;
+
+function sanitizeMetadata(
+  metadata: Record<string, unknown> | null | undefined
+): Record<string, unknown> | null {
+  if (!metadata) return null;
+  let clean = metadata;
+  for (const key of SENSITIVE_METADATA_KEYS) {
+    if (key in clean) {
+      if (clean === metadata) clean = { ...metadata };
+      clean[key] = '[REDACTED]';
+    }
+  }
+  return clean;
+}
 
 export function assertNoSensitiveMetadata(
   metadata: Record<string, unknown> | null | undefined
