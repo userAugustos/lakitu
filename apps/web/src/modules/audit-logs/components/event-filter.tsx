@@ -17,14 +17,14 @@ interface EventFilterProps {
 export function EventFilter({ value, onChange }: EventFilterProps) {
   return (
     <Select
-      value={value ?? ''}
-      onValueChange={(v) => onChange((v || undefined) as AuditDecision | undefined)}
+      value={value ?? 'all'}
+      onValueChange={(v) => onChange(v === 'all' ? undefined : (v as AuditDecision))}
     >
       <SelectTrigger data-testid="event-filter" className="h-9 w-[180px]">
         <SelectValue placeholder="All decisions" />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="">All decisions</SelectItem>
+        <SelectItem value="all">All decisions</SelectItem>
         {AUDIT_DECISIONS.map((d) => (
           <SelectItem key={d} value={d}>
             {d.replace('_', ' ')}
