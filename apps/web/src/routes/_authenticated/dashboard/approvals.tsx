@@ -69,7 +69,7 @@ function ApprovalsPage() {
           send({
             type: 'SUBMIT_SIMULATE',
             agent_id: payload.agent_id,
-            action: payload.action,
+            tool_key: payload.tool_key,
             context: payload.context,
           })
         }

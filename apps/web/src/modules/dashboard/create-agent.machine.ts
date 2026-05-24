@@ -1,7 +1,6 @@
 import { assign, fromPromise, setup } from 'xstate';
 
 import type { Agent, CreateAgentResponse } from '@lakitu/api/agents';
-import type { AgentPermission, GrantPermissionResponse } from '@lakitu/api/permissions';
 
 import { apiCall, lakituAuthApi } from '@/api';
 import { queryClient, router } from '@/main';
@@ -17,25 +16,6 @@ export const createAgentMachine = setup({
     createAgentActor: fromPromise(async ({ input }: { input: { name: string } }) => {
       return apiCall<CreateAgentResponse>(() => lakituAuthApi.agents.post({ name: input.name }));
     }),
-
-    grantPermissionActor: fromPromise(
-      async ({
-        input,
-      }: {
-        input: {
-          agentId: string;
-          action: string;
-          policyLimits?: Record<string, unknown> | null;
-        };
-      }) => {
-        return apiCall<GrantPermissionResponse>(() =>
-          lakituAuthApi.agents[input.agentId]!.permissions.post({
-            action: input.action,
-            policy_limits: input.policyLimits ?? null,
-          })
-        );
-      }
-    ),
 
     bypassClawKeyActor: fromPromise(async ({ input }: { input: { agentId: string } }) => {
       return apiCall<Agent>(() => lakituAuthApi.agents[input.agentId]!.clawkey.bypass.patch());
@@ -56,7 +36,6 @@ export const createAgentMachine = setup({
     agent: null,
     privateKey: null,
     registrationUrl: null,
-    grantedPermissions: [],
     error: null,
   },
 
@@ -97,47 +76,8 @@ export const createAgentMachine = setup({
 
     permissions: {
       entry: assign({ screen: 'permissions' as const, error: null }),
-      initial: 'idle',
-      states: {
-        idle: {
-          on: {
-            ADD_PERMISSION: 'granting',
-            CONTINUE: '#createAgent.clawkey',
-          },
-        },
-        granting: {
-          invoke: {
-            src: 'grantPermissionActor',
-            input: ({ context, event }) => ({
-              agentId: context.agent!.id,
-              action: (event as { type: 'ADD_PERMISSION'; action: string }).action,
-              policyLimits: (
-                event as {
-                  type: 'ADD_PERMISSION';
-                  policyLimits?: Record<string, unknown> | null;
-                }
-              ).policyLimits,
-            }),
-            onDone: {
-              target: 'idle',
-              actions: assign(({ context, event }) => ({
-                grantedPermissions: [
-                  ...context.grantedPermissions,
-                  event.output.permission,
-                ] as AgentPermission[],
-                error: null,
-              })),
-            },
-            onError: {
-              target: 'idle',
-              actions: assign(({ event }) => ({
-                error: {
-                  message: (event.error as Error).message ?? 'Failed to grant permission',
-                },
-              })),
-            },
-          },
-        },
+      on: {
+        CONTINUE: 'clawkey',
       },
     },
 

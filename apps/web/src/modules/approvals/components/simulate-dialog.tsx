@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { z } from 'zod';
 
 import { Button } from '@repo/ui/shadcn/button';
 import {
@@ -22,23 +23,34 @@ import {
 } from '@repo/ui/shadcn/select';
 import { Textarea } from '@repo/ui/shadcn/textarea';
 import { FieldError } from '@/modules/auth/components/field-error';
-import { formatAgentActionLabel } from '@/modules/core/lib/agent-actions';
 import { agentsQueryOptions } from '@/modules/dashboard/lib/agents-query';
+import { toolsQueryOptions } from '@/modules/tools/lib/tools-query';
 
-import { simulateFormSchema } from '../approvals.schemas';
-import type { SimulateFormValues } from '../approvals.schemas';
+const simulateFormSchema = z.object({
+  agent_id: z.string().min(1, 'Agent is required'),
+  tool_key: z.string().min(1, 'Tool is required').max(200, 'Tool key is too long'),
+  context: z.string().optional(),
+});
+
+type SimulateFormValues = z.infer<typeof simulateFormSchema>;
 
 interface SimulateDialogProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (data: { agent_id: string; action: string; context?: Record<string, unknown> }) => void;
+  onSubmit: (data: {
+    agent_id: string;
+    tool_key: string;
+    context?: Record<string, unknown>;
+  }) => void;
   isLoading: boolean;
   error: string | null;
 }
 
 export function SimulateDialog({ open, onClose, onSubmit, isLoading, error }: SimulateDialogProps) {
   const { data: agentsData } = useQuery(agentsQueryOptions);
+  const { data: toolsData } = useQuery(toolsQueryOptions());
   const agents = agentsData?.agents ?? [];
+  const toolCatalog = toolsData?.tools ?? [];
 
   const {
     register,
@@ -51,19 +63,21 @@ export function SimulateDialog({ open, onClose, onSubmit, isLoading, error }: Si
     reset,
   } = useForm<SimulateFormValues>({
     resolver: zodResolver(simulateFormSchema),
-    defaultValues: { agent_id: '', action: '', context: '' },
+    defaultValues: { agent_id: '', tool_key: '', context: '' },
   });
 
   const selectedAgentId = watch('agent_id');
-  const selectedAction = watch('action');
+  const selectedToolKey = watch('tool_key');
   const selectedAgent = useMemo(
     () => agents.find((agent) => agent.id === selectedAgentId),
     [agents, selectedAgentId]
   );
   const availablePermissions = selectedAgent?.permissions ?? [];
-  const selectedPermission = availablePermissions.find(
-    (permission) => permission.action === selectedAction
-  );
+  const selectedPermission = availablePermissions.find((p) => p.tool_key === selectedToolKey);
+
+  const getToolLabel = (toolKey: string) => {
+    return toolCatalog.find((t) => t.key === toolKey)?.label ?? toolKey;
+  };
 
   const onValid = (data: SimulateFormValues) => {
     let parsedContext: Record<string, unknown> | undefined;
@@ -76,7 +90,7 @@ export function SimulateDialog({ open, onClose, onSubmit, isLoading, error }: Si
         return;
       }
     }
-    onSubmit({ agent_id: data.agent_id, action: data.action, context: parsedContext });
+    onSubmit({ agent_id: data.agent_id, tool_key: data.tool_key, context: parsedContext });
     reset();
   };
 
@@ -84,8 +98,10 @@ export function SimulateDialog({ open, onClose, onSubmit, isLoading, error }: Si
     <Dialog open={open} onOpenChange={(v: boolean) => !v && onClose()}>
       <DialogContent data-testid="simulate-dialog">
         <DialogHeader>
-          <DialogTitle>Trigger Action</DialogTitle>
-          <DialogDescription>Simulate a pending action for testing purposes.</DialogDescription>
+          <DialogTitle>Trigger Tool</DialogTitle>
+          <DialogDescription>
+            Simulate a pending tool action for testing purposes.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onValid)} noValidate className="flex flex-col gap-4">
@@ -99,7 +115,7 @@ export function SimulateDialog({ open, onClose, onSubmit, isLoading, error }: Si
                   value={field.value}
                   onValueChange={(value) => {
                     field.onChange(value);
-                    setValue('action', '');
+                    setValue('tool_key', '');
                   }}
                 >
                   <SelectTrigger data-testid="simulate-agent-select" id="sim-agent">
@@ -119,10 +135,10 @@ export function SimulateDialog({ open, onClose, onSubmit, isLoading, error }: Si
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="sim-action">Action</Label>
+            <Label htmlFor="sim-tool">Tool</Label>
             <Controller
               control={control}
-              name="action"
+              name="tool_key"
               render={({ field }) => (
                 <Select
                   value={field.value}
@@ -131,19 +147,19 @@ export function SimulateDialog({ open, onClose, onSubmit, isLoading, error }: Si
                 >
                   <SelectTrigger
                     data-testid="simulate-action-select"
-                    id="sim-action"
-                    className={errors.action ? 'border-destructive' : ''}
+                    id="sim-tool"
+                    className={errors.tool_key ? 'border-destructive' : ''}
                   >
                     <SelectValue
                       placeholder={
-                        selectedAgent ? 'Select a granted action...' : 'Select an agent first...'
+                        selectedAgent ? 'Select a granted tool...' : 'Select an agent first...'
                       }
                     />
                   </SelectTrigger>
                   <SelectContent>
                     {availablePermissions.map((permission) => (
-                      <SelectItem key={permission.action} value={permission.action}>
-                        {formatAgentActionLabel(permission.action)}
+                      <SelectItem key={permission.tool_key} value={permission.tool_key}>
+                        {getToolLabel(permission.tool_key)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -155,7 +171,7 @@ export function SimulateDialog({ open, onClose, onSubmit, isLoading, error }: Si
                 Policy: {JSON.stringify(selectedPermission.policy_limits)}
               </p>
             )}
-            <FieldError message={errors.action?.message} />
+            <FieldError message={errors.tool_key?.message} />
           </div>
 
           <div className="flex flex-col gap-1.5">

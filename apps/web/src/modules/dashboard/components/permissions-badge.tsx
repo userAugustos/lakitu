@@ -9,7 +9,7 @@ export function PermissionsBadge({ count }: PermissionsBadgeProps) {
 
   return (
     <span className="text-dash-ink-2 text-[13px]">
-      {count} permission{count !== 1 ? 's' : ''}
+      {count} tool{count !== 1 ? 's' : ''}
     </span>
   );
 }

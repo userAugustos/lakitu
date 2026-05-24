@@ -6,7 +6,8 @@ import type { AuditDecision } from '@lakitu/api/audit-log';
 
 import { Input } from '@repo/ui/shadcn/input';
 import { AuditLogsTable } from '@/modules/audit-logs/components/audit-logs-table';
-import { DecisionFilter } from '@/modules/audit-logs/components/decision-filter';
+import { EventFilter } from '@/modules/audit-logs/components/event-filter';
+import { VerifyChainButton } from '@/modules/audit-logs/components/verify-chain-button';
 import { auditLogsQueryOptions } from '@/modules/audit-logs/lib/audit-logs-query';
 
 export const Route = createFileRoute('/_authenticated/dashboard/audit-logs')({
@@ -16,7 +17,7 @@ export const Route = createFileRoute('/_authenticated/dashboard/audit-logs')({
 function AuditLogsPage() {
   const [decision, setDecision] = useState<AuditDecision | undefined>(undefined);
   const [globalFilter, setGlobalFilter] = useState('');
-  const { data, isLoading } = useQuery(auditLogsQueryOptions(decision));
+  const { data, isLoading } = useQuery(auditLogsQueryOptions({ decision }));
   const entries = useMemo(() => data?.entries ?? [], [data?.entries]);
 
   return (
@@ -32,7 +33,8 @@ function AuditLogsPage() {
             placeholder="Search audit logs"
             className="h-9 w-[240px] rounded-lg px-3 py-1.5 max-[720px]:w-full"
           />
-          <DecisionFilter value={decision} onChange={setDecision} />
+          <EventFilter value={decision} onChange={setDecision} />
+          <VerifyChainButton />
         </div>
       </div>
       {isLoading ? (

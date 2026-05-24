@@ -5,11 +5,14 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from '@tanstack/react-table';
+import { ChevronDown, ChevronRight } from 'lucide-react';
+import { useState } from 'react';
 import type { FilterFn, OnChangeFn } from '@tanstack/react-table';
 
 import type { AuditLogListEntry } from '@lakitu/api/audit-log';
 
 import { Button } from '@repo/ui/shadcn/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@repo/ui/shadcn/collapsible';
 import {
   Table,
   TableBody,
@@ -20,6 +23,7 @@ import {
 } from '@repo/ui/shadcn/table';
 import { ChevronLeftIcon, ChevronRightIcon } from '@/modules/dashboard/lib/dashboard-icons';
 
+import { AuditLogDetailDrawer } from './audit-log-detail-drawer';
 import { auditLogsColumns } from './audit-logs-columns';
 
 const PAGE_SIZE = 8;
@@ -61,6 +65,8 @@ export function AuditLogsTable({
   globalFilter,
   onGlobalFilterChange,
 }: AuditLogsTableProps) {
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+
   const table = useReactTable({
     data: entries,
     columns: auditLogsColumns,
@@ -74,6 +80,18 @@ export function AuditLogsTable({
       pagination: { pageSize: PAGE_SIZE },
     },
   });
+
+  const toggleRow = (id: string) => {
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   if (entries.length === 0) {
     return (
@@ -102,6 +120,7 @@ export function AuditLogsTable({
       <Table className="w-full border-collapse text-[13.5px]">
         <TableHeader>
           <TableRow className="border-0 hover:bg-transparent">
+            <TableHead className={HEAD_CLASS} style={{ width: 36 }} />
             {table.getHeaderGroups().map((headerGroup) =>
               headerGroup.headers.map((header) => (
                 <TableHead
@@ -119,18 +138,53 @@ export function AuditLogsTable({
         </TableHeader>
         <TableBody>
           {table.getRowModel().rows.length > 0 ? (
-            table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id} className="border-0 hover:bg-[#FAFBFD]">
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id} className={CELL_CLASS}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
+            table.getRowModel().rows.map((row) => {
+              const isExpanded = expandedRows.has(row.original.id);
+              return (
+                <Collapsible
+                  key={row.id}
+                  open={isExpanded}
+                  onOpenChange={() => toggleRow(row.original.id)}
+                >
+                  <TableRow
+                    data-testid={`audit-log-row-${row.original.id}`}
+                    className="border-0 hover:bg-[#FAFBFD]"
+                  >
+                    <TableCell className={CELL_CLASS} style={{ width: 36 }}>
+                      <CollapsibleTrigger asChild>
+                        <button
+                          type="button"
+                          data-testid={`audit-log-row-expand-${row.original.id}`}
+                          className="flex items-center justify-center p-0.5"
+                          aria-label={isExpanded ? 'Collapse row' : 'Expand row'}
+                        >
+                          {isExpanded ? (
+                            <ChevronDown className="h-3.5 w-3.5" />
+                          ) : (
+                            <ChevronRight className="h-3.5 w-3.5" />
+                          )}
+                        </button>
+                      </CollapsibleTrigger>
+                    </TableCell>
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id} className={CELL_CLASS}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                  <CollapsibleContent asChild>
+                    <tr>
+                      <td colSpan={auditLogsColumns.length + 1} className="p-0">
+                        <AuditLogDetailDrawer entry={row.original} />
+                      </td>
+                    </tr>
+                  </CollapsibleContent>
+                </Collapsible>
+              );
+            })
           ) : (
             <TableRow className="border-0 hover:bg-transparent">
-              <TableCell colSpan={auditLogsColumns.length} className="px-4 py-12 text-center">
+              <TableCell colSpan={auditLogsColumns.length + 1} className="px-4 py-12 text-center">
                 <span className="text-dash-muted text-[14px]">No audit log entries found</span>
               </TableCell>
             </TableRow>

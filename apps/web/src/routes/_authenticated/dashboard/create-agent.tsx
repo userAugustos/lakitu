@@ -6,8 +6,8 @@ import { AnimatePresence, motion } from 'motion/react';
 import { ClawkeyStep } from '@/modules/dashboard/components/clawkey-step';
 import { DoneStep } from '@/modules/dashboard/components/done-step';
 import { NamingStep } from '@/modules/dashboard/components/naming-step';
-import { PermissionsStep } from '@/modules/dashboard/components/permissions-step';
 import { StepIndicator } from '@/modules/dashboard/components/step-indicator';
+import { ToolAccessStep } from '@/modules/dashboard/components/tool-access-step';
 import { createAgentMachine } from '@/modules/dashboard/create-agent.machine';
 import { slideVariants } from '@/modules/dashboard/lib/motion.config';
 
@@ -27,10 +27,8 @@ export const Route = createFileRoute('/_authenticated/dashboard/create-agent')({
 
 function CreateAgentPage() {
   const [state, send] = useMachine(createAgentMachine);
-  const { screen, name, agent, privateKey, registrationUrl, grantedPermissions, error } =
-    state.context;
+  const { screen, name, agent, privateKey, registrationUrl, error } = state.context;
   const isSubmitting = state.matches('creating');
-  const isGranting = state.matches({ permissions: 'granting' });
   const isBypassing = state.matches({ clawkey: 'bypassing' });
   const currentStep = SCREEN_TO_STEP[screen] ?? 1;
 
@@ -47,15 +45,10 @@ function CreateAgentPage() {
         );
       case 'permissions':
         return (
-          <PermissionsStep
+          <ToolAccessStep
+            agentId={agent!.id}
             agentName={agent?.name ?? name}
-            grantedPermissions={grantedPermissions}
-            onAddPermission={(action, policyLimits) =>
-              send({ type: 'ADD_PERMISSION', action, policyLimits })
-            }
             onContinue={() => send({ type: 'CONTINUE' })}
-            isGranting={isGranting}
-            error={error?.message ?? null}
           />
         );
       case 'clawkey':

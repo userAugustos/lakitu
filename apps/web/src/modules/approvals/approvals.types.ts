@@ -16,6 +16,6 @@ export type ApprovalsEvent =
   | {
       type: 'SUBMIT_SIMULATE';
       agent_id: string;
-      action: string;
+      tool_key: string;
       context?: Record<string, unknown>;
     };

@@ -29,7 +29,7 @@ export const approvalsMachine = setup({
       async ({
         input,
       }: {
-        input: { agent_id: string; action: string; context?: Record<string, unknown> };
+        input: { agent_id: string; tool_key: string; context?: Record<string, unknown> };
       }) => {
         // Dev-only route — conditional Elysia plugin makes Eden type a union
         const simulate = (lakituAuthApi['pending-actions'] as Record<string, unknown>).simulate as {
@@ -40,7 +40,7 @@ export const approvalsMachine = setup({
         return apiCall<PendingAction>(() =>
           simulate.post({
             agent_id: input.agent_id,
-            action: input.action,
+            tool_key: input.tool_key,
             context: input.context ?? {},
           })
         );
@@ -142,10 +142,10 @@ export const approvalsMachine = setup({
           const e = event as {
             type: 'SUBMIT_SIMULATE';
             agent_id: string;
-            action: string;
+            tool_key: string;
             context?: Record<string, unknown>;
           };
-          return { agent_id: e.agent_id, action: e.action, context: e.context };
+          return { agent_id: e.agent_id, tool_key: e.tool_key, context: e.context };
         },
         onDone: {
           target: 'list',
