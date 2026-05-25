@@ -1,13 +1,13 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useMachine } from '@xstate/react';
+import { useActor } from '@xstate/react';
 import { Loader2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 
 import { ClawkeyStep } from '@/modules/dashboard/components/clawkey-step';
 import { DoneStep } from '@/modules/dashboard/components/done-step';
 import { NamingStep } from '@/modules/dashboard/components/naming-step';
-import { PermissionsStep } from '@/modules/dashboard/components/permissions-step';
 import { StepIndicator } from '@/modules/dashboard/components/step-indicator';
+import { ToolAccessStep } from '@/modules/dashboard/components/tool-access-step';
 import { createAgentMachine } from '@/modules/dashboard/create-agent.machine';
 import { slideVariants } from '@/modules/dashboard/lib/motion.config';
 
@@ -26,13 +26,12 @@ export const Route = createFileRoute('/_authenticated/dashboard/create-agent')({
 });
 
 function CreateAgentPage() {
-  const [state, send] = useMachine(createAgentMachine);
-  const { screen, name, agent, privateKey, registrationUrl, grantedPermissions, error } =
-    state.context;
-  const isSubmitting = state.matches('creating');
-  const isGranting = state.matches({ permissions: 'granting' });
-  const isBypassing = state.matches({ clawkey: 'bypassing' });
+  const [snapshot, send] = useActor(createAgentMachine);
+  const { screen, name, agent, privateKey, registrationUrl, error } = snapshot.context;
+  const isSubmitting = snapshot.matches('creating');
+  const isBypassing = snapshot.matches({ clawkey: 'bypassing' });
   const currentStep = SCREEN_TO_STEP[screen] ?? 1;
+  const viewKey = screen === 'creating' ? 'naming' : screen;
 
   const content = (() => {
     switch (screen) {
@@ -47,15 +46,11 @@ function CreateAgentPage() {
         );
       case 'permissions':
         return (
-          <PermissionsStep
+          <ToolAccessStep
+            snapshot={snapshot}
+            send={send}
+            agentId={agent!.id}
             agentName={agent?.name ?? name}
-            grantedPermissions={grantedPermissions}
-            onAddPermission={(action, policyLimits) =>
-              send({ type: 'ADD_PERMISSION', action, policyLimits })
-            }
-            onContinue={() => send({ type: 'CONTINUE' })}
-            isGranting={isGranting}
-            error={error?.message ?? null}
           />
         );
       case 'clawkey':
@@ -86,7 +81,7 @@ function CreateAgentPage() {
       <div className="border-dash-line overflow-hidden rounded-2xl border bg-white p-8">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
-            key={screen}
+            key={viewKey}
             variants={slideVariants}
             initial="hiddenRight"
             animate="visible"

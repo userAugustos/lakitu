@@ -15,7 +15,14 @@ export interface CreateAgentContext {
 
 export type CreateAgentEvent =
   | { type: 'SUBMIT_NAME'; name: string }
-  | { type: 'ADD_PERMISSION'; action: string; policyLimits?: Record<string, unknown> | null }
+  | {
+      type: 'ADD_PERMISSION';
+      toolKey: string;
+      policyLimits?: Record<string, unknown> | null;
+      autoApprove?: boolean;
+    }
+  | { type: 'REMOVE_PERMISSION'; toolKey: string }
+  | { type: 'CLEAR_ERROR' }
   | { type: 'CONTINUE' }
   | { type: 'CONFIRM' }
   | { type: 'BYPASS_CLAWKEY' };

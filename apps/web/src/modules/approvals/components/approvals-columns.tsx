@@ -1,6 +1,11 @@
+import { useQuery } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 
 import type { PendingAction } from '@lakitu/api/pending-actions';
+
+import { RiskBadge } from '@repo/ui/components/risk-badge';
+import type { RiskLevel } from '@repo/ui/components/risk-badge';
+import { toolsQueryOptions } from '@/modules/tools/lib/tools-query';
 
 import { ApprovalStatusBadge } from './approval-status-badge';
 
@@ -27,6 +32,13 @@ function formatEpochAbsolute(epoch: number): string {
   });
 }
 
+function RiskCell({ toolKey }: { toolKey: string }) {
+  const { data } = useQuery(toolsQueryOptions());
+  const tool = data?.tools.find((t) => t.key === toolKey);
+  if (!tool) return null;
+  return <RiskBadge level={tool.risk_level as RiskLevel} />;
+}
+
 export const approvalsColumns: ColumnDef<PendingAction>[] = [
   {
     accessorKey: 'agent_name',
@@ -37,12 +49,18 @@ export const approvalsColumns: ColumnDef<PendingAction>[] = [
     ),
   },
   {
-    accessorKey: 'action',
-    header: 'Action',
+    accessorKey: 'tool_key',
+    header: 'Tool',
     size: 200,
     cell: ({ row }) => (
-      <span className="text-dash-ink-2 font-mono text-[12.5px]">{row.original.action}</span>
+      <span className="text-dash-ink-2 font-mono text-[12.5px]">{row.original.tool_key}</span>
     ),
+  },
+  {
+    id: 'risk',
+    header: 'Risk',
+    size: 100,
+    cell: ({ row }) => <RiskCell toolKey={row.original.tool_key} />,
   },
   {
     accessorKey: 'policy_hit',

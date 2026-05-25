@@ -1,5 +1,3 @@
-console.debug(import.meta.env);
-
 const required = (key: string, value: string | undefined): string => {
   if (!value) throw new Error(`Missing required env: VITE_${key}`);
   return value;

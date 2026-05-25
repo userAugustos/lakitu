@@ -99,6 +99,33 @@ export const ListAuditLogsQuerySchema = z.object({
 
 export type ListAuditLogsQuery = z.infer<typeof ListAuditLogsQuerySchema>;
 
+export type VerifyChainResponse =
+  | { valid: true; chain_length: number }
+  | {
+      valid: false;
+      chain_length: number;
+      broken_at: {
+        id: string;
+        created_at: number;
+        expected_previous_hash: string;
+        actual_previous_hash: string;
+        reason: 'previous_hash_mismatch' | 'row_hash_mismatch';
+      };
+    };
+
+const BrokenAtSchema = z.object({
+  id: z.string(),
+  created_at: z.number(),
+  expected_previous_hash: z.string(),
+  actual_previous_hash: z.string(),
+  reason: z.enum(['previous_hash_mismatch', 'row_hash_mismatch']),
+});
+
+export const VerifyChainResponseSchema = z.discriminatedUnion('valid', [
+  z.object({ valid: z.literal(true), chain_length: z.number() }),
+  z.object({ valid: z.literal(false), chain_length: z.number(), broken_at: BrokenAtSchema }),
+]);
+
 export const AuditLogListEntrySchema = AuditLogEntrySchema.extend({
   agent_name: z.string(),
 });

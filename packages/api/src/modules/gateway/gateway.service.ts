@@ -4,6 +4,7 @@ import { auditLogService } from '@api/modules/audit-log/audit-log.service';
 import { authRepository } from '@api/modules/auth/auth.repository';
 import { pendingActionsService } from '@api/modules/pending-actions/pending-actions.service';
 import { permissionsRepository } from '@api/modules/permissions/permissions.repository';
+import { getToolByKey } from '@api/modules/tools/catalog';
 import { LOG_DOMAINS, logger } from '@core/logger';
 import { getRequestContext } from '@core/request-context';
 
@@ -26,7 +27,7 @@ function denyResponse(reasons: string[], auditId: string): GatewayDecideResponse
   return { decision: 'deny', reasons, audit_id: auditId };
 }
 
-async function writeAudit(
+function writeAudit(
   auditId: string,
   agentId: string,
   ownerId: string,
@@ -37,7 +38,7 @@ async function writeAudit(
   policyHit: string | null,
   context: Record<string, unknown>
 ) {
-  await auditLogService.append({
+  auditLogService.safeAppend({
     audit_id: auditId,
     agent_id: agentId,
     owner_id: ownerId,
@@ -70,12 +71,12 @@ async function decide(
 
   const signatureValid = verifyAgentSignature(body, signatureHeader, agent.ed25519PublicKey);
   if (!signatureValid) {
-    await writeAudit(
+    writeAudit(
       auditId,
       agent.id,
       agent.ownerId,
       agent.companyId,
-      body.action,
+      body.tool_key,
       'deny',
       ['invalid signature'],
       null,
@@ -85,12 +86,12 @@ async function decide(
   }
 
   if (Math.abs(Date.now() - body.timestamp) > REPLAY_WINDOW_MS) {
-    await writeAudit(
+    writeAudit(
       auditId,
       agent.id,
       agent.ownerId,
       agent.companyId,
-      body.action,
+      body.tool_key,
       'deny',
       ['replay detected: timestamp outside 5-minute window'],
       null,
@@ -100,12 +101,12 @@ async function decide(
   }
 
   if (agent.status !== 'active') {
-    await writeAudit(
+    writeAudit(
       auditId,
       agent.id,
       agent.ownerId,
       agent.companyId,
-      body.action,
+      body.tool_key,
       'deny',
       ['agent revoked'],
       null,
@@ -115,12 +116,12 @@ async function decide(
   }
 
   if (!agent.clawkeySessionId) {
-    await writeAudit(
+    writeAudit(
       auditId,
       agent.id,
       agent.ownerId,
       agent.companyId,
-      body.action,
+      body.tool_key,
       'deny',
       ['no clawkey binding'],
       null,
@@ -131,12 +132,12 @@ async function decide(
 
   const clawkeyStatus = await clawkeyClient.getSessionStatus(agent.clawkeySessionId);
   if (clawkeyStatus.status !== 'completed') {
-    await writeAudit(
+    writeAudit(
       auditId,
       agent.id,
       agent.ownerId,
       agent.companyId,
-      body.action,
+      body.tool_key,
       'deny',
       ['clawkey binding not completed'],
       null,
@@ -152,12 +153,12 @@ async function decide(
   }
 
   if (owner.veryAiStatus !== 'verified') {
-    await writeAudit(
+    writeAudit(
       auditId,
       agent.id,
       agent.ownerId,
       agent.companyId,
-      body.action,
+      body.tool_key,
       'deny',
       ['owner identity not verified'],
       null,
@@ -167,12 +168,12 @@ async function decide(
   }
 
   if (owner.companyId !== agent.companyId) {
-    await writeAudit(
+    writeAudit(
       auditId,
       agent.id,
       agent.ownerId,
       agent.companyId,
-      body.action,
+      body.tool_key,
       'deny',
       ['owner no longer member of agent company'],
       null,
@@ -181,14 +182,14 @@ async function decide(
     return denyResponse(['owner no longer member of agent company'], auditId);
   }
 
-  const permission = await permissionsRepository.findByAgentAndAction(agent.id, body.action);
+  const permission = permissionsRepository.findByAgentAndToolKey(agent.id, body.tool_key);
   if (!permission) {
-    await writeAudit(
+    writeAudit(
       auditId,
       agent.id,
       agent.ownerId,
       agent.companyId,
-      body.action,
+      body.tool_key,
       'deny',
       ['no permission for action'],
       null,
@@ -204,12 +205,12 @@ async function decide(
     try {
       rawParsed = JSON.parse(permission.policyLimits);
     } catch {
-      await writeAudit(
+      writeAudit(
         auditId,
         agent.id,
         agent.ownerId,
         agent.companyId,
-        body.action,
+        body.tool_key,
         'deny',
         ['malformed policy limits'],
         permission.policyLimits,
@@ -219,12 +220,12 @@ async function decide(
     }
     const parsed = PolicyLimitsSchema.safeParse(rawParsed);
     if (!parsed.success) {
-      await writeAudit(
+      writeAudit(
         auditId,
         agent.id,
         agent.ownerId,
         agent.companyId,
-        body.action,
+        body.tool_key,
         'deny',
         ['malformed policy limits'],
         permission.policyLimits,
@@ -239,12 +240,12 @@ async function decide(
 
     if (!evaluation.passed) {
       policyHit = permission.policyLimits;
-      await writeAudit(
+      writeAudit(
         auditId,
         agent.id,
         agent.ownerId,
         agent.companyId,
-        body.action,
+        body.tool_key,
         'deny',
         evaluation.violations,
         policyHit,
@@ -252,45 +253,65 @@ async function decide(
       );
       return denyResponse(evaluation.violations, auditId);
     }
-
-    if (evaluation.requires_approval) {
-      policyHit = permission.policyLimits;
-      await writeAudit(
-        auditId,
-        agent.id,
-        agent.ownerId,
-        agent.companyId,
-        body.action,
-        'approval_required',
-        ['requires approval per policy'],
-        policyHit,
-        body.context
-      );
-
-      const pendingAction = await pendingActionsService.create({
-        agent_id: agent.id,
-        action: body.action,
-        context: body.context,
-        policy_hit: permission.policyLimits,
-        audit_id: auditId,
-        expires_at: Date.now() + APPROVAL_EXPIRY_MS,
-      });
-
-      return {
-        decision: 'approval_required',
-        reasons: ['requires approval per policy'],
-        audit_id: auditId,
-        pending_action_id: pendingAction.id,
-      };
-    }
   }
 
-  await writeAudit(
+  const tool = getToolByKey(body.tool_key);
+  if (!tool) {
+    writeAudit(
+      auditId,
+      agent.id,
+      agent.ownerId,
+      agent.companyId,
+      body.tool_key,
+      'deny',
+      ['tool_unknown'],
+      null,
+      body.context
+    );
+    return denyResponse(['tool_unknown'], auditId);
+  }
+
+  const { risk_level } = tool;
+
+  const needsApproval =
+    risk_level === 'critical' || (risk_level === 'high' && !permission.autoApprove);
+
+  if (needsApproval) {
+    writeAudit(
+      auditId,
+      agent.id,
+      agent.ownerId,
+      agent.companyId,
+      body.tool_key,
+      'approval_required',
+      ['manual approval required'],
+      policyHit,
+      body.context
+    );
+
+    const pendingAction = await pendingActionsService.create({
+      agent_id: agent.id,
+      tool_key: body.tool_key,
+      context: body.context,
+      policy_hit: permission.policyLimits ?? '',
+      audit_id: auditId,
+      expires_at: Date.now() + APPROVAL_EXPIRY_MS,
+    });
+
+    return {
+      decision: 'approval_required',
+      reasons: ['manual approval required'],
+      audit_id: auditId,
+      pending_action_id: pendingAction.id,
+    };
+  }
+
+  writeAudit(
     auditId,
     agent.id,
     agent.ownerId,
     agent.companyId,
-    body.action,
+    body.tool_key,
     'allow',
     [],
     policyHit,

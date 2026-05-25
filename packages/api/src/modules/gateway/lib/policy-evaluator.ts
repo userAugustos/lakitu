@@ -6,7 +6,6 @@ export function evaluatePolicy(
   nowUtcHour: number
 ): PolicyEvaluation {
   const violations: string[] = [];
-  let requires_approval = false;
 
   if (policyLimits.max_amount !== undefined) {
     const amount = context.amount;
@@ -32,13 +31,8 @@ export function evaluatePolicy(
     }
   }
 
-  if (policyLimits.requires_approval) {
-    requires_approval = true;
-  }
-
   return {
     passed: violations.length === 0,
     violations,
-    requires_approval,
   };
 }

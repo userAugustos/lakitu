@@ -1,6 +1,7 @@
 import {
   flexRender,
   getCoreRowModel,
+  getExpandedRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   useReactTable,
@@ -21,13 +22,12 @@ import {
 import { ChevronLeftIcon, ChevronRightIcon } from '@/modules/dashboard/lib/dashboard-icons';
 
 import { auditLogsColumns } from './audit-logs-columns';
+import { ExpandedLogView } from './expanded-log-view';
 
 const PAGE_SIZE = 8;
 
 const HEAD_CLASS =
   'text-dash-muted bg-[#FAFBFD] px-4 py-3 text-left text-[11.5px] font-semibold tracking-[0.04em] whitespace-nowrap uppercase border-dash-line border-b';
-
-const CELL_CLASS = 'border-dash-line-3 border-b px-4 py-3.5 align-middle';
 
 const auditLogGlobalFilter: FilterFn<AuditLogListEntry> = (row, _columnId, filterValue) => {
   const query = String(filterValue ?? '')
@@ -66,9 +66,11 @@ export function AuditLogsTable({
     columns: auditLogsColumns,
     state: { globalFilter },
     onGlobalFilterChange,
+    getRowId: (row) => row.id,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
     globalFilterFn: auditLogGlobalFilter,
     initialState: {
       pagination: { pageSize: PAGE_SIZE },
@@ -102,6 +104,7 @@ export function AuditLogsTable({
       <Table className="w-full border-collapse text-[13.5px]">
         <TableHeader>
           <TableRow className="border-0 hover:bg-transparent">
+            <TableHead className={HEAD_CLASS} style={{ width: 36 }} />
             {table.getHeaderGroups().map((headerGroup) =>
               headerGroup.headers.map((header) => (
                 <TableHead
@@ -119,18 +122,14 @@ export function AuditLogsTable({
         </TableHeader>
         <TableBody>
           {table.getRowModel().rows.length > 0 ? (
-            table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id} className="border-0 hover:bg-[#FAFBFD]">
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id} className={CELL_CLASS}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
+            table
+              .getRowModel()
+              .rows.map((row) => (
+                <ExpandedLogView key={row.id} row={row} columnCount={auditLogsColumns.length + 1} />
+              ))
           ) : (
             <TableRow className="border-0 hover:bg-transparent">
-              <TableCell colSpan={auditLogsColumns.length} className="px-4 py-12 text-center">
+              <TableCell colSpan={auditLogsColumns.length + 1} className="px-4 py-12 text-center">
                 <span className="text-dash-muted text-[14px]">No audit log entries found</span>
               </TableCell>
             </TableRow>

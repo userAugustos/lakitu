@@ -7,7 +7,7 @@ export const AGENT_STATUS_VALUES = ['active', 'revoked'] as const;
 export type AgentStatusValue = (typeof AGENT_STATUS_VALUES)[number];
 
 export interface AgentPermissionSummary {
-  action: string;
+  tool_key: string;
   policy_limits: Record<string, unknown> | null;
 }
 
@@ -52,7 +52,7 @@ export interface RotateKeyResponse {
 }
 
 export const AgentPermissionSummarySchema = z.object({
-  action: z.string(),
+  tool_key: z.string(),
   policy_limits: z.record(z.unknown()).nullable(),
 });
 

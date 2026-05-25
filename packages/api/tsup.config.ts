@@ -13,6 +13,7 @@ export default defineConfig((options) => ({
     permissions: 'src/sdk/permissions.ts',
     'audit-log': 'src/sdk/audit-log.ts',
     gateway: 'src/sdk/gateway.ts',
+    tools: 'src/sdk/tools.ts',
   },
   format: ['esm'],
   dts: true,

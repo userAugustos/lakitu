@@ -1,65 +1,43 @@
-import { and, asc, eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import { db } from '@api/db/client';
-import { agentPermissions, permissionAuditLog } from '@api/db/schema';
-import type {
-  AgentPermissionRow,
-  NewAgentPermissionRow,
-  NewPermissionAuditLogRow,
-  PermissionAuditLogRow,
-} from '@api/db/schema';
+import { agentPermissions } from '@api/db/schema';
+import type { AgentPermissionRow, NewAgentPermissionRow } from '@api/db/schema';
 
-async function findByAgentId(agentId: string): Promise<AgentPermissionRow[]> {
-  return db.select().from(agentPermissions).where(eq(agentPermissions.agentId, agentId));
+function findByAgentId(agentId: string): AgentPermissionRow[] {
+  return db.select().from(agentPermissions).where(eq(agentPermissions.agentId, agentId)).all();
 }
 
-async function findByAgentAndAction(
-  agentId: string,
-  action: string
-): Promise<AgentPermissionRow | undefined> {
-  const rows = await db
+function findByAgentAndToolKey(agentId: string, toolKey: string): AgentPermissionRow | undefined {
+  return db
     .select()
     .from(agentPermissions)
-    .where(and(eq(agentPermissions.agentId, agentId), eq(agentPermissions.action, action)))
-    .limit(1);
-  return rows[0];
+    .where(and(eq(agentPermissions.agentId, agentId), eq(agentPermissions.toolKey, toolKey)))
+    .limit(1)
+    .get();
 }
 
-async function create(input: NewAgentPermissionRow): Promise<AgentPermissionRow> {
-  const inserted = await db.insert(agentPermissions).values(input).returning();
-  return inserted[0]!;
+function create(input: NewAgentPermissionRow): AgentPermissionRow {
+  return db.insert(agentPermissions).values(input).returning().get()!;
 }
 
-function updatePolicyLimits(id: string, policyLimits: string | null): void {
-  db.update(agentPermissions)
-    .set({ policyLimits, updatedAt: new Date() })
-    .where(eq(agentPermissions.id, id))
-    .run();
+function update(id: string, fields: { policyLimits?: string | null; autoApprove?: boolean }): void {
+  const setValues: Partial<typeof agentPermissions.$inferInsert> & { updatedAt: Date } = {
+    updatedAt: new Date(),
+  };
+  if (fields.policyLimits !== undefined) setValues.policyLimits = fields.policyLimits;
+  if (fields.autoApprove !== undefined) setValues.autoApprove = fields.autoApprove;
+  db.update(agentPermissions).set(setValues).where(eq(agentPermissions.id, id)).run();
 }
 
 function deleteById(id: string): void {
   db.delete(agentPermissions).where(eq(agentPermissions.id, id)).run();
 }
 
-async function createAuditEntry(input: NewPermissionAuditLogRow): Promise<PermissionAuditLogRow> {
-  const inserted = await db.insert(permissionAuditLog).values(input).returning();
-  return inserted[0]!;
-}
-
-async function findAuditByAgentId(agentId: string): Promise<PermissionAuditLogRow[]> {
-  return db
-    .select()
-    .from(permissionAuditLog)
-    .where(eq(permissionAuditLog.agentId, agentId))
-    .orderBy(asc(permissionAuditLog.createdAt));
-}
-
 export const permissionsRepository = {
   findByAgentId,
-  findByAgentAndAction,
+  findByAgentAndToolKey,
   create,
-  updatePolicyLimits,
+  update,
   deleteById,
-  createAuditEntry,
-  findAuditByAgentId,
 };

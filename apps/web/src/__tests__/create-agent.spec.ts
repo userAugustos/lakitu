@@ -22,15 +22,43 @@ const MOCK_AGENT_RESPONSE = {
   registration_url: 'https://api.ag9.ai/v1/agent/register/session_e2e_test',
 };
 
-const MOCK_PERMISSION_RESPONSE = {
-  permission: {
-    id: 'perm_e2e_001',
-    agent_id: 'agt_e2e_test_001',
-    action: 'read:emails',
-    policy_limits: null,
-    created_at: Date.now(),
-    updated_at: Date.now(),
-  },
+const MOCK_TOOLS_RESPONSE = {
+  tools: [
+    {
+      key: 'gmail.messages.read',
+      provider: 'gmail',
+      resource: 'messages',
+      verb: 'read',
+      label: 'Read messages',
+      description: 'Read emails from a Gmail inbox.',
+      risk_level: 'low',
+      policy_fields: [],
+    },
+    {
+      key: 'stripe.charges.create',
+      provider: 'stripe',
+      resource: 'charges',
+      verb: 'create',
+      label: 'Create charge',
+      description: 'Create a new charge in Stripe.',
+      risk_level: 'high',
+      policy_fields: [
+        { key: 'max_amount', label: 'Max amount', type: 'number', placeholder: '1000' },
+      ],
+    },
+    {
+      key: 'stripe.refunds.create',
+      provider: 'stripe',
+      resource: 'refunds',
+      verb: 'create',
+      label: 'Create refund',
+      description: 'Initiate a refund on a Stripe charge.',
+      risk_level: 'critical',
+      policy_fields: [
+        { key: 'max_amount', label: 'Max amount', type: 'number', placeholder: '1000' },
+      ],
+    },
+  ],
 };
 
 function interceptAgentCreation(page: Page) {
@@ -46,26 +74,46 @@ function interceptAgentCreation(page: Page) {
   });
 }
 
-function interceptPermissionGrant(page: Page) {
-  let permissionCounter = 0;
+function interceptToolsCatalog(page: Page) {
+  return page.route('**/tools', (route) => {
+    if (route.request().method() === 'GET') {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(MOCK_TOOLS_RESPONSE),
+      });
+    }
+    return route.continue();
+  });
+}
 
+let permissionGrantCounter = 0;
+
+function interceptPermissionGrant(page: Page) {
   return page.route('**/agents/*/permissions', (route) => {
     if (route.request().method() === 'POST') {
-      permissionCounter += 1;
+      permissionGrantCounter += 1;
       const body = route.request().postDataJSON() as {
-        action: string;
+        tool_key: string;
         policy_limits?: Record<string, unknown> | null;
+        auto_approve?: boolean;
       };
+
+      const tool = MOCK_TOOLS_RESPONSE.tools.find((t) => t.key === body.tool_key);
 
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
           permission: {
-            ...MOCK_PERMISSION_RESPONSE.permission,
-            id: `perm_e2e_${permissionCounter.toString().padStart(3, '0')}`,
-            action: body.action,
+            id: `perm_e2e_${permissionGrantCounter.toString().padStart(3, '0')}`,
+            agent_id: MOCK_AGENT_RESPONSE.agent.id,
+            tool_key: body.tool_key,
             policy_limits: body.policy_limits ?? null,
+            auto_approve: body.auto_approve ?? false,
+            created_at: Date.now(),
+            updated_at: Date.now(),
+            risk_level: tool?.risk_level ?? 'low',
           },
         }),
       });
@@ -76,8 +124,10 @@ function interceptPermissionGrant(page: Page) {
 
 test.describe('Create Agent flow', () => {
   test.beforeEach(async ({ page }) => {
+    permissionGrantCounter = 0;
     await setupAuthenticatedPage(page);
     await interceptAgentCreation(page);
+    await interceptToolsCatalog(page);
     await interceptPermissionGrant(page);
   });
 
@@ -97,17 +147,17 @@ test.describe('Create Agent flow', () => {
     await expect(page.getByText('Agent name is required')).toBeVisible();
   });
 
-  test('happy path: name -> permissions -> clawkey -> done', async ({ page }) => {
+  test('happy path: name -> tool access step -> clawkey -> done', async ({ page }) => {
     await page.goto('/dashboard/create-agent');
 
     await page.getByTestId('agent-name-input').fill('E2E Test Agent');
     await page.getByTestId('create-agent-submit').click();
 
-    await expect(page.getByTestId('permission-action-input')).toBeVisible();
-    await expect(page.getByText(/Permissions for E2E Test Agent/)).toBeVisible();
-    await expect(page.getByTestId('permissions-continue')).toBeVisible();
+    await expect(page.getByTestId('tool-select-trigger')).toBeVisible();
+    await expect(page.getByText(/Tool Access for E2E Test Agent/)).toBeVisible();
+    await expect(page.getByTestId('tool-access-continue')).toBeVisible();
 
-    await page.getByTestId('permissions-continue').click();
+    await page.getByTestId('tool-access-continue').click();
 
     await expect(page.getByTestId('clawkey-registration-url')).toBeVisible();
     await expect(page.getByTestId('private-key-display')).toBeVisible();
@@ -120,55 +170,100 @@ test.describe('Create Agent flow', () => {
     await expect(page.getByText('Agent E2E Test Agent is live')).toBeVisible();
   });
 
-  test('permissions step: add a default permission before continuing', async ({ page }) => {
-    await page.goto('/dashboard/create-agent');
-
-    await page.getByTestId('agent-name-input').fill('Permission Test Agent');
-    await page.getByTestId('create-agent-submit').click();
-
-    await expect(page.getByTestId('permission-action-select')).toBeVisible();
-
-    await page.getByTestId('permission-action-select').click();
-    await page.getByRole('option', { name: 'Read emails' }).click();
-    await page.getByTestId('add-permission-submit').click();
-
-    await expect(page.getByText('read:emails')).toBeVisible();
-
-    await page.getByTestId('permissions-continue').click();
-
-    await expect(page.getByTestId('clawkey-registration-url')).toBeVisible();
-  });
-
-  test('permissions step: collects transaction policy limits for create transaction', async ({
+  test('tool access step: granting gmail.messages.read (Low) shows LOW badge and no auto-approve toggle', async ({
     page,
   }) => {
-    let grantBody: { action: string; policy_limits?: Record<string, unknown> | null } | null = null;
+    await page.goto('/dashboard/create-agent');
+
+    await page.getByTestId('agent-name-input').fill('Low Risk Agent');
+    await page.getByTestId('create-agent-submit').click();
+
+    await expect(page.getByTestId('tool-select-trigger')).toBeVisible();
+
+    await page.getByTestId('tool-select-trigger').click();
+    await page.getByTestId('tool-select-option-gmail.messages.read').click();
+
+    await expect(page.getByTestId('tool-risk-badge')).toBeVisible();
+    await expect(page.getByTestId('tool-risk-badge')).toContainText('LOW');
+
+    await expect(page.getByTestId('auto-approve-toggle')).not.toBeVisible();
+
+    await page.getByTestId('tool-access-submit').click();
+
+    await expect(page.getByTestId('granted-tool-row-gmail.messages.read')).toBeVisible();
+  });
+
+  test('tool access step: granting stripe.charges.create (High) shows auto-approve toggle', async ({
+    page,
+  }) => {
+    const grantBodies: Array<{ tool_key: string; auto_approve?: boolean }> = [];
     page.on('request', (request) => {
       if (request.method() === 'POST' && request.url().includes('/permissions')) {
-        grantBody = request.postDataJSON() as typeof grantBody;
+        grantBodies.push(request.postDataJSON() as { tool_key: string; auto_approve?: boolean });
       }
     });
 
     await page.goto('/dashboard/create-agent');
 
-    await page.getByTestId('agent-name-input').fill('Policy Test Agent');
+    await page.getByTestId('agent-name-input').fill('High Risk Agent');
     await page.getByTestId('create-agent-submit').click();
 
-    await page.getByTestId('permission-action-select').click();
-    await page.getByRole('option', { name: 'Create transaction' }).click();
+    await expect(page.getByTestId('tool-select-trigger')).toBeVisible();
 
-    await expect(page.getByTestId('policy-max-value-input')).toBeVisible();
-    await expect(page.getByTestId('policy-max-by-day-input')).toBeVisible();
+    await page.getByTestId('tool-select-trigger').click();
+    await page.getByTestId('tool-select-option-stripe.charges.create').click();
 
-    await page.getByTestId('policy-max-value-input').fill('2500');
-    await page.getByTestId('policy-max-by-day-input').fill('7');
-    await page.getByTestId('add-permission-submit').click();
+    await expect(page.getByTestId('tool-risk-badge')).toContainText('HIGH');
+    await expect(page.getByTestId('auto-approve-toggle')).toBeVisible();
 
-    expect(grantBody).toEqual({
-      action: 'create:transaction',
-      policy_limits: { max_value: 2500, max_by_day: 7 },
-    });
-    await expect(page.getByText('max_value')).toBeVisible();
+    await expect(page.getByTestId('critical-tool-banner')).not.toBeVisible();
+
+    await page.getByTestId('auto-approve-toggle').click();
+
+    await page.getByTestId('tool-policy-field-max_amount').fill('500');
+
+    await page.getByTestId('tool-access-submit').click();
+
+    await expect(page.getByTestId('granted-tool-row-stripe.charges.create')).toBeVisible();
+    expect(grantBodies[0]?.auto_approve).toBe(true);
+  });
+
+  test('tool access step: selecting stripe.refunds.create (Critical) shows critical banner and hides auto-approve toggle', async ({
+    page,
+  }) => {
+    await page.goto('/dashboard/create-agent');
+
+    await page.getByTestId('agent-name-input').fill('Critical Risk Agent');
+    await page.getByTestId('create-agent-submit').click();
+
+    await expect(page.getByTestId('tool-select-trigger')).toBeVisible();
+
+    await page.getByTestId('tool-select-trigger').click();
+    await page.getByTestId('tool-select-option-stripe.refunds.create').click();
+
+    await expect(page.getByTestId('tool-risk-badge')).toContainText('CRITICAL');
+    await expect(page.getByTestId('critical-tool-banner')).toBeVisible();
+    await expect(page.getByTestId('critical-tool-banner')).toContainText(
+      'Every request will require manual approval'
+    );
+
+    await expect(page.getByTestId('auto-approve-toggle')).not.toBeVisible();
+  });
+
+  test('tool access step: continue button skips granting and advances to clawkey', async ({
+    page,
+  }) => {
+    await page.goto('/dashboard/create-agent');
+
+    await page.getByTestId('agent-name-input').fill('Skip Permissions Agent');
+    await page.getByTestId('create-agent-submit').click();
+
+    await expect(page.getByTestId('tool-access-continue')).toBeVisible();
+    await expect(page.getByTestId('tool-access-continue')).toContainText('Skip & continue');
+
+    await page.getByTestId('tool-access-continue').click();
+
+    await expect(page.getByTestId('clawkey-registration-url')).toBeVisible();
   });
 
   test('clawkey step displays the registration URL and private key', async ({ page }) => {
@@ -176,7 +271,7 @@ test.describe('Create Agent flow', () => {
 
     await page.getByTestId('agent-name-input').fill('ClawKey Detail Agent');
     await page.getByTestId('create-agent-submit').click();
-    await page.getByTestId('permissions-continue').click();
+    await page.getByTestId('tool-access-continue').click();
 
     const registrationLink = page.getByTestId('clawkey-registration-url');
     await expect(registrationLink).toBeVisible();
@@ -192,7 +287,7 @@ test.describe('Create Agent flow', () => {
 
     await page.getByTestId('agent-name-input').fill('Redirect Agent');
     await page.getByTestId('create-agent-submit').click();
-    await page.getByTestId('permissions-continue').click();
+    await page.getByTestId('tool-access-continue').click();
     await page.getByTestId('clawkey-continue').click();
 
     await expect(page.getByTestId('agent-done')).toBeVisible();
@@ -201,12 +296,35 @@ test.describe('Create Agent flow', () => {
     await expect(page).toHaveURL(/\/dashboard$/, { timeout: 10_000 });
   });
 
-  test('step indicator reflects current step', async ({ page }) => {
+  test('step indicator reflects current step labels', async ({ page }) => {
     await page.goto('/dashboard/create-agent');
 
     await expect(page.getByText('Name', { exact: true })).toBeVisible();
     await expect(page.getByText('Permissions', { exact: true })).toBeVisible();
     await expect(page.getByText('ClawKey', { exact: true })).toBeVisible();
     await expect(page.getByText('Done', { exact: true })).toBeVisible();
+  });
+
+  test('granted tool row has a revoke button', async ({ page }) => {
+    page.on('request', () => {});
+
+    await page.route('**/agents/*/permissions/gmail.messages.read', (route) => {
+      if (route.request().method() === 'DELETE') {
+        return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+      }
+      return route.continue();
+    });
+
+    await page.goto('/dashboard/create-agent');
+
+    await page.getByTestId('agent-name-input').fill('Revoke Test Agent');
+    await page.getByTestId('create-agent-submit').click();
+
+    await page.getByTestId('tool-select-trigger').click();
+    await page.getByTestId('tool-select-option-gmail.messages.read').click();
+    await page.getByTestId('tool-access-submit').click();
+
+    await expect(page.getByTestId('granted-tool-row-gmail.messages.read')).toBeVisible();
+    await expect(page.getByTestId('granted-tool-revoke-gmail.messages.read')).toBeVisible();
   });
 });

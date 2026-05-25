@@ -24,14 +24,16 @@ export const createAgentMachine = setup({
       }: {
         input: {
           agentId: string;
-          action: string;
+          toolKey: string;
           policyLimits?: Record<string, unknown> | null;
+          autoApprove?: boolean;
         };
       }) => {
         return apiCall<GrantPermissionResponse>(() =>
           lakituAuthApi.agents[input.agentId]!.permissions.post({
-            action: input.action,
+            tool_key: input.toolKey,
             policy_limits: input.policyLimits ?? null,
+            auto_approve: input.autoApprove ?? false,
           })
         );
       }
@@ -102,21 +104,33 @@ export const createAgentMachine = setup({
         idle: {
           on: {
             ADD_PERMISSION: 'granting',
+            REMOVE_PERMISSION: {
+              actions: assign(({ context, event }) => ({
+                grantedPermissions: context.grantedPermissions.filter(
+                  (p) => p.tool_key !== event.toolKey
+                ),
+              })),
+            },
+            CLEAR_ERROR: {
+              actions: assign({ error: null }),
+            },
             CONTINUE: '#createAgent.clawkey',
           },
         },
         granting: {
+          entry: assign({ error: null }),
           invoke: {
             src: 'grantPermissionActor',
             input: ({ context, event }) => ({
               agentId: context.agent!.id,
-              action: (event as { type: 'ADD_PERMISSION'; action: string }).action,
+              toolKey: (event as { type: 'ADD_PERMISSION'; toolKey: string }).toolKey,
               policyLimits: (
                 event as {
                   type: 'ADD_PERMISSION';
                   policyLimits?: Record<string, unknown> | null;
                 }
               ).policyLimits,
+              autoApprove: (event as { type: 'ADD_PERMISSION'; autoApprove?: boolean }).autoApprove,
             }),
             onDone: {
               target: 'idle',

@@ -29,7 +29,7 @@ export const approvalsMachine = setup({
       async ({
         input,
       }: {
-        input: { agent_id: string; action: string; context?: Record<string, unknown> };
+        input: { agent_id: string; tool_key: string; context?: Record<string, unknown> };
       }) => {
         // Dev-only route — conditional Elysia plugin makes Eden type a union
         const simulate = (lakituAuthApi['pending-actions'] as Record<string, unknown>).simulate as {
@@ -40,7 +40,7 @@ export const approvalsMachine = setup({
         return apiCall<PendingAction>(() =>
           simulate.post({
             agent_id: input.agent_id,
-            action: input.action,
+            tool_key: input.tool_key,
             context: input.context ?? {},
           })
         );
@@ -63,14 +63,13 @@ export const approvalsMachine = setup({
 
   states: {
     list: {
-      entry: assign({ error: null }),
       on: {
         SELECT: {
           target: 'detail',
-          actions: assign(({ event }) => ({ selectedAction: event.pendingAction })),
+          actions: assign(({ event }) => ({ selectedAction: event.pendingAction, error: null })),
         },
         OPEN_SIMULATE: {
-          actions: assign({ simulateOpen: true }),
+          actions: assign({ simulateOpen: true, error: null }),
         },
         CLOSE_SIMULATE: {
           actions: assign({ simulateOpen: false }),
@@ -80,7 +79,6 @@ export const approvalsMachine = setup({
     },
 
     detail: {
-      entry: assign({ error: null }),
       on: {
         BACK: {
           target: 'list',
@@ -92,6 +90,7 @@ export const approvalsMachine = setup({
     },
 
     approving: {
+      entry: assign({ error: null }),
       invoke: {
         src: 'approveActor',
         input: ({ context, event }) => ({
@@ -114,6 +113,7 @@ export const approvalsMachine = setup({
     },
 
     denying: {
+      entry: assign({ error: null }),
       invoke: {
         src: 'denyActor',
         input: ({ context, event }) => ({
@@ -136,16 +136,17 @@ export const approvalsMachine = setup({
     },
 
     simulating: {
+      entry: assign({ error: null }),
       invoke: {
         src: 'simulateActor',
         input: ({ event }) => {
           const e = event as {
             type: 'SUBMIT_SIMULATE';
             agent_id: string;
-            action: string;
+            tool_key: string;
             context?: Record<string, unknown>;
           };
-          return { agent_id: e.agent_id, action: e.action, context: e.context };
+          return { agent_id: e.agent_id, tool_key: e.tool_key, context: e.context };
         },
         onDone: {
           target: 'list',

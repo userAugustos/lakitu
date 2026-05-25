@@ -46,6 +46,10 @@
     "./gateway": {
       "types": "./dist/gateway.d.ts",
       "import": "./dist/gateway.js"
+    },
+    "./tools": {
+      "types": "./dist/tools.d.ts",
+      "import": "./dist/tools.js"
     }
   },
   "scripts": {

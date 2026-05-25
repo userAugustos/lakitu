@@ -2,6 +2,7 @@ import { agentsRepository } from '@api/modules/agents/agents.repository';
 import { authRepository } from '@api/modules/auth/auth.repository';
 import type { AuditLogRow, NewAuditLogRow } from '@api/db/schema';
 import { badRequest, unauthorized } from '@core/errors';
+import { LOG_DOMAINS, logger } from '@core/logger';
 
 import { auditLogRepository } from './audit-log.repository';
 import type {
@@ -11,7 +12,10 @@ import type {
   AuditLogListEntry,
   AuditLogListResponse,
   SearchAuditLogParams,
+  VerifyChainResponse,
 } from './types';
+
+const auditLogger = logger.child({ domain: LOG_DOMAINS.AUDIT_LOG });
 
 function toAuditLogEntry(row: AuditLogRow): AuditLogEntry {
   return {
@@ -30,7 +34,9 @@ function toAuditLogEntry(row: AuditLogRow): AuditLogEntry {
   };
 }
 
-function serializeInput(input: AppendAuditLogInput): NewAuditLogRow {
+function serializeInput(
+  input: AppendAuditLogInput
+): Omit<NewAuditLogRow, 'previousHash' | 'rowHash'> {
   return {
     auditId: input.audit_id ?? crypto.randomUUID(),
     agentId: input.agent_id,
@@ -45,13 +51,26 @@ function serializeInput(input: AppendAuditLogInput): NewAuditLogRow {
   };
 }
 
-async function append(input: AppendAuditLogInput): Promise<AuditLogEntry> {
-  const row = await auditLogRepository.insert(serializeInput(input));
+function append(input: AppendAuditLogInput): AuditLogEntry {
+  const sanitized = { ...input, context: sanitizeMetadata(input.context ?? null) };
+  const row = auditLogRepository.insert(serializeInput(sanitized));
   return toAuditLogEntry(row);
 }
 
-async function appendMany(inputs: AppendAuditLogInput[]): Promise<void> {
-  await auditLogRepository.insertMany(inputs.map(serializeInput));
+function safeAppend(input: AppendAuditLogInput): void {
+  try {
+    append(input);
+  } catch (err) {
+    auditLogger.error('Failed to write audit row', { action: input.action, error: err });
+  }
+}
+
+function appendMany(inputs: AppendAuditLogInput[]): void {
+  const sanitized = inputs.map((input) => ({
+    ...input,
+    context: sanitizeMetadata(input.context ?? null),
+  }));
+  auditLogRepository.insertMany(sanitized.map(serializeInput));
 }
 
 async function findRelated(auditId: string): Promise<AuditLogEntry[]> {
@@ -105,10 +124,66 @@ async function list(
   return { entries: enriched };
 }
 
+const SENSITIVE_METADATA_KEYS = [
+  'code',
+  'password',
+  'private_key',
+  'token',
+  'otp',
+  'jwt',
+  'secret',
+  'email_body',
+] as const;
+
+function sanitizeMetadata(
+  metadata: Record<string, unknown> | null | undefined
+): Record<string, unknown> | null {
+  if (!metadata) return null;
+  let clean = metadata;
+  for (const key of SENSITIVE_METADATA_KEYS) {
+    if (key in clean) {
+      if (clean === metadata) clean = { ...metadata };
+      clean[key] = '[REDACTED]';
+    }
+  }
+  return clean;
+}
+
+export function assertNoSensitiveMetadata(
+  metadata: Record<string, unknown> | null | undefined
+): void {
+  if (!metadata) return;
+  for (const key of SENSITIVE_METADATA_KEYS) {
+    if (key in metadata) {
+      throw badRequest(
+        'audit_log.sensitive_metadata',
+        `Metadata must not contain sensitive field: ${key}`
+      );
+    }
+  }
+}
+
+function streamForCompany(
+  companyId: string,
+  cursor?: { after: Date },
+  limit?: number
+): AuditLogEntry[] {
+  const rows = auditLogRepository.streamForCompany(companyId, cursor, limit);
+  return rows.map(toAuditLogEntry);
+}
+
+function verifyChain(companyId: string): VerifyChainResponse {
+  return auditLogRepository.verifyChain(companyId);
+}
+
 export const auditLogService = {
   append,
+  safeAppend,
   appendMany,
   findRelated,
   search,
   list,
+  streamForCompany,
+  verifyChain,
+  assertNoSensitiveMetadata,
 };

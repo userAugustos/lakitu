@@ -13,16 +13,64 @@ const MOCK_AGENT_WITH_PERMISSIONS = {
   clawkey_registered_at: Date.now(),
   status: 'active',
   permissions: [
-    { action: 'read:emails', policy_limits: null },
-    { action: 'create:transaction', policy_limits: { max_value: 500, max_by_day: 2 } },
+    { tool_key: 'gmail.messages.read', policy_limits: null, auto_approve: false },
+    { tool_key: 'stripe.charges.create', policy_limits: { max_amount: 500 }, auto_approve: false },
   ],
   created_at: Date.now(),
   updated_at: Date.now(),
 };
 
+const MOCK_TOOLS_RESPONSE = {
+  tools: [
+    {
+      key: 'gmail.messages.read',
+      provider: 'gmail',
+      resource: 'messages',
+      verb: 'read',
+      label: 'Read messages',
+      description: 'Read emails from a Gmail inbox.',
+      risk_level: 'low',
+      policy_fields: [],
+    },
+    {
+      key: 'stripe.charges.create',
+      provider: 'stripe',
+      resource: 'charges',
+      verb: 'create',
+      label: 'Create charge',
+      description: 'Create a new charge in Stripe.',
+      risk_level: 'high',
+      policy_fields: [
+        { key: 'max_amount', label: 'Max amount', type: 'number', placeholder: '1000' },
+      ],
+    },
+    {
+      key: 'gmail.drafts.create',
+      provider: 'gmail',
+      resource: 'drafts',
+      verb: 'create',
+      label: 'Create draft',
+      description: 'Create a new email draft in Gmail.',
+      risk_level: 'low',
+      policy_fields: [],
+    },
+  ],
+};
+
 test.describe('Approvals simulation', () => {
   test.beforeEach(async ({ page }) => {
     await setupAuthenticatedPage(page);
+
+    await page.route('**/tools', (route) => {
+      if (route.request().method() === 'GET') {
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(MOCK_TOOLS_RESPONSE),
+        });
+      }
+      return route.continue();
+    });
 
     await page.route('**/agents', (route) => {
       if (route.request().method() !== 'GET') return route.continue();
@@ -53,7 +101,7 @@ test.describe('Approvals simulation', () => {
             id: 'pa_sim_001',
             agent_id: MOCK_AGENT_WITH_PERMISSIONS.id,
             agent_name: MOCK_AGENT_WITH_PERMISSIONS.name,
-            action: 'read:emails',
+            tool_key: 'gmail.messages.read',
             context: {},
             policy_hit: 'manual_simulation',
             status: 'pending',
@@ -70,7 +118,7 @@ test.describe('Approvals simulation', () => {
     });
   });
 
-  test('trigger action only offers actions granted to the selected agent', async ({ page }) => {
+  test('trigger tool only offers tools granted to the selected agent', async ({ page }) => {
     await page.goto('/dashboard/approvals');
 
     await page.getByTestId('simulate-btn').click();
@@ -79,8 +127,9 @@ test.describe('Approvals simulation', () => {
 
     await page.getByTestId('simulate-action-select').click();
 
-    await expect(page.getByRole('option', { name: 'Read emails' })).toBeVisible();
-    await expect(page.getByRole('option', { name: 'Create transaction' })).toBeVisible();
-    await expect(page.getByRole('option', { name: 'Reply email' })).toHaveCount(0);
+    await expect(page.getByRole('option', { name: 'Read messages' })).toBeVisible();
+    await expect(page.getByRole('option', { name: 'Create charge' })).toBeVisible();
+
+    await expect(page.getByRole('option', { name: 'Create draft' })).toHaveCount(0);
   });
 });

@@ -119,9 +119,6 @@ export const agents = sqliteTable(
   })
 );
 
-export const PERMISSION_AUDIT_ACTIONS = ['grant', 'revoke', 'update_policy'] as const;
-export type PermissionAuditAction = (typeof PERMISSION_AUDIT_ACTIONS)[number];
-
 export const agentPermissions = sqliteTable(
   'agent_permissions',
   {
@@ -131,8 +128,9 @@ export const agentPermissions = sqliteTable(
     agentId: text('agent_id')
       .notNull()
       .references(() => agents.id),
-    action: text('action').notNull(),
+    toolKey: text('tool_key').notNull(),
     policyLimits: text('policy_limits'),
+    autoApprove: integer('auto_approve', { mode: 'boolean' }).notNull().default(false),
     createdAt: integer('created_at', { mode: 'timestamp_ms' })
       .notNull()
       .default(sql`(unixepoch() * 1000)`),
@@ -141,34 +139,8 @@ export const agentPermissions = sqliteTable(
       .default(sql`(unixepoch() * 1000)`),
   },
   (t) => ({
-    agentActionUniq: uniqueIndex('uniq_agent_permissions_agent_action').on(t.agentId, t.action),
+    agentToolUniq: uniqueIndex('uniq_agent_permissions_agent_tool').on(t.agentId, t.toolKey),
     agentIdx: index('idx_agent_permissions_agent').on(t.agentId),
-  })
-);
-
-export const permissionAuditLog = sqliteTable(
-  'permission_audit_log',
-  {
-    id: text('id')
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-    agentId: text('agent_id')
-      .notNull()
-      .references(() => agents.id),
-    userId: text('user_id')
-      .notNull()
-      .references(() => users.id),
-    action: text('action').notNull(),
-    auditAction: text('audit_action', { enum: PERMISSION_AUDIT_ACTIONS }).notNull(),
-    oldPolicyLimits: text('old_policy_limits'),
-    newPolicyLimits: text('new_policy_limits'),
-    createdAt: integer('created_at', { mode: 'timestamp_ms' })
-      .notNull()
-      .default(sql`(unixepoch() * 1000)`),
-  },
-  (t) => ({
-    agentIdx: index('idx_permission_audit_agent').on(t.agentId, t.createdAt),
-    userIdx: index('idx_permission_audit_user').on(t.userId, t.createdAt),
   })
 );
 
@@ -190,7 +162,7 @@ export const pendingActions = sqliteTable(
     companyId: text('company_id')
       .notNull()
       .references(() => companies.id),
-    action: text('action').notNull(),
+    toolKey: text('tool_key').notNull(),
     context: text('context').notNull(),
     policyHit: text('policy_hit').notNull(),
     auditId: text('audit_id'),
@@ -255,6 +227,8 @@ export const auditLogs = sqliteTable(
     policyHit: text('policy_hit'),
     requestId: text('request_id'),
     context: text('context'),
+    previousHash: text('previous_hash').notNull().default(''),
+    rowHash: text('row_hash').notNull().default(''),
     createdAt: integer('created_at', { mode: 'timestamp_ms' })
       .notNull()
       .default(sql`(unixepoch() * 1000)`),
@@ -264,6 +238,11 @@ export const auditLogs = sqliteTable(
     ownerCreatedIdx: index('idx_audit_logs_owner_created').on(t.ownerId, t.createdAt),
     decisionIdx: index('idx_audit_logs_decision').on(t.decision),
     auditIdIdx: index('idx_audit_logs_audit_id').on(t.auditId),
+    companyCreatedIdx: index('idx_audit_logs_company_created').on(t.companyId, t.createdAt),
+    companyPreviousUniq: uniqueIndex('uniq_audit_logs_company_previous').on(
+      t.companyId,
+      t.previousHash
+    ),
   })
 );
 
@@ -273,7 +252,5 @@ export type AuditLogRow = typeof auditLogs.$inferSelect;
 export type NewAuditLogRow = typeof auditLogs.$inferInsert;
 export type AgentPermissionRow = typeof agentPermissions.$inferSelect;
 export type NewAgentPermissionRow = typeof agentPermissions.$inferInsert;
-export type PermissionAuditLogRow = typeof permissionAuditLog.$inferSelect;
-export type NewPermissionAuditLogRow = typeof permissionAuditLog.$inferInsert;
 export type PendingActionRow = typeof pendingActions.$inferSelect;
 export type NewPendingActionRow = typeof pendingActions.$inferInsert;

@@ -1,9 +1,13 @@
 import { describe, expect, mock, test } from 'bun:test';
+import { eq } from 'drizzle-orm';
 
-import { db } from '@api/db/client';
-import { agents, companies, users } from '@api/db/schema';
+import { db, rawSqlite } from '@api/db/client';
+import { agents, auditLogs, companies, users } from '@api/db/schema';
 import { auditLogRepository } from '@api/modules/audit-log/audit-log.repository';
-import { auditLogService } from '@api/modules/audit-log/audit-log.service';
+import {
+  assertNoSensitiveMetadata,
+  auditLogService,
+} from '@api/modules/audit-log/audit-log.service';
 import type { CreateAgentResponse, RotateKeyResponse } from '@api/modules/agents/types';
 import type { AppendAuditLogInput } from '@api/modules/audit-log/types';
 import type { VerifyResponse } from '@api/modules/auth/types';
@@ -100,7 +104,7 @@ function makeInput(
 describe('audit-log repository', () => {
   test('inserts a single audit log row and returns it', async () => {
     const ids = await createTestAgent('repo-insert');
-    const row = await auditLogRepository.insert({
+    const row = auditLogRepository.insert({
       auditId: crypto.randomUUID(),
       agentId: ids.agentId,
       ownerId: ids.userId,
@@ -120,7 +124,7 @@ describe('audit-log repository', () => {
     const ids = await createTestAgent('repo-insert-many');
     const auditId = crypto.randomUUID();
 
-    await auditLogRepository.insertMany([
+    auditLogRepository.insertMany([
       {
         auditId,
         agentId: ids.agentId,
@@ -158,7 +162,7 @@ describe('audit-log repository', () => {
     const ids = await createTestAgent('repo-audit-id-order');
     const auditId = crypto.randomUUID();
 
-    await auditLogRepository.insert({
+    auditLogRepository.insert({
       auditId,
       agentId: ids.agentId,
       ownerId: ids.userId,
@@ -168,7 +172,7 @@ describe('audit-log repository', () => {
       reasons: JSON.stringify([]),
     });
 
-    await auditLogRepository.insert({
+    auditLogRepository.insert({
       auditId,
       agentId: ids.agentId,
       ownerId: ids.userId,
@@ -189,7 +193,7 @@ describe('audit-log repository', () => {
     const idsA = await createTestAgent('repo-agent-a');
     const idsB = await createTestAgent('repo-agent-b');
 
-    await auditLogRepository.insert({
+    auditLogRepository.insert({
       auditId: crypto.randomUUID(),
       agentId: idsA.agentId,
       ownerId: idsA.userId,
@@ -198,7 +202,7 @@ describe('audit-log repository', () => {
       decision: 'allow',
       reasons: JSON.stringify([]),
     });
-    await auditLogRepository.insert({
+    auditLogRepository.insert({
       auditId: crypto.randomUUID(),
       agentId: idsB.agentId,
       ownerId: idsB.userId,
@@ -219,7 +223,7 @@ describe('audit-log repository', () => {
     const idsA = await createTestAgent('repo-owner-a');
     const idsB = await createTestAgent('repo-owner-b');
 
-    await auditLogRepository.insert({
+    auditLogRepository.insert({
       auditId: crypto.randomUUID(),
       agentId: idsA.agentId,
       ownerId: idsA.userId,
@@ -228,7 +232,7 @@ describe('audit-log repository', () => {
       decision: 'allow',
       reasons: JSON.stringify([]),
     });
-    await auditLogRepository.insert({
+    auditLogRepository.insert({
       auditId: crypto.randomUUID(),
       agentId: idsB.agentId,
       ownerId: idsB.userId,
@@ -248,7 +252,7 @@ describe('audit-log repository', () => {
   test('findByFilters filters by decision', async () => {
     const ids = await createTestAgent('repo-filter-decision');
 
-    await auditLogRepository.insert({
+    auditLogRepository.insert({
       auditId: crypto.randomUUID(),
       agentId: ids.agentId,
       ownerId: ids.userId,
@@ -257,7 +261,7 @@ describe('audit-log repository', () => {
       decision: 'allow',
       reasons: JSON.stringify([]),
     });
-    await auditLogRepository.insert({
+    auditLogRepository.insert({
       auditId: crypto.randomUUID(),
       agentId: ids.agentId,
       ownerId: ids.userId,
@@ -280,7 +284,7 @@ describe('audit-log repository', () => {
   test('findByFilters filters by action', async () => {
     const ids = await createTestAgent('repo-filter-action');
 
-    await auditLogRepository.insert({
+    auditLogRepository.insert({
       auditId: crypto.randomUUID(),
       agentId: ids.agentId,
       ownerId: ids.userId,
@@ -289,7 +293,7 @@ describe('audit-log repository', () => {
       decision: 'allow',
       reasons: JSON.stringify([]),
     });
-    await auditLogRepository.insert({
+    auditLogRepository.insert({
       auditId: crypto.randomUUID(),
       agentId: ids.agentId,
       ownerId: ids.userId,
@@ -313,7 +317,7 @@ describe('audit-log repository', () => {
 describe('audit-log service', () => {
   test('append generates audit_id when not provided', async () => {
     const ids = await createTestAgent('svc-gen-audit-id');
-    const entry = await auditLogService.append(makeInput(ids, { audit_id: undefined }));
+    const entry = auditLogService.append(makeInput(ids, { audit_id: undefined }));
 
     expect(entry.audit_id).toBeString();
     expect(entry.audit_id.length).toBeGreaterThan(0);
@@ -322,14 +326,14 @@ describe('audit-log service', () => {
   test('append uses provided audit_id', async () => {
     const ids = await createTestAgent('svc-provided-audit-id');
     const explicitId = crypto.randomUUID();
-    const entry = await auditLogService.append(makeInput(ids, { audit_id: explicitId }));
+    const entry = auditLogService.append(makeInput(ids, { audit_id: explicitId }));
 
     expect(entry.audit_id).toBe(explicitId);
   });
 
   test('append serializes reasons and context correctly', async () => {
     const ids = await createTestAgent('svc-serialize');
-    const entry = await auditLogService.append(
+    const entry = auditLogService.append(
       makeInput(ids, {
         reasons: ['policy.alpha', 'policy.beta'],
         context: { model: 'gpt-4', temperature: 0.7, tags: ['a', 'b'] },
@@ -349,7 +353,7 @@ describe('audit-log service', () => {
     const ids = await createTestAgent('svc-append-many');
     const auditId = crypto.randomUUID();
 
-    await auditLogService.appendMany([
+    auditLogService.appendMany([
       makeInput(ids, { audit_id: auditId, action: 'step.one' }),
       makeInput(ids, { audit_id: auditId, action: 'step.two' }),
     ]);
@@ -373,9 +377,9 @@ describe('audit-log service', () => {
   test('search filters by agent_id and decision', async () => {
     const ids = await createTestAgent('svc-search-combo');
 
-    await auditLogService.append(makeInput(ids, { decision: 'allow', action: 'tool.a' }));
-    await auditLogService.append(makeInput(ids, { decision: 'deny', action: 'tool.b' }));
-    await auditLogService.append(makeInput(ids, { decision: 'deny', action: 'tool.c' }));
+    auditLogService.append(makeInput(ids, { decision: 'allow', action: 'tool.a' }));
+    auditLogService.append(makeInput(ids, { decision: 'deny', action: 'tool.b' }));
+    auditLogService.append(makeInput(ids, { decision: 'deny', action: 'tool.c' }));
 
     const results = await auditLogService.search({
       agent_id: ids.agentId,
@@ -391,7 +395,7 @@ describe('audit-log service', () => {
 
   test('returned DTOs use snake_case and correct types', async () => {
     const ids = await createTestAgent('svc-dto-shape');
-    const entry = await auditLogService.append(makeInput(ids));
+    const entry = auditLogService.append(makeInput(ids));
 
     expect(typeof entry.id).toBe('string');
     expect(typeof entry.audit_id).toBe('string');
@@ -417,6 +421,200 @@ describe('audit-log service', () => {
   });
 });
 
+describe('audit-log hash chain', () => {
+  test('verifyChain returns valid with chain_length for a fresh chain', async () => {
+    const ids = await createTestAgent('chain-fresh');
+    auditLogService.append(makeInput(ids, { action: 'step.one' }));
+    auditLogService.append(makeInput(ids, { action: 'step.two' }));
+
+    const result = auditLogService.verifyChain(ids.companyId);
+    expect(result.valid).toBe(true);
+    if (result.valid) {
+      expect(result.chain_length).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  test('verifyChain returns previous_hash_mismatch for orphan row inserted via raw SQL', async () => {
+    const ids = await createTestAgent('chain-tamper-prev');
+    auditLogService.append(makeInput(ids, { action: 'step.one' }));
+
+    const fakeId = crypto.randomUUID();
+    rawSqlite.exec(
+      `INSERT INTO audit_logs (id, audit_id, agent_id, owner_id, company_id, action, decision, reasons, previous_hash, row_hash, created_at)
+       VALUES ('${fakeId}', 'fake-audit', '${ids.agentId}', '${ids.userId}', '${ids.companyId}',
+               'tamper.event', 'allow', '[]', 'bad_previous_hash_xyz', 'fake_row_hash_abc',
+               (unixepoch() * 1000) + 1000)`
+    );
+
+    const result = auditLogService.verifyChain(ids.companyId);
+    expect(result.valid).toBe(false);
+    if (!result.valid) {
+      expect(result.broken_at.reason).toBe('previous_hash_mismatch');
+    }
+  });
+
+  test('verifyChain returns row_hash_mismatch for a row with wrong stored hash', async () => {
+    const ids = await createTestAgent('chain-tamper-hash');
+    const legitimateEntry = auditLogService.append(makeInput(ids, { action: 'step.one' }));
+
+    const legRow = db
+      .select({ rowHash: auditLogs.rowHash })
+      .from(auditLogs)
+      .where(eq(auditLogs.id, legitimateEntry.id))
+      .get()!;
+
+    const badId = crypto.randomUUID();
+    rawSqlite.exec(
+      `INSERT INTO audit_logs (id, audit_id, agent_id, owner_id, company_id, action, decision, reasons, previous_hash, row_hash, created_at)
+       VALUES ('${badId}', 'fake-audit-hash', '${ids.agentId}', '${ids.userId}', '${ids.companyId}',
+               'tamper.hash', 'allow', '[]', '${legRow.rowHash}',
+               'wrong_row_hash_that_wont_verify',
+               (unixepoch() * 1000) + 2000)`
+    );
+
+    const result = auditLogService.verifyChain(ids.companyId);
+    expect(result.valid).toBe(false);
+    if (!result.valid) {
+      expect(result.broken_at.reason).toBe('row_hash_mismatch');
+    }
+  });
+
+  test('computeRowHash produces consistent output for the same inputs', async () => {
+    const payload = {
+      id: 'test-id',
+      auditId: 'audit-id',
+      agentId: 'agent-id',
+      ownerId: 'owner-id',
+      companyId: 'company-id',
+      action: 'test.action',
+      decision: 'allow' as const,
+      reasons: '["matched"]',
+      policyHit: null,
+      requestId: null,
+      context: null,
+      createdAt: new Date(1700000000000),
+      previousHash: '',
+    };
+    const hash1 = auditLogRepository.computeRowHash(payload);
+    const hash2 = auditLogRepository.computeRowHash(payload);
+    expect(hash1).toBe(hash2);
+    expect(hash1.length).toBe(64);
+
+    const differentHash = auditLogRepository.computeRowHash({ ...payload, action: 'other.action' });
+    expect(differentHash).not.toBe(hash1);
+  });
+
+  test('computeRowHash produces different output when created_at differs', async () => {
+    const base = {
+      id: 'test-id-ts',
+      auditId: 'audit-id',
+      agentId: 'agent-id',
+      ownerId: 'owner-id',
+      companyId: 'company-id',
+      action: 'test.action',
+      decision: 'allow' as const,
+      reasons: '[]',
+      policyHit: null,
+      requestId: null,
+      context: null,
+      createdAt: new Date(1700000000000),
+      previousHash: '',
+    };
+    const hash1 = auditLogRepository.computeRowHash(base);
+    const hash2 = auditLogRepository.computeRowHash({
+      ...base,
+      createdAt: new Date(1700000001000),
+    });
+    expect(hash1).not.toBe(hash2);
+  });
+
+  test('trigger blocks UPDATE on created_at', async () => {
+    const ids = await createTestAgent('chain-trigger-ts');
+    const entry = auditLogService.append(makeInput(ids, { action: 'step.one' }));
+
+    expect(() => {
+      rawSqlite.exec(`UPDATE audit_logs SET created_at = 1 WHERE id = '${entry.id}'`);
+    }).toThrow(/immutable/);
+  });
+
+  test('trigger blocks UPDATE on row_hash', async () => {
+    const ids = await createTestAgent('chain-trigger-hash');
+    const entry = auditLogService.append(makeInput(ids, { action: 'step.one' }));
+
+    expect(() => {
+      rawSqlite.exec(`UPDATE audit_logs SET row_hash = 'hacked' WHERE id = '${entry.id}'`);
+    }).toThrow(/immutable/);
+  });
+
+  test('trigger blocks DELETE', async () => {
+    const ids = await createTestAgent('chain-trigger-del');
+    const entry = auditLogService.append(makeInput(ids, { action: 'step.one' }));
+
+    expect(() => {
+      rawSqlite.exec(`DELETE FROM audit_logs WHERE id = '${entry.id}'`);
+    }).toThrow(/cannot be deleted/);
+  });
+
+  test('streamForCompany returns rows in ascending order', async () => {
+    const ids = await createTestAgent('stream-order');
+    auditLogService.append(makeInput(ids, { action: 'event.alpha' }));
+    auditLogService.append(makeInput(ids, { action: 'event.beta' }));
+
+    const entries = auditLogService.streamForCompany(ids.companyId);
+    expect(entries.length).toBeGreaterThanOrEqual(2);
+    for (let i = 1; i < entries.length; i++) {
+      expect(entries[i - 1]!.created_at).toBeLessThanOrEqual(entries[i]!.created_at);
+    }
+  });
+});
+
+describe('audit-log sensitive metadata guard', () => {
+  test('assertNoSensitiveMetadata does not throw for safe metadata', async () => {
+    expect(() => assertNoSensitiveMetadata({ model: 'gpt-4', amount: 100 })).not.toThrow();
+  });
+
+  test('assertNoSensitiveMetadata throws for metadata containing "password"', async () => {
+    expect(() => assertNoSensitiveMetadata({ password: 'hunter2' })).toThrow();
+  });
+
+  test('assertNoSensitiveMetadata throws for metadata containing "token"', async () => {
+    try {
+      assertNoSensitiveMetadata({ token: 'abc123' });
+      expect(true).toBe(false);
+    } catch (err) {
+      expect(err).toBeInstanceOf(AppError);
+      const appErr = err as AppError;
+      expect(appErr.code).toBe('audit_log.sensitive_metadata');
+    }
+  });
+
+  test('assertNoSensitiveMetadata throws for metadata containing "private_key"', async () => {
+    expect(() => assertNoSensitiveMetadata({ private_key: 'secret' })).toThrow();
+  });
+
+  test('assertNoSensitiveMetadata does not throw for null or undefined metadata', async () => {
+    expect(() => assertNoSensitiveMetadata(null)).not.toThrow();
+    expect(() => assertNoSensitiveMetadata(undefined)).not.toThrow();
+  });
+});
+
+describe('GET /audit-logs/verify', () => {
+  test('returns valid:true with chain_length for a company with no tampered rows', async () => {
+    const { token } = await createCompanyAndGetToken('verify-clean');
+
+    const res = await testClient.get('/audit-logs/verify', authHeaders(token));
+    expect(res.error).toBeNull();
+    const body = res.data as { valid: boolean; chain_length: number };
+    expect(body.valid).toBe(true);
+    expect(typeof body.chain_length).toBe('number');
+  });
+
+  test('requires authentication', async () => {
+    const res = await testClient.get('/audit-logs/verify');
+    expect((res.error as { status: number }).status).toBe(401);
+  });
+});
+
 describe('audit-log operational API events', () => {
   test('warmup (absorbs Bun first-POST timing quirk)', (done) => {
     testClient
@@ -437,7 +635,7 @@ describe('audit-log operational API events', () => {
 
     await testClient.post(
       `/agents/${agentId}/permissions`,
-      { action: 'read:emails' },
+      { tool_key: 'gmail.messages.read' },
       authHeaders(token)
     );
     await testClient.post<RotateKeyResponse>(
@@ -450,7 +648,7 @@ describe('audit-log operational API events', () => {
     const auditLogs = await auditLogService.search({ company_id: companyId });
     const actions = auditLogs.map((entry) => entry.action);
     expect(actions).toContain('agent.create');
-    expect(actions).toContain('permission.grant');
+    expect(actions).toContain('permission.granted');
     expect(actions).toContain('agent.rotate_key');
     expect(actions).toContain('agent.revoke');
     expect(auditLogs.every((entry) => entry.company_id === companyId)).toBe(true);

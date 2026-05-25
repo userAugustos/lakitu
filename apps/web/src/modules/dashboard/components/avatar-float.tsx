@@ -1,5 +1,5 @@
-import { LogOut } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
+import { LogOut } from 'lucide-react';
 
 import {
   DropdownMenu,
@@ -9,7 +9,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@repo/ui/shadcn/dropdown-menu';
-
 import { authSelectors, useAuthStore } from '@/modules/auth/auth.store';
 
 function getInitials(user: { name?: string | null; email: string }): string {
@@ -53,7 +52,7 @@ export function AvatarFloat() {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
           <DropdownMenuLabel className="font-normal">
-            <span className="block truncate text-xs text-muted-foreground">{user.email}</span>
+            <span className="text-muted-foreground block truncate text-xs">{user.email}</span>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem className="cursor-pointer" onClick={handleLogout}>
