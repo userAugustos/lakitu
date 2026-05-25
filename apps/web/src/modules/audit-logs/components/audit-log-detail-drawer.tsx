@@ -1,5 +1,7 @@
 import type { AuditLogListEntry } from '@lakitu/api/audit-log';
 
+import { cn } from '@repo/ui/utils';
+
 interface AuditLogDetailDrawerProps {
   entry: AuditLogListEntry;
 }
@@ -16,16 +18,14 @@ export function AuditLogDetailDrawer({ entry }: AuditLogDetailDrawerProps) {
         <DetailRow label="Request ID" value={entry.request_id ?? '—'} />
         <DetailRow label="Policy Hit" value={entry.policy_hit ?? '—'} />
       </div>
-      {entry.context && (
-        <div className="mt-2">
-          <span className="text-dash-muted text-[11px] font-semibold tracking-wide uppercase not-italic">
-            Context
-          </span>
-          <pre className="text-dash-ink-2 mt-1 overflow-auto text-[11.5px]">
-            {JSON.stringify(entry.context, null, 2)}
-          </pre>
-        </div>
-      )}
+      <div className={cn('mt-2', !entry.context && 'hidden')}>
+        <span className="text-dash-muted text-[11px] font-semibold tracking-wide uppercase not-italic">
+          Context
+        </span>
+        <pre className="text-dash-ink-2 mt-1 overflow-auto text-[11.5px]">
+          {entry.context ? JSON.stringify(entry.context, null, 2) : null}
+        </pre>
+      </div>
     </div>
   );
 }

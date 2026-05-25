@@ -5,8 +5,7 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { ChevronDown, ChevronRight } from 'lucide-react';
-import { Fragment, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { FilterFn, OnChangeFn } from '@tanstack/react-table';
 
 import type { AuditLogListEntry } from '@lakitu/api/audit-log';
@@ -22,15 +21,13 @@ import {
 } from '@repo/ui/shadcn/table';
 import { ChevronLeftIcon, ChevronRightIcon } from '@/modules/dashboard/lib/dashboard-icons';
 
-import { AuditLogDetailDrawer } from './audit-log-detail-drawer';
 import { auditLogsColumns } from './audit-logs-columns';
+import { ExpandedLogView } from './expanded-log-view';
 
 const PAGE_SIZE = 8;
 
 const HEAD_CLASS =
   'text-dash-muted bg-[#FAFBFD] px-4 py-3 text-left text-[11.5px] font-semibold tracking-[0.04em] whitespace-nowrap uppercase border-dash-line border-b';
-
-const CELL_CLASS = 'border-dash-line-3 border-b px-4 py-3.5 align-middle';
 
 const auditLogGlobalFilter: FilterFn<AuditLogListEntry> = (row, _columnId, filterValue) => {
   const query = String(filterValue ?? '')
@@ -65,6 +62,15 @@ export function AuditLogsTable({
   onGlobalFilterChange,
 }: AuditLogsTableProps) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    setExpandedRows((prev) => {
+      if (prev.size === 0) return prev;
+      const presentIds = new Set(entries.map((e) => e.id));
+      const next = new Set([...prev].filter((id) => presentIds.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [entries]);
 
   const table = useReactTable({
     data: entries,
@@ -137,46 +143,17 @@ export function AuditLogsTable({
         </TableHeader>
         <TableBody>
           {table.getRowModel().rows.length > 0 ? (
-            table.getRowModel().rows.map((row) => {
-              const isExpanded = expandedRows.has(row.original.id);
-              return (
-                <Fragment key={row.id}>
-                  <TableRow
-                    data-testid={`audit-log-row-${row.original.id}`}
-                    className="border-0 hover:bg-[#FAFBFD]"
-                  >
-                    <TableCell className={CELL_CLASS} style={{ width: 36 }}>
-                      <button
-                        type="button"
-                        data-testid={`audit-log-row-expand-${row.original.id}`}
-                        className="flex items-center justify-center p-0.5"
-                        aria-label={isExpanded ? 'Collapse row' : 'Expand row'}
-                        aria-expanded={isExpanded}
-                        onClick={() => toggleRow(row.original.id)}
-                      >
-                        {isExpanded ? (
-                          <ChevronDown className="h-3.5 w-3.5" />
-                        ) : (
-                          <ChevronRight className="h-3.5 w-3.5" />
-                        )}
-                      </button>
-                    </TableCell>
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className={CELL_CLASS}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                  {isExpanded && (
-                    <tr>
-                      <td colSpan={auditLogsColumns.length + 1} className="p-0">
-                        <AuditLogDetailDrawer entry={row.original} />
-                      </td>
-                    </tr>
-                  )}
-                </Fragment>
-              );
-            })
+            table
+              .getRowModel()
+              .rows.map((row) => (
+                <ExpandedLogView
+                  key={row.id}
+                  row={row}
+                  isExpanded={expandedRows.has(row.original.id)}
+                  onToggle={toggleRow}
+                  columnCount={auditLogsColumns.length + 1}
+                />
+              ))
           ) : (
             <TableRow className="border-0 hover:bg-transparent">
               <TableCell colSpan={auditLogsColumns.length + 1} className="px-4 py-12 text-center">
