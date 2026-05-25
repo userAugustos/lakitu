@@ -244,7 +244,7 @@ test.describe('Create Agent flow', () => {
     await expect(page.getByTestId('tool-risk-badge')).toContainText('CRITICAL');
     await expect(page.getByTestId('critical-tool-banner')).toBeVisible();
     await expect(page.getByTestId('critical-tool-banner')).toContainText(
-      'every request will require manual approval'
+      'Every request will require manual approval'
     );
 
     await expect(page.getByTestId('auto-approve-toggle')).not.toBeVisible();

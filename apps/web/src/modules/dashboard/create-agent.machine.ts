@@ -115,6 +115,7 @@ export const createAgentMachine = setup({
           },
         },
         granting: {
+          entry: assign({ error: null }),
           invoke: {
             src: 'grantPermissionActor',
             input: ({ context, event }) => ({

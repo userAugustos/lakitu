@@ -31,6 +31,7 @@ function CreateAgentPage() {
   const isSubmitting = snapshot.matches('creating');
   const isBypassing = snapshot.matches({ clawkey: 'bypassing' });
   const currentStep = SCREEN_TO_STEP[screen] ?? 1;
+  const viewKey = screen === 'creating' ? 'naming' : screen;
 
   const content = (() => {
     switch (screen) {
@@ -80,7 +81,7 @@ function CreateAgentPage() {
       <div className="border-dash-line overflow-hidden rounded-2xl border bg-white p-8">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
-            key={screen}
+            key={viewKey}
             variants={slideVariants}
             initial="hiddenRight"
             animate="visible"

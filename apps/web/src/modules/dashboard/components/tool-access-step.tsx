@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ActorRefFrom, SnapshotFrom } from 'xstate';
 
 import type { RevokePermissionResponse } from '@lakitu/api/permissions';
@@ -54,6 +54,14 @@ export function ToolAccessStep({ snapshot, send, agentId, agentName }: ToolAcces
 
   const selectedTool: Tool | undefined = tools.find((t) => t.key === selectedToolKey);
 
+  useEffect(() => {
+    if (selectedToolKey && grantedPermissions.some((p) => p.tool_key === selectedToolKey)) {
+      setSelectedToolKey('');
+      setPolicyValues({});
+      setAutoApprove(false);
+    }
+  }, [grantedPermissions, selectedToolKey]);
+
   const canSubmit =
     !!selectedTool &&
     !isGranting &&
@@ -90,10 +98,6 @@ export function ToolAccessStep({ snapshot, send, agentId, agentName }: ToolAcces
       policyLimits: Object.keys(policyLimits).length > 0 ? policyLimits : null,
       autoApprove: selectedTool.risk_level === 'high' ? autoApprove : false,
     });
-
-    setSelectedToolKey('');
-    setPolicyValues({});
-    setAutoApprove(false);
   };
 
   const handleRevoke = async (revokeKey: string) => {
