@@ -160,7 +160,7 @@ async function approve(
   const updated = await pendingActionsRepository.findById(pendingActionId);
   const agent = await agentsRepository.findById(row.agentId);
 
-  auditLogService.append({
+  auditLogService.safeAppend({
     audit_id: row.auditId ?? undefined,
     agent_id: row.agentId,
     owner_id: row.ownerId,
@@ -201,7 +201,7 @@ async function deny(
   const updated = await pendingActionsRepository.findById(pendingActionId);
   const agent = await agentsRepository.findById(row.agentId);
 
-  auditLogService.append({
+  auditLogService.safeAppend({
     audit_id: row.auditId ?? undefined,
     agent_id: row.agentId,
     owner_id: row.ownerId,

@@ -54,7 +54,7 @@ function appendAgentAudit(
   reasons: string[],
   context?: Record<string, unknown>
 ): void {
-  auditLogService.append({
+  auditLogService.safeAppend({
     agent_id: agent.id,
     owner_id: agent.ownerId,
     company_id: agent.companyId,

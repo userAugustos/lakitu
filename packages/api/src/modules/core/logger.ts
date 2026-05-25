@@ -25,6 +25,7 @@ export const LOG_DOMAINS = {
   ERROR: '[Error]',
   PENDING_ACTIONS: '[PendingActions]',
   GATEWAY: '[Gateway]',
+  AUDIT_LOG: '[AuditLog]',
 } as const;
 
 const isTestEnv = Bun.env.NODE_ENV === 'test';

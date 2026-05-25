@@ -2,6 +2,7 @@ import { agentsRepository } from '@api/modules/agents/agents.repository';
 import { authRepository } from '@api/modules/auth/auth.repository';
 import type { AuditLogRow, NewAuditLogRow } from '@api/db/schema';
 import { badRequest, unauthorized } from '@core/errors';
+import { LOG_DOMAINS, logger } from '@core/logger';
 
 import { auditLogRepository } from './audit-log.repository';
 import type {
@@ -13,6 +14,8 @@ import type {
   SearchAuditLogParams,
   VerifyChainResponse,
 } from './types';
+
+const auditLogger = logger.child({ domain: LOG_DOMAINS.AUDIT_LOG });
 
 function toAuditLogEntry(row: AuditLogRow): AuditLogEntry {
   return {
@@ -52,6 +55,14 @@ function append(input: AppendAuditLogInput): AuditLogEntry {
   const sanitized = { ...input, context: sanitizeMetadata(input.context ?? null) };
   const row = auditLogRepository.insert(serializeInput(sanitized));
   return toAuditLogEntry(row);
+}
+
+function safeAppend(input: AppendAuditLogInput): void {
+  try {
+    append(input);
+  } catch (err) {
+    auditLogger.error('Failed to write audit row', { action: input.action, error: err });
+  }
 }
 
 function appendMany(inputs: AppendAuditLogInput[]): void {
@@ -167,6 +178,7 @@ function verifyChain(companyId: string): VerifyChainResponse {
 
 export const auditLogService = {
   append,
+  safeAppend,
   appendMany,
   findRelated,
   search,

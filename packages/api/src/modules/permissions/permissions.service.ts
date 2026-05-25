@@ -63,10 +63,13 @@ function validatePolicyFields(
         `Unknown policy field '${key}' for tool '${toolKey}'`
       );
     }
-    if (field.type === 'number' && (typeof value !== 'number' || !Number.isFinite(value))) {
+    if (
+      field.type === 'number' &&
+      (typeof value !== 'number' || !Number.isFinite(value) || value <= 0)
+    ) {
       throw badRequest(
         'permissions.invalid_policy_value',
-        `Policy field '${key}' for tool '${toolKey}' must be a finite number`
+        `Policy field '${key}' for tool '${toolKey}' must be a positive number`
       );
     }
     if (field.type === 'string' && typeof value !== 'string') {
@@ -132,7 +135,7 @@ async function grant(
     autoApprove,
   });
 
-  auditLogService.append({
+  auditLogService.safeAppend({
     agent_id: agent.id,
     owner_id: agent.ownerId,
     company_id: agent.companyId,
@@ -191,12 +194,16 @@ async function update(
 
   const autoApproveChanged =
     newAutoApprove !== undefined && newAutoApprove !== existing.autoApprove;
+  const policyChanged = newPolicyLimits !== undefined && newPolicyLimits !== existing.policyLimits;
 
-  const eventType = autoApproveChanged
-    ? 'permission.auto_approve_changed'
-    : 'permission.policy_updated';
+  const eventType =
+    policyChanged && autoApproveChanged
+      ? 'permission.updated'
+      : autoApproveChanged
+        ? 'permission.auto_approve_changed'
+        : 'permission.policy_updated';
 
-  auditLogService.append({
+  auditLogService.safeAppend({
     agent_id: agent.id,
     owner_id: agent.ownerId,
     company_id: agent.companyId,
@@ -230,7 +237,7 @@ async function revoke(
 
   permissionsRepository.deleteById(existing.id);
 
-  auditLogService.append({
+  auditLogService.safeAppend({
     agent_id: agent.id,
     owner_id: agent.ownerId,
     company_id: agent.companyId,
