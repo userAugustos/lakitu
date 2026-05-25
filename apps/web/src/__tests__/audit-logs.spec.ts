@@ -47,17 +47,8 @@ test.describe('Audit logs', () => {
   test.beforeEach(async ({ page }) => {
     await setupAuthenticatedPage(page);
 
-    await page.route('**/audit-logs/verify**', (route) => {
-      if (route.request().method() === 'GET') {
-        return route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify(MOCK_VERIFY_VALID),
-        });
-      }
-      return route.continue();
-    });
-
+    // Playwright matches the most-recently-registered route first, so the broad
+    // matcher is registered before the specific /verify route to avoid shadowing it.
     await page.route('**/audit-logs**', (route) => {
       const request = route.request();
       if (request.method() !== 'GET' || request.resourceType() !== 'fetch') {
@@ -68,6 +59,17 @@ test.describe('Audit logs', () => {
         contentType: 'application/json',
         body: JSON.stringify({ entries: MOCK_AUDIT_LOGS }),
       });
+    });
+
+    await page.route('**/audit-logs/verify**', (route) => {
+      if (route.request().method() === 'GET') {
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(MOCK_VERIFY_VALID),
+        });
+      }
+      return route.continue();
     });
   });
 

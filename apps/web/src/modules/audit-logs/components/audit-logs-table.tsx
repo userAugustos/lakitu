@@ -6,13 +6,12 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import type { FilterFn, OnChangeFn } from '@tanstack/react-table';
 
 import type { AuditLogListEntry } from '@lakitu/api/audit-log';
 
 import { Button } from '@repo/ui/shadcn/button';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@repo/ui/shadcn/collapsible';
 import {
   Table,
   TableBody,
@@ -141,30 +140,26 @@ export function AuditLogsTable({
             table.getRowModel().rows.map((row) => {
               const isExpanded = expandedRows.has(row.original.id);
               return (
-                <Collapsible
-                  key={row.id}
-                  open={isExpanded}
-                  onOpenChange={() => toggleRow(row.original.id)}
-                >
+                <Fragment key={row.id}>
                   <TableRow
                     data-testid={`audit-log-row-${row.original.id}`}
                     className="border-0 hover:bg-[#FAFBFD]"
                   >
                     <TableCell className={CELL_CLASS} style={{ width: 36 }}>
-                      <CollapsibleTrigger asChild>
-                        <button
-                          type="button"
-                          data-testid={`audit-log-row-expand-${row.original.id}`}
-                          className="flex items-center justify-center p-0.5"
-                          aria-label={isExpanded ? 'Collapse row' : 'Expand row'}
-                        >
-                          {isExpanded ? (
-                            <ChevronDown className="h-3.5 w-3.5" />
-                          ) : (
-                            <ChevronRight className="h-3.5 w-3.5" />
-                          )}
-                        </button>
-                      </CollapsibleTrigger>
+                      <button
+                        type="button"
+                        data-testid={`audit-log-row-expand-${row.original.id}`}
+                        className="flex items-center justify-center p-0.5"
+                        aria-label={isExpanded ? 'Collapse row' : 'Expand row'}
+                        aria-expanded={isExpanded}
+                        onClick={() => toggleRow(row.original.id)}
+                      >
+                        {isExpanded ? (
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        ) : (
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        )}
+                      </button>
                     </TableCell>
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id} className={CELL_CLASS}>
@@ -172,14 +167,14 @@ export function AuditLogsTable({
                       </TableCell>
                     ))}
                   </TableRow>
-                  <CollapsibleContent asChild>
+                  {isExpanded && (
                     <tr>
                       <td colSpan={auditLogsColumns.length + 1} className="p-0">
                         <AuditLogDetailDrawer entry={row.original} />
                       </td>
                     </tr>
-                  </CollapsibleContent>
-                </Collapsible>
+                  )}
+                </Fragment>
               );
             })
           ) : (
