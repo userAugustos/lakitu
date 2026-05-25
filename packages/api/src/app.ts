@@ -9,6 +9,7 @@ import { zodToJsonSchema } from 'zod-to-json-schema';
 import { db } from '@api/db/client';
 import { agentsRoutes } from '@api/modules/agents/agents.routes';
 import { auditLogRoutes } from '@api/modules/audit-log/audit-log.routes';
+import { auditLogService } from '@api/modules/audit-log/audit-log.service';
 import { authRoutes } from '@api/modules/auth/auth.routes';
 import { companiesRoutes } from '@api/modules/companies/companies.routes';
 import { gatewayRoutes } from '@api/modules/gateway/gateway.routes';
@@ -98,6 +99,7 @@ export type LakituApi = typeof lakituApi;
 export const setupApi = async () => {
   httpLogger.info('Running migrations');
   migrate(db, { migrationsFolder: './src/db/migrations' });
+  auditLogService.bootstrapChain();
   httpLogger.info('Setup complete', { env: config.environment });
 };
 

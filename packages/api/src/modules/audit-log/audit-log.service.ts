@@ -176,6 +176,10 @@ function verifyChain(companyId: string): VerifyChainResponse {
   return auditLogRepository.verifyChain(companyId);
 }
 
+function bootstrapChain(): void {
+  auditLogRepository.bootstrapChain();
+}
+
 export const auditLogService = {
   append,
   safeAppend,
@@ -185,5 +189,6 @@ export const auditLogService = {
   list,
   streamForCompany,
   verifyChain,
+  bootstrapChain,
   assertNoSensitiveMetadata,
 };
