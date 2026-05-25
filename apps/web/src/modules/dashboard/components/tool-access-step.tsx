@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useReducer } from 'react';
 import type { ActorRefFrom, SnapshotFrom } from 'xstate';
 
 import type { RevokePermissionResponse } from '@lakitu/api/permissions';
@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@repo/ui/shadcn/select';
+import { cn } from '@repo/ui/utils';
 import { apiCall, lakituAuthApi } from '@/api';
 import { toolsQueryOptions } from '@/modules/tools/lib/tools-query';
 
@@ -31,6 +32,42 @@ const RISK_EXPLAINER: Record<RiskLevel, string> = {
   critical: 'Critical risk — every request requires manual approval.',
 };
 
+interface FormState {
+  selectedToolKey: string;
+  policyValues: Record<string, string>;
+  autoApprove: boolean;
+  revokeError: string | null;
+}
+
+type FormAction =
+  | { type: 'SELECT_TOOL'; toolKey: string }
+  | { type: 'SET_POLICY_VALUE'; key: string; value: string }
+  | { type: 'TOGGLE_AUTO_APPROVE' }
+  | { type: 'RESET' }
+  | { type: 'SET_REVOKE_ERROR'; message: string | null };
+
+const initialFormState: FormState = {
+  selectedToolKey: '',
+  policyValues: {},
+  autoApprove: false,
+  revokeError: null,
+};
+
+function formReducer(state: FormState, action: FormAction): FormState {
+  switch (action.type) {
+    case 'SELECT_TOOL':
+      return { ...initialFormState, selectedToolKey: action.toolKey };
+    case 'SET_POLICY_VALUE':
+      return { ...state, policyValues: { ...state.policyValues, [action.key]: action.value } };
+    case 'TOGGLE_AUTO_APPROVE':
+      return { ...state, autoApprove: !state.autoApprove };
+    case 'RESET':
+      return initialFormState;
+    case 'SET_REVOKE_ERROR':
+      return { ...state, revokeError: action.message };
+  }
+}
+
 interface ToolAccessStepProps {
   snapshot: SnapshotFrom<typeof createAgentMachine>;
   send: ActorRefFrom<typeof createAgentMachine>['send'];
@@ -40,10 +77,8 @@ interface ToolAccessStepProps {
 
 export function ToolAccessStep({ snapshot, send, agentId, agentName }: ToolAccessStepProps) {
   const { data: toolsData } = useQuery(toolsQueryOptions());
-
-  const [selectedToolKey, setSelectedToolKey] = useState<string>('');
-  const [policyValues, setPolicyValues] = useState<Record<string, string>>({});
-  const [autoApprove, setAutoApprove] = useState(false);
+  const [form, dispatch] = useReducer(formReducer, initialFormState);
+  const { selectedToolKey, policyValues, autoApprove, revokeError } = form;
 
   const tools = toolsData?.tools ?? [];
   const { grantedPermissions, error } = snapshot.context;
@@ -56,9 +91,7 @@ export function ToolAccessStep({ snapshot, send, agentId, agentName }: ToolAcces
 
   useEffect(() => {
     if (selectedToolKey && grantedPermissions.some((p) => p.tool_key === selectedToolKey)) {
-      setSelectedToolKey('');
-      setPolicyValues({});
-      setAutoApprove(false);
+      dispatch({ type: 'RESET' });
     }
   }, [grantedPermissions, selectedToolKey]);
 
@@ -68,7 +101,10 @@ export function ToolAccessStep({ snapshot, send, agentId, agentName }: ToolAcces
     selectedTool.policy_fields.every((f) => {
       const v = policyValues[f.key];
       if (!v?.trim()) return false;
-      if (f.type === 'number') return Number.isFinite(Number(v));
+      if (f.type === 'number') {
+        const n = Number(v);
+        return Number.isFinite(n) && n > 0;
+      }
       return true;
     });
 
@@ -78,9 +114,8 @@ export function ToolAccessStep({ snapshot, send, agentId, agentName }: ToolAcces
   >;
 
   const handleSelectTool = (key: string) => {
-    setSelectedToolKey(key);
-    setPolicyValues({});
-    setAutoApprove(false);
+    send({ type: 'CLEAR_ERROR' });
+    dispatch({ type: 'SELECT_TOOL', toolKey: key });
   };
 
   const handleGrantAccess = () => {
@@ -101,10 +136,18 @@ export function ToolAccessStep({ snapshot, send, agentId, agentName }: ToolAcces
   };
 
   const handleRevoke = async (revokeKey: string) => {
-    await apiCall<RevokePermissionResponse>(() =>
-      lakituAuthApi.agents[agentId]!.permissions[revokeKey]!.delete()
-    );
-    send({ type: 'REMOVE_PERMISSION', toolKey: revokeKey });
+    try {
+      await apiCall<RevokePermissionResponse>(() =>
+        lakituAuthApi.agents[agentId]!.permissions[revokeKey]!.delete()
+      );
+      dispatch({ type: 'SET_REVOKE_ERROR', message: null });
+      send({ type: 'REMOVE_PERMISSION', toolKey: revokeKey });
+    } catch (err) {
+      dispatch({
+        type: 'SET_REVOKE_ERROR',
+        message: err instanceof Error ? err.message : 'Failed to revoke tool access',
+      });
+    }
   };
 
   return (
@@ -147,15 +190,18 @@ export function ToolAccessStep({ snapshot, send, agentId, agentName }: ToolAcces
               <ToolPolicyFields
                 tool={selectedTool}
                 values={policyValues}
-                onChange={(key, value) => setPolicyValues((prev) => ({ ...prev, [key]: value }))}
+                onChange={(key, value) => dispatch({ type: 'SET_POLICY_VALUE', key, value })}
               />
             )}
 
             {selectedTool.risk_level === 'high' && (
-              <AutoApproveToggle checked={autoApprove} onToggle={() => setAutoApprove((v) => !v)} />
+              <AutoApproveToggle
+                checked={autoApprove}
+                onToggle={() => dispatch({ type: 'TOGGLE_AUTO_APPROVE' })}
+              />
             )}
 
-            {error && <p className="text-destructive text-sm">{error.message}</p>}
+            <p className={cn('text-destructive text-sm', !error && 'hidden')}>{error?.message}</p>
 
             <Button
               type="button"
@@ -172,11 +218,14 @@ export function ToolAccessStep({ snapshot, send, agentId, agentName }: ToolAcces
       </div>
 
       {grantedPermissions.length > 0 && (
-        <ToolAccessList
-          items={grantedPermissions}
-          toolRiskMap={toolRiskMap}
-          onRevoke={handleRevoke}
-        />
+        <div className="flex flex-col gap-2">
+          <ToolAccessList
+            items={grantedPermissions}
+            toolRiskMap={toolRiskMap}
+            onRevoke={handleRevoke}
+          />
+          <p className={cn('text-destructive text-sm', !revokeError && 'hidden')}>{revokeError}</p>
+        </div>
       )}
 
       <Button

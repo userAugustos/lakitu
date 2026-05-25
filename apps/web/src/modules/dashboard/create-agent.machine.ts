@@ -111,6 +111,9 @@ export const createAgentMachine = setup({
                 ),
               })),
             },
+            CLEAR_ERROR: {
+              actions: assign({ error: null }),
+            },
             CONTINUE: '#createAgent.clawkey',
           },
         },

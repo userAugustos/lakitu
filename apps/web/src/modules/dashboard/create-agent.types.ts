@@ -22,6 +22,7 @@ export type CreateAgentEvent =
       autoApprove?: boolean;
     }
   | { type: 'REMOVE_PERMISSION'; toolKey: string }
+  | { type: 'CLEAR_ERROR' }
   | { type: 'CONTINUE' }
   | { type: 'CONFIRM' }
   | { type: 'BYPASS_CLAWKEY' };
