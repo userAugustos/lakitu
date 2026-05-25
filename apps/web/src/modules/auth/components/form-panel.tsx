@@ -71,7 +71,14 @@ export function FormPanel({ screen, children }: FormPanelProps) {
       </div>
 
       <div className="text-muted-foreground absolute right-0 bottom-6 left-0 flex justify-between px-14 text-xs max-[980px]:px-6">
-        <span>&copy; 2026 VeryAi Labs, maybe?</span>
+        <a
+          href="http://useraugustos.me/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="cursor-pointer"
+        >
+          &copy; 2026 VeryAi Labs, maybe?
+        </a>
         <span>
           <a
             href="mailto:felipe_augustos84@outlook.com.br"
