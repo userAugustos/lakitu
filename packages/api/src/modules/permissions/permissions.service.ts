@@ -54,12 +54,25 @@ function validatePolicyFields(
 ): void {
   if (!policyLimits) return;
   const tool = requireTool(toolKey);
-  const allowedKeys = new Set(tool.policy_fields.map((f) => f.key));
-  for (const key of Object.keys(policyLimits)) {
-    if (!allowedKeys.has(key)) {
+  const fieldByKey = new Map(tool.policy_fields.map((f) => [f.key, f]));
+  for (const [key, value] of Object.entries(policyLimits)) {
+    const field = fieldByKey.get(key);
+    if (!field) {
       throw badRequest(
         'permissions.unknown_policy_field',
         `Unknown policy field '${key}' for tool '${toolKey}'`
+      );
+    }
+    if (field.type === 'number' && (typeof value !== 'number' || !Number.isFinite(value))) {
+      throw badRequest(
+        'permissions.invalid_policy_value',
+        `Policy field '${key}' for tool '${toolKey}' must be a finite number`
+      );
+    }
+    if (field.type === 'string' && typeof value !== 'string') {
+      throw badRequest(
+        'permissions.invalid_policy_value',
+        `Policy field '${key}' for tool '${toolKey}' must be a string`
       );
     }
   }
