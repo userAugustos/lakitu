@@ -63,14 +63,13 @@ export const approvalsMachine = setup({
 
   states: {
     list: {
-      entry: assign({ error: null }),
       on: {
         SELECT: {
           target: 'detail',
-          actions: assign(({ event }) => ({ selectedAction: event.pendingAction })),
+          actions: assign(({ event }) => ({ selectedAction: event.pendingAction, error: null })),
         },
         OPEN_SIMULATE: {
-          actions: assign({ simulateOpen: true }),
+          actions: assign({ simulateOpen: true, error: null }),
         },
         CLOSE_SIMULATE: {
           actions: assign({ simulateOpen: false }),
@@ -80,7 +79,6 @@ export const approvalsMachine = setup({
     },
 
     detail: {
-      entry: assign({ error: null }),
       on: {
         BACK: {
           target: 'list',
@@ -92,6 +90,7 @@ export const approvalsMachine = setup({
     },
 
     approving: {
+      entry: assign({ error: null }),
       invoke: {
         src: 'approveActor',
         input: ({ context, event }) => ({
@@ -114,6 +113,7 @@ export const approvalsMachine = setup({
     },
 
     denying: {
+      entry: assign({ error: null }),
       invoke: {
         src: 'denyActor',
         input: ({ context, event }) => ({
@@ -136,6 +136,7 @@ export const approvalsMachine = setup({
     },
 
     simulating: {
+      entry: assign({ error: null }),
       invoke: {
         src: 'simulateActor',
         input: ({ event }) => {
