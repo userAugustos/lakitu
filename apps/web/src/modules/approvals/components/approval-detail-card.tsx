@@ -7,6 +7,7 @@ import { RiskBadge } from '@repo/ui/components/risk-badge';
 import { Button } from '@repo/ui/shadcn/button';
 import { Label } from '@repo/ui/shadcn/label';
 import { Textarea } from '@repo/ui/shadcn/textarea';
+import { cn } from '@repo/ui/utils';
 import type { RiskLevel } from '@repo/ui/components/risk-badge';
 import { toolsQueryOptions } from '@/modules/tools/lib/tools-query';
 
@@ -66,14 +67,10 @@ export function ApprovalDetailCard({
       <div className="grid grid-cols-2 gap-4">
         <DetailField label="Agent" value={action.agent_name} />
         <DetailField label="Tool" value={action.tool_key} mono />
-        {tool && (
-          <div>
-            <Label className="text-[11.5px] tracking-[0.04em] uppercase">Risk</Label>
-            <div className="mt-0.5">
-              <RiskBadge level={tool.risk_level as RiskLevel} />
-            </div>
-          </div>
-        )}
+        <div className={cn(!tool && 'hidden')}>
+          <Label className="text-[11.5px] tracking-[0.04em] uppercase">Risk</Label>
+          <div className="mt-0.5">{tool && <RiskBadge level={tool.risk_level as RiskLevel} />}</div>
+        </div>
         <DetailField label="Policy Hit" value={action.policy_hit} />
         <DetailField label="Status" value={action.status} />
         <DetailField label="Created" value={formatEpochFull(action.created_at)} />
