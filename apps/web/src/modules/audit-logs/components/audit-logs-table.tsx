@@ -1,11 +1,11 @@
 import {
   flexRender,
   getCoreRowModel,
+  getExpandedRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { useEffect, useState } from 'react';
 import type { FilterFn, OnChangeFn } from '@tanstack/react-table';
 
 import type { AuditLogListEntry } from '@lakitu/api/audit-log';
@@ -61,42 +61,21 @@ export function AuditLogsTable({
   globalFilter,
   onGlobalFilterChange,
 }: AuditLogsTableProps) {
-  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    setExpandedRows((prev) => {
-      if (prev.size === 0) return prev;
-      const presentIds = new Set(entries.map((e) => e.id));
-      const next = new Set([...prev].filter((id) => presentIds.has(id)));
-      return next.size === prev.size ? prev : next;
-    });
-  }, [entries]);
-
   const table = useReactTable({
     data: entries,
     columns: auditLogsColumns,
     state: { globalFilter },
     onGlobalFilterChange,
+    getRowId: (row) => row.id,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
     globalFilterFn: auditLogGlobalFilter,
     initialState: {
       pagination: { pageSize: PAGE_SIZE },
     },
   });
-
-  const toggleRow = (id: string) => {
-    setExpandedRows((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  };
 
   if (entries.length === 0) {
     return (
@@ -146,13 +125,7 @@ export function AuditLogsTable({
             table
               .getRowModel()
               .rows.map((row) => (
-                <ExpandedLogView
-                  key={row.id}
-                  row={row}
-                  isExpanded={expandedRows.has(row.original.id)}
-                  onToggle={toggleRow}
-                  columnCount={auditLogsColumns.length + 1}
-                />
+                <ExpandedLogView key={row.id} row={row} columnCount={auditLogsColumns.length + 1} />
               ))
           ) : (
             <TableRow className="border-0 hover:bg-transparent">

@@ -13,13 +13,12 @@ const CELL_CLASS = 'border-dash-line-3 border-b px-4 py-3.5 align-middle';
 
 interface ExpandedLogViewProps {
   row: Row<AuditLogListEntry>;
-  isExpanded: boolean;
-  onToggle: (id: string) => void;
   columnCount: number;
 }
 
-export function ExpandedLogView({ row, isExpanded, onToggle, columnCount }: ExpandedLogViewProps) {
+export function ExpandedLogView({ row, columnCount }: ExpandedLogViewProps) {
   const { id } = row.original;
+  const isExpanded = row.getIsExpanded();
 
   return (
     <>
@@ -31,7 +30,7 @@ export function ExpandedLogView({ row, isExpanded, onToggle, columnCount }: Expa
             className="flex cursor-pointer items-center justify-center p-0.5"
             aria-label={isExpanded ? 'Collapse row' : 'Expand row'}
             aria-expanded={isExpanded}
-            onClick={() => onToggle(id)}
+            onClick={() => row.toggleExpanded()}
           >
             <ChevronRight
               className={cn(
