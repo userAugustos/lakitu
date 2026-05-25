@@ -1,7 +1,3 @@
-DELETE FROM audit_logs;
---> statement-breakpoint
-DROP TABLE IF EXISTS permission_audit_log;
---> statement-breakpoint
 ALTER TABLE audit_logs ADD COLUMN previous_hash TEXT NOT NULL DEFAULT '';
 --> statement-breakpoint
 ALTER TABLE audit_logs ADD COLUMN row_hash TEXT NOT NULL DEFAULT '';
