@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 
-import { and, asc, desc, eq, gte, lte } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, lte, sql } from 'drizzle-orm';
 
 import { db } from '@api/db/client';
 import { auditLogs } from '@api/db/schema';
@@ -271,9 +271,79 @@ function verifyChain(companyId: string):
   return { valid: true, chain_length: totalRows };
 }
 
+function backfillUnhashedRows(): void {
+  const companies = db
+    .selectDistinct({ companyId: auditLogs.companyId })
+    .from(auditLogs)
+    .where(eq(auditLogs.rowHash, ''))
+    .all();
+
+  if (companies.length === 0) return;
+
+  db.transaction((tx) => {
+    for (const { companyId } of companies) {
+      const rows = tx
+        .select()
+        .from(auditLogs)
+        .where(eq(auditLogs.companyId, companyId))
+        .orderBy(asc(auditLogs.createdAt), asc(auditLogs.id))
+        .all();
+
+      let previousHash = '';
+      for (const row of rows) {
+        const rowHash = computeRowHash({
+          id: row.id,
+          auditId: row.auditId,
+          agentId: row.agentId,
+          ownerId: row.ownerId,
+          companyId: row.companyId,
+          action: row.action,
+          decision: row.decision,
+          reasons: row.reasons,
+          policyHit: row.policyHit,
+          requestId: row.requestId,
+          context: row.context,
+          createdAt: row.createdAt,
+          previousHash,
+        });
+        if (row.previousHash !== previousHash || row.rowHash !== rowHash) {
+          tx.update(auditLogs).set({ previousHash, rowHash }).where(eq(auditLogs.id, row.id)).run();
+        }
+        previousHash = rowHash;
+      }
+    }
+  });
+}
+
+function bootstrapChain(): void {
+  backfillUnhashedRows();
+
+  db.run(
+    sql`CREATE UNIQUE INDEX IF NOT EXISTS uniq_audit_logs_company_previous ON audit_logs (company_id, previous_hash)`
+  );
+  db.run(sql`
+    CREATE TRIGGER IF NOT EXISTS trg_audit_logs_protect_chain
+    BEFORE UPDATE ON audit_logs
+    WHEN NEW.row_hash != OLD.row_hash
+      OR NEW.previous_hash != OLD.previous_hash
+      OR NEW.action != OLD.action
+      OR NEW.decision != OLD.decision
+      OR NEW.reasons != OLD.reasons
+      OR NEW.agent_id != OLD.agent_id
+      OR NEW.owner_id != OLD.owner_id
+      OR NEW.company_id != OLD.company_id
+      OR NEW.audit_id != OLD.audit_id
+      OR NEW.created_at != OLD.created_at
+    BEGIN
+      SELECT RAISE(ABORT, 'audit_logs chain fields are immutable');
+    END
+  `);
+}
+
 export const auditLogRepository = {
   insert,
   insertMany,
+  bootstrapChain,
   findByAuditId,
   findByAgentId,
   findByOwnerId,
