@@ -77,7 +77,7 @@ export function FormPanel({ screen, children }: FormPanelProps) {
           rel="noopener noreferrer"
           className="cursor-pointer"
         >
-          &copy; 2026 VeryAi Labs, maybe?
+          &copy; 2026 Felipe Augustos
         </a>
         <span>
           <a
